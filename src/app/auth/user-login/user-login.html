@@ -1,0 +1,61 @@
+<div class="login-page">
+
+    <h1 class="page-h1">Rules of Behavior</h1>
+
+    <div class="notice-box" role="note">
+        <p class="notice-small">
+            You are about to access a U.S. Government computer/information system.
+            Access to this system is restricted to authorized users only.
+            <strong>DO NOT PROCESS CLASSIFIED INFORMATION ON THIS SYSTEM</strong>
+        </p>
+
+        <div class="notice-divider"></div>
+
+        <div class="notice-title">Login Instructions:</div>
+        <ul class="notice-list">
+            <li>
+                If you are not able to log in with a PIV card, your current User ID and
+                Password will still access APFS. To keep your password up to date, you
+                must log in every 60 days.
+            </li>
+        </ul>
+    </div>
+
+    <div class="signin-card">
+        <div class="signin-header">Sign In</div>
+
+        <form class="signin-body" [formGroup]="loginForm" (ngSubmit)="submit()">
+
+            <div class="row">
+                <label for="username" class="lbl">Username</label>
+                <input id="username" type="text" class="field" formControlName="username" autocomplete="username" />
+            </div>
+
+            <div class="row">
+                <label for="password" class="lbl">Password</label>
+                <input id="password" type="password" class="field" formControlName="password"
+                    autocomplete="current-password" />
+            </div>
+
+            <div *ngIf="errorMsg" class="error">
+                {{ errorMsg }}
+            </div>
+
+            <div class="actions">
+                <button type="submit" class="btn btn-primary" [disabled]="loginForm.invalid || isSubmitting">
+                    {{ isSubmitting ? 'Signing in…' : 'Sign in' }}
+                </button>
+
+                <button type="button" class="btn btn-secondary" (click)="goResetPassword()">
+                    Reset password
+                </button>
+
+                <button type="button" class="btn btn-secondary" (click)="goRequestAccount()">
+                    Request account
+                </button>
+            </div>
+
+        </form>
+    </div>
+
+</div>

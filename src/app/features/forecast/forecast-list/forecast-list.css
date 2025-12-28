@@ -1,0 +1,80 @@
+.page {
+    padding: 16px;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.card {
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th,
+.table td {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+}
+
+.right {
+    text-align: right;
+}
+
+.empty {
+    padding: 16px;
+    color: #555;
+}
+
+.btn {
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 8px 10px;
+    background: #f7f7f7;
+    cursor: pointer;
+    text-decoration: none;
+    color: #111;
+}
+
+.btn.primary {
+    background: #111;
+    color: #fff;
+    border-color: #111;
+}
+
+.link {
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.badge {
+    padding: 3px 8px;
+    border-radius: 999px;
+    border: 1px solid #ccc;
+    font-size: 12px;
+}
+
+.badge.submitted {
+    border-color: #333;
+    font-weight: 600;
+}

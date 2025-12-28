@@ -1,0 +1,6 @@
+<div class="wrap">
+  <div class="card-tile" *ngFor="let s of items" (click)="pick.emit(s.status)">
+    <div class="label">{{ s.status }}</div>
+    <div class="count">{{ s.count }}</div>
+  </div>
+</div>

@@ -1,0 +1,32 @@
+<div class="backdrop" *ngIf="isOpen()" (click)="close.emit()"></div>
+
+<aside class="drawer" [class.open]="isOpen()">
+  <div class="head">
+    <div class="title">Focus Frame</div>
+    <button class="btn" type="button" (click)="close.emit()">✕</button>
+  </div>
+
+  <div class="content" *ngIf="record as r">
+    <div class="card frame-corner summary">
+      <div class="k">APFS #</div>
+      <div class="v mono">{{ r.apfsNumber || r.id }}</div>
+
+      <div class="k">Title</div>
+      <div class="v">{{ r.requirementsTitle || '—' }}</div>
+
+      <div class="k">Status</div>
+      <div class="v"><span class="pill pill--info">{{ r.status }}</span></div>
+
+      <div class="k">Assigned</div>
+      <div class="v">{{ assignedToName }}</div>
+
+    </div>
+
+    <div class="actions">
+      <button class="btn btn--primary" type="button" (click)="openRecord()">Open Record</button>
+      <button class="btn btn--danger" type="button" [disabled]="!canClaim() || isBusy()" (click)="claim()">
+        {{ isBusy() ? 'Claiming…' : (canClaim() ? 'Claim Record' : 'Already Claimed') }}
+      </button>
+    </div>
+  </div>
+</aside>

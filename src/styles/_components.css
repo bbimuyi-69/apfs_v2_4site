@@ -1,0 +1,91 @@
+/* Surfaces */
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-sm);
+}
+
+/* Logo-inspired corner frame */
+.frame-corner{ position:relative; }
+.frame-corner::after{
+  content:'';
+  position:absolute;
+  right:var(--s-4);
+  top:var(--s-4);
+  width:42px;
+  height:42px;
+  border-top:6px solid var(--brand-red);
+  border-right:6px solid var(--brand-red);
+  border-radius:2px;
+  opacity:.95;
+}
+
+/* Pills */
+.pill{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:var(--text-sm);
+  border:1px solid var(--border);
+  background:rgba(255,255,255,.7);
+}
+.pill--info{ border-color:rgba(11,90,134,.35); color:var(--brand-blue); }
+.pill--danger{ border-color:rgba(181,31,42,.35); color:var(--brand-red); }
+
+/* Inputs */
+.input{
+  width:100%;
+  padding:10px 12px;
+  border-radius:var(--radius-md);
+  border:1px solid var(--border);
+  background:var(--surface);
+  font-size:var(--text-md);
+  outline:none;
+}
+.input:focus{
+  border-color:rgba(11,90,134,.45);
+  box-shadow:0 0 0 3px rgba(11,90,134,.12);
+}
+
+/* Buttons */
+.btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding:10px 12px;
+  border-radius:var(--radius-md);
+  border:1px solid var(--border);
+  background:var(--surface);
+  cursor:pointer;
+  font-size:var(--text-md);
+}
+.btn:hover{ box-shadow:var(--shadow-sm); }
+.btn--primary{
+  border-color:rgba(11,90,134,.35);
+  color:var(--brand-blue);
+}
+.btn--danger{
+  border-color:rgba(181,31,42,.35);
+  color:var(--brand-red);
+}
+
+/* Table row focus bracket */
+.row-focus{ position:relative; }
+.row-focus:hover{ background:rgba(11,90,134,.05); }
+.row-focus:hover::before{
+  content:'';
+  position:absolute;
+  left:0;
+  top:10px;
+  bottom:10px;
+  width:10px;
+  border-left:4px solid var(--brand-red);
+  border-top:4px solid var(--brand-red);
+  border-bottom:4px solid var(--brand-red);
+  border-top-left-radius:6px;
+  border-bottom-left-radius:6px;
+}

@@ -1,0 +1,34 @@
+<app-topbar-v2 [env]="env()" [roleLabel]="roleLabel()" [displayName]="displayName()"></app-topbar-v2>
+
+<div class="shell">
+  <app-nav-rail class="rail"></app-nav-rail>
+
+  <main class="main">
+    <header class="page-head">
+      <div>
+        <div class="title">Dashboard</div>
+        <div class="subtitle">Visibility & workflow health</div>
+      </div>
+    </header>
+
+    <section class="grid">
+      <div class="card frame-corner grid-left">
+        <app-status-cards [items]="statusCounts()" (pick)="onPickStatus($event)"></app-status-cards>
+      </div>
+
+      <div class="card grid-right">
+        <app-workflow-health [rows]="workableRows()"></app-workflow-health>
+      </div>
+    </section>
+
+    <section class="card controls">
+      <app-dashboard-filters [value]="filters()" (valueChange)="onFiltersChange($event)"></app-dashboard-filters>
+    </section>
+
+    <section class="card table-wrap">
+      <app-records-table [rows]="filteredRows()" (rowClick)="onSelect($event)"></app-records-table>
+    </section>
+  </main>
+
+  <app-record-drawer [record]="selected()" (close)="onCloseDrawer()"></app-record-drawer>
+</div>

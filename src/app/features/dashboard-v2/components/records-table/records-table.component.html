@@ -1,0 +1,27 @@
+<div class="table">
+  <div class="thead">
+    <div>APFS #</div>
+    <div>Title</div>
+    <div>Component</div>
+    <div>Level</div>
+    <div>Status</div>
+    <div>Assigned</div>
+    <div>Updated</div>
+  </div>
+
+  <div class="tbody">
+    <div class="tr row-focus" *ngFor="let r of rows" (click)="rowClick.emit(r)">
+      <div class="mono">{{ r.apfsNumber || r.id }}</div>
+      <div class="title">{{ r.requirementsTitle || '—' }}</div>
+      <div>{{ r.component || '—' }}</div>
+      <div>{{ r.programLevel || '—' }}</div>
+      <div><span [class]="pillClass(r.status)">{{ r.status }}</span></div>
+      <div>{{ assignedLabel(r) }}</div>
+      <div class="mono">{{ updatedLabel(r) }}</div>
+    </div>
+
+    <div class="empty" *ngIf="!rows?.length">
+      No records match your filters.
+    </div>
+  </div>
+</div>

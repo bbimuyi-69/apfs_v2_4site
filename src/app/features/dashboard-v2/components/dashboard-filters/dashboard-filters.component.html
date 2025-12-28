@@ -1,0 +1,27 @@
+<div class="wrap">
+  <div class="row">
+    <input class="input" [ngModel]="value.q" (ngModelChange)="patch({ q: $event })" placeholder="Search APFS #, title, component..." />
+    <select class="input" [ngModel]="value.status" (ngModelChange)="patch({ status: $event })">
+      <option value="All">All Statuses</option>
+      <option value="Draft">Draft</option>
+      <option value="Submitted">Submitted</option>
+      <option value="InReview">In Review</option>
+      <option value="NeedsInfo">Needs Info</option>
+      <option value="Approved">Approved</option>
+      <option value="Rejected">Rejected</option>
+      <option value="Completed">Completed</option>
+    </select>
+
+    <select class="input" [ngModel]="value.sort" (ngModelChange)="patch({ sort: $event })">
+      <option value="updated_desc">Newest Updated</option>
+      <option value="updated_asc">Oldest Updated</option>
+    </select>
+
+    <button class="btn" type="button" (click)="reset()">Reset</button>
+  </div>
+
+  <div class="toggles">
+    <label><input type="checkbox" [ngModel]="value.mineClaimed" (ngModelChange)="patch({ mineClaimed: $event })" /> My Claimed</label>
+    <label><input type="checkbox" [ngModel]="value.mineSubmitted" (ngModelChange)="patch({ mineSubmitted: $event })" /> My Submitted</label>
+  </div>
+</div>

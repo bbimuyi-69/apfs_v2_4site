@@ -1,0 +1,209 @@
+.dash-page {
+    background: #f3f5f7;
+    min-height: calc(100vh - 52px);
+}
+
+/* OG: center the content and keep it narrower */
+.dash-container {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 18px 0 40px;
+}
+
+/* OG: warning is a thin centered strip */
+.warning-banner {
+    max-width: 900px;
+    margin: 18px auto 14px;
+    background: #f3c9c9;
+    border: 1px solid #e5a7a7;
+    color: #7a1b1b;
+    padding: 8px 12px;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.warning-banner__text {
+    font-size: 13px;
+}
+
+.warning-banner__close {
+    border: none;
+    background: transparent;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    color: #7a1b1b;
+    padding: 0 6px;
+}
+
+/* OG: three columns, no card borders */
+.top-grid {
+    display: grid;
+    grid-template-columns: 140px 1fr 360px;
+    gap: 46px;
+    align-items: start;
+}
+
+/* Remove “panel” look */
+.panel {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+}
+
+.panel--plain {
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+/* OG: headings are large and lighter weight */
+.panel-title {
+    font-size: 26px;
+    font-weight: 500;
+    margin: 8px 0 10px;
+    color: #222;
+}
+
+/* Links */
+.small-link,
+.table-link {
+    font-size: 12px;
+    color: #1a5fb4;
+    text-decoration: none;
+}
+
+.small-link:hover,
+.table-link:hover {
+    text-decoration: underline;
+}
+
+/* Buttons that look like links (for your <button> replacements) */
+.link-button {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    cursor: pointer;
+    text-align: left;
+}
+
+.link-button.small-link,
+.link-button.table-link {
+    color: #1a5fb4;
+    text-decoration: none;
+}
+
+.link-button.small-link:hover,
+.link-button.table-link:hover {
+    text-decoration: underline;
+}
+
+/* OG: tables are light, minimal */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.table th {
+    text-align: left;
+    font-weight: 700;
+    padding: 8px 8px;
+    border-bottom: 1px solid #e5e5e5;
+    color: #333;
+    background: transparent;
+    /* OG looks unboxed */
+}
+
+.table td {
+    padding: 8px 8px;
+    border-bottom: 1px solid #eeeeee;
+    vertical-align: top;
+}
+
+.muted {
+    color: #666;
+    font-size: 12px;
+}
+
+.right {
+    text-align: right;
+}
+
+/* OG: action button sits below the claimed table */
+.panel-actions {
+    margin-top: 14px;
+}
+
+/* Button styling closer to OG */
+.btn {
+    border: 1px solid #b9b9b9;
+    border-radius: 2px;
+    padding: 6px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    background: #f5f5f5;
+}
+
+.btn-primary {
+    background: #234f7a;
+    border-color: #234f7a;
+    color: #fff;
+}
+
+.btn-small {
+    padding: 4px 8px;
+    font-size: 11px;
+}
+
+.plus {
+    font-weight: 900;
+    margin-left: 2px;
+}
+
+/* OG: Office Queue scroll box is a simple bordered area */
+.queue-box {
+    border: 1px solid #e2e2e2;
+    min-height: 240px;
+    max-height: 330px;
+    overflow: auto;
+    padding: 10px 10px;
+    background: #fff;
+}
+
+.queue-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 6px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.queue-meta {
+    font-size: 12px;
+    color: #333;
+}
+
+/* Latest Activity section should feel like OG (lots of whitespace above) */
+section.panel+section.panel {
+    margin-top: 30px;
+}
+
+/* Responsive: go 2 cols then 1 col (keeps desktop look) */
+@media (max-width: 1050px) {
+    .top-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 28px;
+    }
+}
+
+@media (max-width: 780px) {
+    .top-grid {
+        grid-template-columns: 1fr;
+    }
+}

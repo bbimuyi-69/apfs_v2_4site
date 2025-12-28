@@ -1,0 +1,22 @@
+<header class="app-header">
+    <div class="header-left">
+        <a class="brand" routerLink="/welcome">
+            <span *ngIf="pageTitle">{{ pageTitle }}</span>
+        </a>
+    </div>
+
+    <div class="header-right">
+        <ng-container *ngIf="auth.isLoggedIn; else loggedOut">
+            <div class="user-chip" *ngIf="auth.user as u">
+                <div class="user-name">{{ u.firstName }} {{ u.lastName }}</div>
+                <div class="user-meta">{{ u.email }}</div>
+            </div>
+
+            <button class="btn btn-logout" type="button" (click)="logout()">Logout</button>
+        </ng-container>
+
+        <ng-template #loggedOut>
+            <a class="btn btn-link" routerLink="/user-login">Sign in</a>
+        </ng-template>
+    </div>
+</header>

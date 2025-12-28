@@ -1,0 +1,52 @@
+<div class="page">
+    <div class="header">
+        <h2>Forecast Records (Test Dashboard)</h2>
+
+        <div class="actions">
+            <button type="button" class="btn" (click)="refresh()">Refresh</button>
+            <a class="btn primary" [routerLink]="['/forecast', 'new']">New Record</a>
+        </div>
+    </div>
+
+    <div class="card" *ngIf="records$ | async as records; else loading">
+        <div *ngIf="records.length === 0" class="empty">
+            No records yet. Click <b>New Record</b> to create one.
+        </div>
+
+        <table *ngIf="records.length > 0" class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>APFS #</th>
+                    <th>Title</th>
+                    <th>Component</th>
+                    <th>Status</th>
+                    <th>Updated</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr *ngFor="let r of records">
+                    <td>{{ r.id }}</td>
+                    <td>{{ r.apfsNumber ?? '—' }}</td>
+                    <td>{{ r.requirementsTitle }}</td>
+                    <td>{{ r.component ?? '—' }}</td>
+                    <td>
+                        <span class="badge" [class.submitted]="r.status === 'Submitted'">
+                            {{ r.status }}
+                        </span>
+                    </td>
+                    <td>{{ r.updatedAt ?? '—' }}</td>
+                    <td class="right">
+                        <a class="link" [routerLink]="['/forecast', r.id]">Open</a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <ng-template #loading>
+        <div class="card">Loading…</div>
+    </ng-template>
+</div>

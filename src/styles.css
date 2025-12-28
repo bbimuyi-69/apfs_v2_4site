@@ -1,0 +1,11 @@
+@import './styles/_tokens.css';
+@import './styles/_components.css';
+
+html, body { height: 100%; }
+body{
+  margin:0;
+  font-family:var(--font);
+  background:var(--bg);
+  color:var(--text);
+}
+*{ box-sizing:border-box; }

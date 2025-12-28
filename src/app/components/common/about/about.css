@@ -1,0 +1,19 @@
+.page-body {
+    padding: 25px 30px;
+    font-size: 12px;
+    line-height: 1.2;
+    color: #222;
+}
+
+.page-body p {
+    margin-bottom: 16px;
+}
+
+.page-body ol {
+    margin-left: 25px;
+    margin-bottom: 16px;
+}
+
+.page-body li {
+    margin-bottom: 8px;
+}

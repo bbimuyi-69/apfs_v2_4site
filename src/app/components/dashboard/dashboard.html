@@ -1,0 +1,155 @@
+<div class="dash-page">
+    <div class="dash-container">
+        <!-- Warning -->
+        <div class="warning-banner">
+            <div class="warning-banner__text">
+                {{ warningText }}
+            </div>
+        </div>
+
+        <div style="padding:8px;background:#ff0;font-weight:700;">
+            DASHBOARD TEMPLATE LIVE ✅ loading={{ isLoadingDashboard }}
+        </div>
+
+
+        <!-- Loading / error -->
+        <div *ngIf="isLoadingDashboard" class="panel panel--plain">
+            <div class="muted">Loading dashboard…</div>
+        </div>
+
+
+
+        <div *ngIf="!isLoadingDashboard && loadErrorText" class="panel panel--plain">
+            <div class="muted">{{ loadErrorText }}</div>
+        </div>
+
+        <!-- Content -->
+        <div *ngIf="!isLoadingDashboard && !loadErrorText" class="top-grid">
+            <!-- LEFT: Messages -->
+            <section class="panel panel--plain">
+                <div class="panel-title">Messages</div>
+                <div class="muted" style="margin-bottom: 10px;">
+                    You have <strong>{{ messagesCount }}</strong> new messages.
+                </div>
+                <button class="link-button small-link" (click)="goToMessages()">
+                    View messages →
+                </button>
+            </section>
+
+            <!-- MIDDLE: Claimed Records -->
+            <section class="panel panel--plain">
+                <div class="panel-title">Claimed Records</div>
+
+                <table class="table" *ngIf="claimedRecords.length; else noClaimed">
+                    <thead>
+                        <tr>
+                            <th>APFS #</th>
+                            <th>Current State</th>
+                            <th>Completion Status</th>
+                            <th class="right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let r of claimedRecords">
+                            <td class="right">
+                                <button class="btn btn-small" (click)="openRecord(r.id)">
+                                    Open
+                                </button>
+
+                                <button class="btn btn-small" style="margin-left: 6px;" (click)="unclaim(r)"
+                                    [disabled]="!(isCoordinator() || isAdmin())"
+                                    title="Release this record back to the queue">
+                                    Unclaim
+                                </button>
+                            </td>
+
+                        </tr>
+                    </tbody>
+                </table>
+
+                <ng-template #noClaimed>
+                    <div class="muted">No claimed records.</div>
+                </ng-template>
+
+                <div class="panel-actions">
+                    <button class="btn btn-primary" (click)="startNewForecastRecord()">
+                        Start New Forecast Record <span class="plus">+</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- RIGHT: Office Queue -->
+            <section class="panel panel--plain">
+                <div class="panel-title">Office Queue</div>
+
+                <div class="queue-box">
+                    <div *ngIf="!officeQueue.length" class="muted">
+                        Queue is empty.
+                    </div>
+
+                    <div class="queue-item" *ngFor="let q of officeQueue">
+                        <div>
+                            <div class="queue-meta">
+                                <button class="link-button table-link" (click)="openRecord(q.id)">
+                                    {{ q.apfsNumber }}
+                                </button>
+                            </div>
+                            <div class="muted">{{ q.office }} • {{ q.status }}</div>
+                        </div>
+
+                        <div class="right">
+                            <button class="btn btn-small btn-primary" (click)="claim(q)"
+                                [disabled]="!(isCoordinator() || isAdmin())" title="Claim this record">
+                                Claim
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="muted" style="margin-top: 8px;" *ngIf="!(isCoordinator() || isAdmin())">
+                    You do not currently have permission to claim items.
+                </div>
+            </section>
+        </div>
+
+        <!-- Latest Activity -->
+        <section *ngIf="!isLoadingDashboard && !loadErrorText" class="panel panel--plain">
+            <div class="panel-title">Latest Activity</div>
+
+            <table class="table" *ngIf="latestActivity.length; else noActivity">
+                <thead>
+                    <tr>
+                        <th>APFS #</th>
+                        <th>Moved From</th>
+                        <th>Moved To</th>
+                        <th>Assigned To</th>
+                        <th>Assigned By</th>
+                        <th class="right">Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let a of latestActivity">
+                        <td>
+                            <button class="link-button table-link" *ngIf="a.id; else noLink"
+                                (click)="openRecord(a.id!)">
+                                {{ a.apfsNumber }}
+                            </button>
+                            <ng-template #noLink>
+                                <span class="mono">{{ a.apfsNumber }}</span>
+                            </ng-template>
+                        </td>
+                        <td>{{ a.movedFrom }}</td>
+                        <td>{{ a.movedTo }}</td>
+                        <td>{{ a.assignedTo }}</td>
+                        <td>{{ a.assignedBy }}</td>
+                        <td class="right mono">{{ a.time }}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <ng-template #noActivity>
+                <div class="muted">No recent activity.</div>
+            </ng-template>
+        </section>
+    </div>
+</div>

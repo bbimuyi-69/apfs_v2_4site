@@ -1,0 +1,132 @@
+.login-page {
+    max-width: 760px;
+    margin: 30px auto 80px;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #222;
+}
+
+.page-h1 {
+    font-size: 28px;
+    font-weight: 500;
+    margin: 0 0 18px;
+}
+
+.notice-box {
+    background: #fff8cc;
+    border: 1px solid #e6d98a;
+    padding: 14px 16px;
+    margin-bottom: 18px;
+}
+
+.notice-small {
+    font-size: 11px;
+    line-height: 1.4;
+    margin: 0 0 10px;
+    color: #5a4b00;
+}
+
+.notice-divider {
+    height: 1px;
+    background: #eadf9c;
+    margin: 10px 0;
+}
+
+.notice-title {
+    font-size: 18px;
+    font-weight: 500;
+    margin: 0 0 6px;
+    color: #5a4b00;
+}
+
+.notice-list {
+    margin: 0 0 0 18px;
+    padding: 0;
+    font-size: 11px;
+    line-height: 1.4;
+    color: #5a4b00;
+}
+
+.signin-card {
+    width: 580px;
+    margin: 0 auto;
+    border: 1px solid #2d6ea3;
+    border-radius: 2px;
+    background: #fff;
+}
+
+.signin-header {
+    background: #2d6ea3;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 7px 10px;
+}
+
+.signin-body {
+    padding: 18px 18px 16px;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.lbl {
+    font-size: 12px;
+    font-weight: 700;
+    text-align: right;
+}
+
+.field {
+    height: 28px;
+    padding: 4px 6px;
+    border: 1px solid #c4c4c4;
+    border-radius: 2px;
+    background: #eef4ff;
+    font-size: 12px;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.btn {
+    height: 30px;
+    padding: 0 12px;
+    font-size: 12px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-primary {
+    background: linear-gradient(#5cb85c, #449d44);
+    color: #fff;
+    border-color: #3e8f3e;
+    font-weight: 700;
+}
+
+.btn-secondary {
+    background: #f5f5f5;
+    border-color: #cfcfcf;
+    color: #222;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.error {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #b00020;
+    text-align: center;
+}

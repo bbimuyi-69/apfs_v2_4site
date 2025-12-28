@@ -1,0 +1,22 @@
+<div class="wrap">
+  <div class="title">Workflow Health</div>
+
+  <div class="metrics">
+    <div class="metric">
+      <div class="k">Queue</div>
+      <div class="v">{{ queueCount() }}</div>
+    </div>
+    <div class="metric">
+      <div class="k">Claimed</div>
+      <div class="v">{{ claimedCount() }}</div>
+    </div>
+    <div class="metric">
+      <div class="k">Avg age</div>
+      <div class="v">{{ avgAgeDays() }}d</div>
+    </div>
+  </div>
+
+  <div class="hint">
+    Red stays reserved for exceptions. Blue indicates visibility and interaction.
+  </div>
+</div>

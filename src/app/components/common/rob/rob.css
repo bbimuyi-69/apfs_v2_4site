@@ -1,0 +1,79 @@
+.rob-wrapper {
+    max-width: 900px;
+    margin: 30px auto 50px;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #222;
+}
+
+.rob-title {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 14px;
+}
+
+/* Yellow rules panel */
+.rob-panel {
+    background: #fff8cc;
+    border: 1px solid #e6d98a;
+    padding: 16px 18px;
+    font-size: 12.5px;
+    line-height: 1.45;
+}
+
+.rob-panel h2 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.rob-panel h3 {
+    font-size: 13px;
+    font-weight: 700;
+    margin-top: 14px;
+    margin-bottom: 6px;
+}
+
+.rob-panel p {
+    margin-bottom: 10px;
+}
+
+.rob-panel ul {
+    margin: 0 0 10px 18px;
+    padding: 0;
+}
+
+.rob-panel li {
+    margin-bottom: 4px;
+}
+
+/* Warning text */
+.rob-warning {
+    margin-top: 14px;
+    font-size: 12px;
+}
+
+/* Buttons */
+.rob-actions {
+    margin-top: 12px;
+}
+
+.btn {
+    font-size: 12.5px;
+    padding: 6px 10px;
+    border-radius: 3px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    display: inline-block;
+}
+
+.btn-accept {
+    background: linear-gradient(#5cb85c, #449d44);
+    color: #fff;
+    border-color: #3e8f3e;
+}
+
+.btn-decline {
+    background: #f5f5f5;
+    border-color: #ccc;
+    margin-left: 6px;
+}
