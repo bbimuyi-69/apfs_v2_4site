@@ -7,8 +7,6 @@
   background: #f5f7fa;
   font-family: Arial, Helvetica, sans-serif;
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
 }
 
 html,
@@ -23,25 +21,9 @@ body {
   flex-direction: column;
 }
 
-.apfs-content {
-  flex: 1;
-  /* 🔑 pushes footer to bottom */
-}
-
-
-
-.apfs-page {
-  background: #f5f7fa;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Header 
-border-bottom: 2px solid #264a78;*/
+/* Header */
 .apfs-header {
   background: #ffffff;
-
 }
 
 .apfs-header-inner {
@@ -52,23 +34,39 @@ border-bottom: 2px solid #264a78;*/
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 20px;
+
+  /* IMPORTANT: allow dropdowns to escape header area */
+  overflow: visible;
 }
 
-.logo {
-  font-size: 22px;
-  font-weight: bold;
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.apfs__logo {
+  width: 80px;
+  height: 60px;
+}
+
+.brand-text .brand-title {
+  font-size: 14px;
+  font-weight: 800;
   color: #264a78;
-  width: 10px;
-  height: 10px;
+  line-height: 1.1;
 }
 
+.brand-text .brand-sub {
+  font-size: 11px;
+  color: #6b6e70;
+  line-height: 1.1;
+}
 
-
-/* Start Dropdown Nav Navigation */
-
-/* Base nav */
-
-
+/* Nav */
+.nav-links {
+  overflow: visible;
+}
 
 .nav-links ul.nav-list {
   list-style: none;
@@ -77,6 +75,7 @@ border-bottom: 2px solid #264a78;*/
   display: flex;
   align-items: center;
   gap: 20px;
+  overflow: visible;
 }
 
 /* Nav links */
@@ -100,6 +99,21 @@ li.dropdown {
   position: relative;
 }
 
+/* Dropdown toggle button (acts like a link) */
+.dropdown-toggle {
+  background: transparent;
+  border: 0;
+  padding: 8px 12px;
+  margin: 0;
+  font: inherit;
+  color: #333;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
 /* Caret */
 .caret {
   margin-left: 5px;
@@ -109,7 +123,7 @@ li.dropdown {
   border-top: 5px solid #333;
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
-  transition: transform 0.3s ease;
+  transition: transform 0.2s ease;
   vertical-align: middle;
 }
 
@@ -117,128 +131,53 @@ li.dropdown {
   transform: rotate(180deg);
 }
 
-/* Dropdown menu */
+/* Dropdown menu (IMPORTANT: no display:none; *ngIf controls existence) */
 .dropdown-menu {
-  display: none;
   position: absolute;
-  top: 100%;
+  top: calc(100% + 8px);
   left: 0;
+  min-width: 220px;
   background: #fff;
   border: 1px solid #ddd;
-  border-radius: 4px;
-  min-width: 180px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
+  border-radius: 6px;
+  padding: 6px 0;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+  z-index: 9999;
 }
 
-/* Show menu */
-.dropdown.active .dropdown-menu {
-  display: block;
-}
-
-/* Dropdown items */
 .dropdown-menu li a {
-  padding: 10px 15px;
+  display: block;
+  padding: 10px 14px;
   color: #333;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
-/* Hover effect */
 .dropdown-menu li a:hover {
   background-color: #f1f1f1;
 }
 
-/* Start Dropdown Nav Navigation */
-
+/* Government banner */
 .gov-banner {
   font-size: 12px;
   color: #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.flag__logo {
+  width: 18px;
+  height: 18px;
 }
 
 /* Main content */
 .apfs-content {
+  flex: 1;
   max-width: 1200px;
   margin: 30px auto;
   padding: 0 15px;
-}
-
-/* Welcome panel */
-.welcome-panel {
-  background: #264a78;
-  color: #ffffff;
-  padding: 15px 20px;
-  border-radius: 3px;
-}
-
-.welcome-panel h1 {
-  margin: 0 0 10px;
-  font-size: 20px;
-}
-
-/* Sub Content panel */
-.subcontent-panel {
-  background: #782664;
-  color: #ffffff;
-  padding: 15px 20px;
-  border-radius: 3px;
-}
-
-.subcontent-panel p {
-  margin: 0 0 10px;
-  font-size: 20px;
-}
-
-
-/* Cards */
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  margin-top: 25px;
-}
-
-.apfs-card {
-  background: #ffffff;
-  border: 1px solid #3b78c2;
-  border-radius: 3px;
-}
-
-.card-header {
-  background: #264a78;
-  color: #ffffff;
-  padding: 10px;
-  font-weight: 600;
-}
-
-.card-body {
-  padding: 15px;
-  font-size: 10px;
-  line-height: 1.6;
-}
-
-/* Buttons */
-.btn {
-  display: inline-block;
-  margin-top: 15px;
-  padding: 8px 12px;
-  border-radius: 3px;
-  border: none;
-  cursor: pointer;
-}
-
-.btn-success {
-  background: #3a8f3a;
-  color: #ffffff;
-}
-
-.btn-primary {
-  background: #264a78;
-  color: #ffffff;
-}
-
-.btn-secondary {
-  background: #e0e0e0;
-  color: #000;
-  margin-left: 5px;
 }
 
 /* Info section */
@@ -248,12 +187,13 @@ li.dropdown {
 
 .info-section h2 {
   margin-top: 25px;
-  font-size: 10px;
+  font-size: 14px;
 }
 
 .info-section p {
-  margin-top: 25px;
-  font-size: 10px;
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 /* Footer */
@@ -273,12 +213,21 @@ li.dropdown {
 
 /* Responsive */
 @media (max-width: 900px) {
-  .card-grid {
-    grid-template-columns: 1fr;
-  }
-
   .apfs-header-inner {
     grid-template-columns: 1fr;
     text-align: center;
+  }
+
+  .brand {
+    justify-content: center;
+  }
+
+  .nav-links ul.nav-list {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .gov-banner {
+    justify-content: center;
   }
 }

@@ -1,88 +1,109 @@
-/* Backdrop */
-.backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  z-index: 40;
-
-  opacity: 0;
-  animation: backdropFadeIn 160ms ease-out forwards;
-}
-
-/* Drawer */
+/* Drawer base */
 .drawer {
   position: fixed;
   top: 0;
   right: 0;
+  width: 420px;
+  max-width: 95vw;
   height: 100vh;
-  width: min(520px, 92vw);
   background: #fff;
-  z-index: 50;
+  z-index: 60;
 
+  /* CLOSED by default */
   transform: translateX(100%);
-  animation: drawerSlideIn 200ms ease-out forwards;
-
-  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.18);
-  will-change: transform;
+  transition: transform 180ms ease;
 }
 
-/* Closing state */
-.backdrop.closing {
-  animation: backdropFadeOut 160ms ease-in forwards;
+.content .summary {
+  background: #fff;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .08);
+
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  column-gap: 14px;
+  row-gap: 12px;
 }
 
+/* Label (key) */
+.content .summary .k {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: #6b7280;
+  align-self: center;
+}
+
+/* Value */
+.content .summary .v {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* APFS number emphasis */
+.content .summary .v.mono {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: .03em;
+}
+
+/* Title gets breathing room */
+.content .summary .k:nth-of-type(2),
+.content .summary .v:nth-of-type(2) {
+  margin-bottom: 6px;
+}
+
+/* Status pill */
+.content .summary .pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid rgba(0, 0, 0, .08);
+}
+
+.content .summary .pill--info {
+  background: rgba(59, 130, 246, .12);
+  color: #1d4ed8;
+}
+
+/* Optional polish: subtle divider before Assigned */
+.content .summary .k:nth-of-type(4) {
+  padding-top: 8px;
+  margin-top: 4px;
+  border-top: 1px solid rgba(0, 0, 0, .06);
+}
+
+/* OPEN when record is rendered */
+.drawer:not(.closing) .content {
+  /* no-op: just presence hook */
+}
+
+/* OPEN STATE */
+.drawer:not(.closing) {
+  transform: translateX(0);
+}
+
+/* CLOSING animation */
 .drawer.closing {
-  animation: drawerSlideOut 180ms ease-in forwards;
+  transform: translateX(100%);
 }
 
-/* Animations */
-@keyframes drawerSlideIn {
-  from {
-    transform: translateX(100%);
-  }
-
-  to {
-    transform: translateX(0);
-  }
+/* Backdrop */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .35);
+  z-index: 50;
+  opacity: 1;
+  transition: opacity 180ms ease;
 }
 
-@keyframes drawerSlideOut {
-  from {
-    transform: translateX(0);
-  }
-
-  to {
-    transform: translateX(100%);
-  }
-}
-
-@keyframes backdropFadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes backdropFadeOut {
-  from {
-    opacity: 1;
-  }
-
-  to {
-    opacity: 0;
-  }
-}
-
-/* Reduced motion */
-@media (prefers-reduced-motion: reduce) {
-
-  .backdrop,
-  .drawer {
-    animation: none;
-    opacity: 1;
-    transform: translateX(0);
-  }
+.backdrop.closing {
+  opacity: 0;
 }

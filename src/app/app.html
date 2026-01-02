@@ -3,88 +3,97 @@
   <!-- Header / Nav -->
   <header class="apfs-header">
     <div class="apfs-header-inner">
-      <div class="logo">
-        <img src="/icn-us-flag-21px.png" class="apfs__logo" alt="APFS Logo" />
+
+      <div class="brand">
+        <img src="/assets/images/4site.jpg" class="apfs__logo" alt="4Site" />
+        <div class="brand-text">
+
+          <div class="brand-sub">Acquisition Planning Forecast System</div>
+        </div>
       </div>
 
-      <nav class="nav-links">
+      <nav class="nav-links" aria-label="Primary">
         <ul class="nav-list">
-          <li><a routerLink="/welcome" routerLinkActive="active">Home</a></li>
+          <li>
+            <a routerLink="/welcome" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+              Home
+            </a>
+          </li>
+
           <li><a routerLink="/about" routerLinkActive="active">About</a></li>
           <li><a routerLink="/contact" routerLinkActive="active">Contact Us</a></li>
-          <li class="dropdown" [class.active]="dropdowns['government']">
-            <a href="#" (click)="toggleDropdown('government', $event)">
-              Government Users <span class="caret" [class.open]="dropdowns['government']"></span>
-            </a>
-            <ul class="dropdown-menu">
-              <li><a routerLink="/rob/">Government Access</a></li>
-              <li><a routerLink="/request-new-user/">Request Account</a></li>
-            </ul>
-          </li>
-          <li class="dropdown" [class.active]="dropdowns['documentation']">
-            <a href="#" (click)="toggleDropdown('documentation', $event)">
-              Documentation <span class="caret" [class.open]="dropdowns['documentation']"></span>
-            </a>
-            <ul class="dropdown-menu">
-              <li><a routerLink="/apfs-tutorial">APFS Tutorial</a></li>
 
+          <!-- Government Users -->
+          <li class="dropdown" [class.active]="dropdowns.government">
+            <ul class="dropdown-menu" *ngIf="dropdowns.government" (click)="$event.stopPropagation()"></ul>
+            <button type="button" class="dropdown-toggle" (click)="toggleDropdown('government', $event)"
+              [attr.aria-expanded]="dropdowns.government">
+              🏛️ Government Users
+              <span class="caret" [class.open]="dropdowns.government"></span>
+            </button>
+
+            <ul class="dropdown-menu" *ngIf="dropdowns.government" (click)="$event.stopPropagation()">
+              <li><a routerLink="/rob" (click)="closeDropdowns()">Government Access</a></li>
+              <li><a routerLink="/request-new-user" (click)="closeDropdowns()">Request Account</a></li>
             </ul>
           </li>
-          <li><a routerLink="/users" routerLinkActive="active">User List</a></li>
+
+          <!-- Documentation -->
+          <li class="dropdown" [class.active]="dropdowns.documentation">
+            <button type="button" class="dropdown-toggle" (click)="toggleDropdown('documentation', $event)"
+              [attr.aria-expanded]="dropdowns.documentation">
+              📘 Documentation
+              <span class="caret" [class.open]="dropdowns.documentation"></span>
+            </button>
+
+            <ul class="dropdown-menu" *ngIf="dropdowns.documentation" (click)="$event.stopPropagation()">
+              <li><a routerLink="/apfs-tutorial" (click)="closeDropdowns()">APFS Tutorial</a></li>
+              <!-- later: pdf links -->
+            </ul>
+          </li>
+
+          <li><a routerLink="/users" routerLinkActive="active">👥 User List</a></li>
         </ul>
       </nav>
 
-
       <div class="gov-banner">
-        <img src="/icn-us-flag-21px.png" class="flag__logo" alt="APFS Logo" />
+        <img src="/assets/images/icn-us-flag-21px.png" class="flag__logo" alt="US Flag" />
         Official website of the Department of Homeland Security
       </div>
+
     </div>
   </header>
 
   <!-- Main Content -->
   <main class="apfs-content">
-
-    <!-- Welcome Panel -->
-
-
-
     <app-header [pageTitle]="title"></app-header>
     <router-outlet></router-outlet>
 
-
-
-
-    <!-- About Section -->
+    <!-- OPTIONAL: Move into Welcome page later if you don’t want global -->
     <section class="info-section">
       <h2>About This Data</h2>
       <p>
         Public Law 100-656, the Business Opportunity Development Reform Act of 1988, amended the Small Business Act to
         emphasize acquisition planning. The law requires agencies to compile and make projections of contracting
-        opportunities that small businesses (including small, disadvantaged businesses and 8(a) program participants,
-        women-owned, Historically Underutilized Business Zone (HUBZone), veteran-owned, and service-disabled
-        veteran-owned) may perform. For more details, review the 'About' link above or click here:
-        https://apfs-staging.bvti.com/about/
+        opportunities that small businesses (including small, disadvantaged businesses 8(a), women-owned, HUBZone,
+        veteran-owned, and service-disabled veteran-owned) may perform.
+        For more details, review the 'About' link above.
       </p>
 
       <h2>Potential Subcontracting Opportunities</h2>
       <p>
         The information in APFS helps build the statutorily required annual Forecast of Contract Opportunities (i.e. the
         Forecast). The Forecast allows industry, especially small businesses, the opportunity to learn about prospective
-        DHS business opportunities (which includes subcontracting) over the simplified acquisition threshold (SAT).
+        DHS business opportunities (including subcontracting) over the simplified acquisition threshold (SAT).
       </p>
     </section>
-
   </main>
 
   <!-- Footer -->
   <footer class="apfs-footer">
-    <a href="#">Sitemap</a>
-    |
-    <a href="https://www.dhs.gov">DHS.GOV</a>
-    |
-    <a href="#">FOIA</a>
-    |
+    <a href="#">Sitemap</a> |
+    <a href="https://www.dhs.gov" target="_blank" rel="noopener">DHS.GOV</a> |
+    <a href="#">FOIA</a> |
     <a href="#">Privacy Policy</a>
   </footer>
 
