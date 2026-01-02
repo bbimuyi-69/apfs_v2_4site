@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 
 import { ForecastRecord } from '../../../forecast/forecast-record/models/forecast-record.model';
 import { ForecastRecordService } from '../../../forecast/forecast-record/services/forecast-record.service';
+import { AuthService } from '../../../../auth/auth.service';
 
 @Component({
   selector: 'app-record-drawer',
@@ -15,6 +16,7 @@ import { ForecastRecordService } from '../../../forecast/forecast-record/service
 export class RecordDrawerComponent {
   private readonly router = inject(Router);
   private readonly service = inject(ForecastRecordService);
+  private readonly auth = inject(AuthService);
 
   @Input({ required: true }) record!: ForecastRecord;
 
@@ -44,22 +46,43 @@ export class RecordDrawerComponent {
   }
 
   onClaim(): void {
-    if (!this.record?.id || this.busy) return;
+    if (this.busy) return;
+
+    const id = this.record?.id;
+    if (typeof id !== 'number') {
+      console.warn('[RecordDrawer] Cannot claim record — invalid or missing id', this.record);
+      return;
+    }
+
+    const user = this.auth.user;
+    if (!user) {
+      console.warn('[RecordDrawer] Cannot claim record — no logged-in user/session');
+      return;
+    }
 
     this.busy = true;
 
-    this.service.claim(this.record.id).subscribe({
-      next: (updated) => {
-        this.record = updated;
-        this.recordUpdated.emit(updated);
+    const payload = {
+      userId: String(user.id),
+      userName: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.email || 'Unknown User',
+    };
+
+    this.service
+      .claim(id, payload)
+      .subscribe({
+        next: (updated) => {
+          this.record = updated;
+          this.recordUpdated.emit(updated);
+        },
+        error: (err) => {
+          console.error('[RecordDrawer] Claim failed', err);
+        },
+      })
+      .add(() => {
         this.busy = false;
-      },
-      error: (e) => {
-        console.error('Claim failed', e);
-        this.busy = false;
-      },
-    });
+      });
   }
+
 
   openRecord(): void {
     const id = (this.record as any)?.id;

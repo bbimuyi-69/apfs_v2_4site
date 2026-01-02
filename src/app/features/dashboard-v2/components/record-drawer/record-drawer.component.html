@@ -37,9 +37,10 @@
       </button>
 
       <!-- Only show when unclaimed -->
-      <button *ngIf="!r.assignedToUserId" type="button" class="btn-secondary" (click)="onClaim()" [disabled]="isBusy()">
+      <button *ngIf="canClaim()" type="button" class="btn-secondary" (click)="onClaim()" [disabled]="isBusy()">
         {{ isBusy() ? 'Claiming…' : 'Claim Record' }}
       </button>
+
     </div>
   </div>
 </aside>
