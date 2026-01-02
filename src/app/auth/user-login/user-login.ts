@@ -30,7 +30,7 @@ export class UserLogin {
       password: ['', Validators.required]
     });
 
-    this.nextUrl = this.route.snapshot.queryParamMap.get('next') || '/dashboard';
+    this.nextUrl = this.route.snapshot.queryParamMap.get('next') || '/dashboard-v2';
   }
 
   submit(): void {

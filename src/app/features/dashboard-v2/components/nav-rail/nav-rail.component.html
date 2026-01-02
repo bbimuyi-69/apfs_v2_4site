@@ -5,6 +5,15 @@
     <a routerLink="/users" routerLinkActive="active">👥 Users</a>
     <a routerLink="/about" routerLinkActive="active">📊 Analytics</a>
     <a routerLink="/contact" routerLinkActive="active">⚙️ Admin</a>
+    <!-- Documentation -->
+    <div class="nav-section">
+
+
+      <a class="nav-item" [href]="documentationLink.href" target="_blank" rel="noopener">
+        <span class="nav-label">📘 {{ documentationLink.label }}</span>
+      </a>
+    </div>
+
   </nav>
   <div class="accent"></div>
 </aside>
