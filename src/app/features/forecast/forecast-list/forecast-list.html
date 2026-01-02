@@ -1,52 +1,68 @@
-<div class="page">
-    <div class="header">
-        <h2>Forecast Records (Test Dashboard)</h2>
+<ng-container *ngIf="state$ | async as state">
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <input #search type="text" placeholder="Search APFS or title…" (keyup.enter)="setSearch(search.value)" />
+        <button type="button" (click)="setSearch(search.value)">Search</button>
 
-        <div class="actions">
-            <button type="button" class="btn" (click)="refresh()">Refresh</button>
-            <a class="btn primary" [routerLink]="['/forecast', 'new']">New Record</a>
-        </div>
+        <select (change)="onStatusChange($event)">
+            <option value="All">All statuses</option>
+            <option value="Draft">Draft</option>
+            <option value="Submitted">Submitted</option>
+        </select>
+
+        <select (change)="onAssignedChange($event)">
+            <option value="all">All</option>
+            <option value="unclaimed">Unclaimed</option>
+            <option value="claimed">Claimed</option>
+        </select>
+
+
+        <button type="button" (click)="refresh()">Refresh</button>
     </div>
 
-    <div class="card" *ngIf="records$ | async as records; else loading">
-        <div *ngIf="records.length === 0" class="empty">
-            No records yet. Click <b>New Record</b> to create one.
-        </div>
 
-        <table *ngIf="records.length > 0" class="table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>APFS #</th>
-                    <th>Title</th>
-                    <th>Component</th>
-                    <th>Status</th>
-                    <th>Updated</th>
-                    <th></th>
-                </tr>
-            </thead>
-
-            <tbody>
-                <tr *ngFor="let r of records">
-                    <td>{{ r.id }}</td>
-                    <td>{{ r.apfsNumber ?? '—' }}</td>
-                    <td>{{ r.requirementsTitle }}</td>
-                    <td>{{ r.component ?? '—' }}</td>
-                    <td>
-                        <span class="badge" [class.submitted]="r.status === 'Submitted'">
-                            {{ r.status }}
-                        </span>
-                    </td>
-                    <td>{{ r.updatedAt ?? '—' }}</td>
-                    <td class="right">
-                        <a class="link" [routerLink]="['/forecast', r.id]">Open</a>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+    <!-- Loading -->
+    <div *ngIf="state.status === 'loading'" class="loading">
+        Loading…
     </div>
 
-    <ng-template #loading>
-        <div class="card">Loading…</div>
-    </ng-template>
-</div>
+    <!-- Error -->
+    <div *ngIf="state.status === 'error'" class="error">
+        {{ state.error }}
+        <button type="button" (click)="refresh()">Retry</button>
+    </div>
+
+    <!-- Ready -->
+    <ng-container *ngIf="state.status === 'ready'">
+        <div *ngIf="state.data.length === 0" class="empty">
+            No records found.
+        </div>
+
+        <div class="record-list">
+            <div class="record" *ngFor="let r of state.data" (click)="select(r)" role="button" tabindex="0"
+                title="Open record">
+                <div class="apfs">{{ r.apfsNumber }}</div>
+                <div class="title">{{ r.requirementsTitle }}</div>
+                <div class="meta">
+                    <span class="pill">{{ r.status }}</span>
+                    <span class="pill" *ngIf="r.assignedToName">{{ r.assignedToName }}</span>
+                    <span class="pill muted" *ngIf="!r.assignedToName">Unclaimed</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Simple pager (mock + API both support it) -->
+        <div class="pager">
+            <button type="button" (click)="setPage((query.page ?? 1) - 1)" [disabled]="(query.page ?? 1) <= 1">
+                Prev
+            </button>
+
+            <div class="page-label">Page {{ query.page ?? 1 }}</div>
+
+            <button type="button" (click)="setPage((query.page ?? 1) + 1)"
+                [disabled]="state.data.length < (query.pageSize ?? 25)">
+                Next
+            </button>
+        </div>
+    </ng-container>
+</ng-container>

@@ -1,36 +1,88 @@
-.backdrop{
-  position:fixed;
-  inset:0;
-  background:rgba(17,24,39,.35);
-  z-index:10;
+/* Backdrop */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 40;
+
+  opacity: 0;
+  animation: backdropFadeIn 160ms ease-out forwards;
 }
-.drawer{
-  position:fixed;
-  top:var(--topbar-h);
-  right:-420px;
-  width:420px;
-  height:calc(100vh - var(--topbar-h));
-  background:var(--surface);
-  border-left:1px solid var(--border);
-  box-shadow:var(--shadow-md);
-  z-index:11;
-  transition:right .2s ease;
-  display:flex;
-  flex-direction:column;
+
+/* Drawer */
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: min(520px, 92vw);
+  background: #fff;
+  z-index: 50;
+
+  transform: translateX(100%);
+  animation: drawerSlideIn 200ms ease-out forwards;
+
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.18);
+  will-change: transform;
 }
-.drawer.open{ right:0; }
-.head{
-  padding:var(--s-4);
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  border-bottom:1px solid var(--border);
+
+/* Closing state */
+.backdrop.closing {
+  animation: backdropFadeOut 160ms ease-in forwards;
 }
-.title{ font-weight:900; }
-.content{ padding:var(--s-4); overflow:auto; }
-.summary{ padding:var(--s-4); display:grid; grid-template-columns: 90px 1fr; gap:10px 12px; }
-.k{ color:var(--muted); font-size:var(--text-sm); font-weight:700; }
-.v{ font-weight:600; }
-.mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 12px; }
-.actions{ margin-top:var(--s-4); display:flex; gap:var(--s-3); flex-wrap:wrap; }
-.actions .btn{ flex:1; }
+
+.drawer.closing {
+  animation: drawerSlideOut 180ms ease-in forwards;
+}
+
+/* Animations */
+@keyframes drawerSlideIn {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes drawerSlideOut {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes backdropFadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes backdropFadeOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+
+  .backdrop,
+  .drawer {
+    animation: none;
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

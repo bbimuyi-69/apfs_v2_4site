@@ -1,9 +1,11 @@
-<div class="backdrop" *ngIf="isOpen()" (click)="close.emit()"></div>
+<!-- Backdrop -->
+<div class="backdrop" [class.closing]="closing" (click)="requestClose()"></div>
 
-<aside class="drawer" [class.open]="isOpen()">
+<!-- Drawer -->
+<aside class="drawer" [class.closing]="closing">
   <div class="head">
     <div class="title">Focus Frame</div>
-    <button class="btn" type="button" (click)="close.emit()">✕</button>
+    <button class="btn" type="button" (click)="requestClose()">✕</button>
   </div>
 
   <div class="content" *ngIf="record as r">
@@ -15,17 +17,28 @@
       <div class="v">{{ r.requirementsTitle || '—' }}</div>
 
       <div class="k">Status</div>
-      <div class="v"><span class="pill pill--info">{{ r.status }}</span></div>
+      <div class="v">
+        <span class="pill pill--info">{{ r.status }}</span>
+      </div>
 
       <div class="k">Assigned</div>
-      <div class="v">{{ assignedToName }}</div>
-
+      <div class="v">
+        <ng-container *ngIf="r.assignedToUserId; else unclaimed">
+          {{ assignedToName }}
+        </ng-container>
+        <ng-template #unclaimed>—</ng-template>
+      </div>
     </div>
 
-    <div class="actions">
-      <button class="btn btn--primary" type="button" (click)="openRecord()">Open Record</button>
-      <button class="btn btn--danger" type="button" [disabled]="!canClaim() || isBusy()" (click)="claim()">
-        {{ isBusy() ? 'Claiming…' : (canClaim() ? 'Claim Record' : 'Already Claimed') }}
+    <!-- Actions -->
+    <div class="actions" (click)="$event.stopPropagation()">
+      <button class="btn btn--primary" type="button" (click)="openRecord()">
+        Open Record
+      </button>
+
+      <!-- Only show when unclaimed -->
+      <button *ngIf="!r.assignedToUserId" type="button" class="btn-secondary" (click)="onClaim()" [disabled]="isBusy()">
+        {{ isBusy() ? 'Claiming…' : 'Claim Record' }}
       </button>
     </div>
   </div>

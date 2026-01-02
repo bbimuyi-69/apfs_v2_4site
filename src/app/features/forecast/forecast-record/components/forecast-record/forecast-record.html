@@ -1,0 +1,216 @@
+<div class="apfs-page">
+    <form *ngIf="form" class="apfs-form" [formGroup]="form" (ngSubmit)="onSaveDraft()">
+        <!-- Optional status / loading -->
+        <div *ngIf="isLoading" class="apfs-loading">Loading…</div>
+
+        <div *ngIf="loadError" class="apfs-error">
+            {{ loadError }}
+        </div>
+
+        <!-- IMPORTANT: no (ngSubmit) so Enter key can’t auto-submit/navigate -->
+        <form class="apfs-form" *ngIf="form" [formGroup]="form">
+
+            <!-- APFS Number / Component -->
+            <div class="grid-2">
+                <div class="field">
+                    <label>APFS Number</label>
+                    <input type="text" formControlName="apfsNumber" placeholder="Automatically Generated On Creation" />
+                    <div class="hint">This is assigned by the APFS Application.</div>
+                </div>
+
+                <div class="field">
+                    <label>Component</label>
+                    <select formControlName="component">
+                        <option value="" disabled>Select…</option>
+                        <option value="CBP">CBP</option>
+                    </select>
+                    <div class="hint">Select the Component, Subcomponent and/or Division.</div>
+                </div>
+            </div>
+
+            <!-- Requirements -->
+            <div class="field">
+                <label>Requirements Title</label>
+                <input type="text" formControlName="requirementsTitle" />
+                <div class="hint">
+                    Enter a brief title to the requirement which will be included in email to industry.
+                </div>
+            </div>
+
+            <div class="field">
+                <label>Requirement</label>
+                <textarea rows="6" formControlName="requirement"></textarea>
+                <div class="hint">
+                    Provide descriptive text detailing the requirements for the anticipated opportunity. Limit word
+                    count to
+                    500.
+                </div>
+                <div class="error"
+                    *ngIf="form.controls.requirement.touched && form.controls.requirement.errors?.['maxWords']">
+                    Requirement exceeds 500 words.
+                </div>
+            </div>
+
+            <!-- Program Level -->
+            <div class="field">
+                <label>Program level</label>
+                <select formControlName="programLevel">
+                    <option *ngFor="let o of programLevels; trackBy: trackByValue" [value]="o.value">
+                        {{ o.label }}
+                    </option>
+                </select>
+                <div class="hint">A program level can be selected from the drop down menu if it applies.</div>
+            </div>
+
+            <!-- Small Business -->
+            <div class="grid-2">
+                <div class="field">
+                    <label>Small business set aside</label>
+                    <select formControlName="smallBusinessSetAside">
+                        <option value="">N/A</option>
+                    </select>
+                    <div class="hint">This field is updated by the APFS Coordinator.</div>
+                </div>
+
+                <div class="field">
+                    <label>Small business program</label>
+                    <select formControlName="smallBusinessProgram">
+                        <option value="">----------</option>
+                    </select>
+                    <div class="hint">This field is updated by the APFS Coordinator.</div>
+                </div>
+            </div>
+
+            <!-- Dollar / NAICS -->
+            <div class="grid-2">
+                <div class="field">
+                    <label>Dollar range</label>
+                    <select formControlName="dollarRange">
+                        <option *ngFor="let o of dollarRanges; trackBy: trackByValue" [value]="o.value">
+                            {{ o.label }}
+                        </option>
+                    </select>
+                    <div class="hint">Select the dollar range for the total estimated value.</div>
+                </div>
+
+                <div class="field">
+                    <label>NAICS Code</label>
+                    <select formControlName="naicsCode">
+                        <option value="">----------</option>
+                    </select>
+                    <div class="hint">
+                        Enter a NAICS Code that pertains to the anticipated opportunity.
+                        Enter keywords in the text box to locate the applicable NAICS.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contracting / Strategic sourcing -->
+            <div class="grid-2">
+                <div class="field">
+                    <label>Contract type</label>
+                    <select formControlName="contractType">
+                        <option *ngFor="let o of contractTypes; trackBy: trackByValue" [value]="o.value">
+                            {{ o.label }}
+                        </option>
+                    </select>
+                    <div class="hint">This field is updated by the Contracting Officer.</div>
+                </div>
+
+                <div class="field">
+                    <label>Will a strategic sourcing vehicle be used?</label>
+                    <select formControlName="strategicSourcingVehicleUsed">
+                        <option *ngFor="let o of yesNoUnknown; trackBy: trackByValue" [value]="o.value">
+                            {{ o.label }}
+                        </option>
+                    </select>
+                    <div class="hint">This field is updated by the Contracting Officer.</div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="field">
+                    <label>Strategic Sourcing Vehicle</label>
+                    <select formControlName="strategicSourcingVehicle">
+                        <option value="">----------</option>
+                    </select>
+                    <div class="hint">This field is updated by the Contracting Officer.</div>
+                </div>
+
+                <div class="field">
+                    <label>Type of Award</label>
+                    <select formControlName="typeOfAward">
+                        <option value="">----------</option>
+                    </select>
+                    <div class="hint">This field is updated by the Contracting Officer.</div>
+                </div>
+            </div>
+
+            <!-- Competitive / Contract status -->
+            <div class="grid-2">
+                <div class="field">
+                    <label>Competitive</label>
+                    <select formControlName="competitive">
+                        <option value="">----------</option>
+                    </select>
+                    <div class="hint">Choose the status of the anticipated opportunity from the drop down.</div>
+                </div>
+
+                <div class="field">
+                    <label>Contract status</label>
+                    <select formControlName="contractStatus">
+                        <option value="">----------</option>
+                    </select>
+                    <div class="hint">
+                        Identify if the contract is a new opportunity or a re-compete from the drop down menu.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Incumbent / Contract number -->
+            <div class="grid-2">
+                <div class="field">
+                    <label>Incumbent</label>
+                    <input type="text" formControlName="incumbent" />
+                    <div class="hint">Identify the incumbent in the text box.</div>
+                </div>
+
+                <div class="field">
+                    <label>Contract number</label>
+                    <input type="text" formControlName="contractNumber" />
+                    <div class="hint">Notate the Contract Number in the text box provided.</div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="actions">
+                <!-- IMPORTANT: explicit click save -->
+                <button type="button" class="btn-save" (click)="onSaveDraft()" [disabled]="isLoading || !isEditMode">
+                    Save &amp; Continue
+                </button>
+
+                <button type="button" class="btn-cancel" (click)="onCancel()">
+                    Cancel
+                </button>
+            </div>
+
+            <div class="hint" *ngIf="!isEditMode">
+                Viewing mode. Open with <span class="mono">?mode=edit</span> to edit.
+            </div>
+
+        </form>
+        <div class="apfs-actions">
+            <button type="submit" class="btn-primary" [disabled]="!isEditMode || isLoading">
+                Save Draft
+            </button>
+
+            <button type="button" class="btn-secondary" (click)="onSubmit()" [disabled]="!isEditMode || isLoading">
+                Submit
+            </button>
+
+            <button type="button" class="btn-ghost" (click)="onCancel()">
+                Cancel
+            </button>
+        </div>
+    </form>
+</div>

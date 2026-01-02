@@ -2,7 +2,7 @@ import { Component, HostListener } from '@angular/core';
 import { RouterModule, RouterOutlet } from '@angular/router';
 import { Router, NavigationEnd, ActivatedRoute } from '@angular/router';
 import { filter, map } from 'rxjs/operators';
-import { Header } from './layout/header/header';
+import { Header } from './core/layout/header/header';
 
 @Component({
   selector: 'app-root',

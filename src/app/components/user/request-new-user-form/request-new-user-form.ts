@@ -2,9 +2,9 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { UserService } from '../../../services/user';
-import { User } from '../../../models/user.model';
-import { ApfsDropdownsService } from '../../../services/apfs-dropdowns';
+import { UserService } from '../../../core/services/user.service';
+import { User } from '../../../core/models/user.model';
+import { ApfsDropdownsService } from '../../../core/services/apfs-dropdowns.service';
 
 @Component({
   selector: 'app-request-new-user-form',

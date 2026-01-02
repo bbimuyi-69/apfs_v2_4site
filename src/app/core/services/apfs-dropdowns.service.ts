@@ -6,7 +6,7 @@ import {
   OFFICES_BY_COMPONENT,
   ROLES_BY_EMPLOYEE_TYPE,
   EmployeeType
-} from '../config/apfs-dropdowns.config';
+} from '../../config/apfs-dropdowns.config';
 
 @Injectable({ providedIn: 'root' })
 export class ApfsDropdownsService {

@@ -1,5 +1,6 @@
 import { Component, ChangeDetectorRef, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 
 import { TopbarV2Component } from './components/topbar/topbar.component';
 import { NavRailComponent } from './components/nav-rail/nav-rail.component';
@@ -9,7 +10,7 @@ import { DashboardFiltersComponent } from './components/dashboard-filters/dashbo
 import { RecordsTableComponent } from './components/records-table/records-table.component';
 import { RecordDrawerComponent } from './components/record-drawer/record-drawer.component';
 
-import { ForecastRecordService } from '../forecast/forecast-record/forecast-record/forecast-record.service';
+import { ForecastRecordService } from '../forecast/forecast-record/services/forecast-record.service';
 import { ForecastRecord, ForecastRecordStatus } from '../forecast/forecast-record/models/forecast-record.model';
 import { AuthService } from '../../auth/auth.service';
 import { DashboardFilters, StatusCount } from './models/dashboard-v2.models';
@@ -35,16 +36,20 @@ export class DashboardV2Page implements OnInit {
     private auth: AuthService,
     private forecastService: ForecastRecordService,
     private cdr: ChangeDetectorRef,
-  ) {}
+    private router: Router,
+  ) { }
 
+  // Core state
   readonly rows = signal<ForecastRecord[]>([]);
   readonly selected = signal<ForecastRecord | null>(null);
 
-  readonly env = signal<'DEV'|'TEST'|'PROD'>('DEV');
+  // Header/user
+  readonly env = signal<'DEV' | 'TEST' | 'PROD'>('DEV');
   readonly roleLabel = signal<string>('User');
   readonly displayName = signal<string>('User');
   readonly userEmail = signal<string>('Unknown');
 
+  // Filters
   readonly filters = signal<DashboardFilters>({
     q: '',
     status: 'All',
@@ -53,7 +58,7 @@ export class DashboardV2Page implements OnInit {
     mineSubmitted: false,
   });
 
-  private readonly WORKABLE_STATUSES = new Set<string>(['Draft','Submitted','InReview','NeedsInfo']);
+  private readonly WORKABLE_STATUSES = new Set<string>(['Draft', 'Submitted', 'InReview', 'NeedsInfo']);
 
   ngOnInit(): void {
     const a: any = this.auth as any;
@@ -64,13 +69,14 @@ export class DashboardV2Page implements OnInit {
     if (u) {
       this.userEmail.set(u.email ?? u.upn ?? u.username ?? 'Unknown');
       this.displayName.set(u.displayName ?? u.name ?? 'User');
+
       const rawRoles =
         u.roles ??
         u.role ??
         a?.roles ??
         (typeof a?.getRoles === 'function' ? a.getRoles() : []);
+
       const roles = Array.isArray(rawRoles) ? rawRoles : rawRoles ? [String(rawRoles)] : [];
-      // pick first visible role label
       this.roleLabel.set(roles[0] ?? 'User');
     }
 
@@ -86,7 +92,7 @@ export class DashboardV2Page implements OnInit {
       error: () => {
         this.rows.set([]);
         this.cdr.detectChanges();
-      }
+      },
     });
   }
 
@@ -95,6 +101,7 @@ export class DashboardV2Page implements OnInit {
     const u =
       a?.currentUser ??
       (typeof a?.getCurrentUser === 'function' ? a.getCurrentUser() : null);
+
     return (
       u?.id ??
       u?.userId ??
@@ -106,11 +113,14 @@ export class DashboardV2Page implements OnInit {
     );
   }
 
-  readonly workableRows = computed(() => this.rows().filter(r => this.WORKABLE_STATUSES.has(String((r as any).status ?? 'Draft'))));
+  // Computeds
+  readonly workableRows = computed(() =>
+    this.rows().filter(r => this.WORKABLE_STATUSES.has(String((r as any).status ?? 'Draft')))
+  );
 
   readonly statusCounts = computed<StatusCount[]>(() => {
     const list = this.rows();
-    const statuses: ForecastRecordStatus[] = ['Draft','Submitted','InReview','NeedsInfo','Approved','Rejected','Completed'];
+    const statuses: ForecastRecordStatus[] = ['Draft', 'Submitted', 'InReview', 'NeedsInfo', 'Approved', 'Rejected', 'Completed'];
     return statuses.map(s => ({ status: s, count: list.filter(r => r.status === s).length }));
   });
 
@@ -135,7 +145,10 @@ export class DashboardV2Page implements OnInit {
     }
 
     if (f.mineSubmitted && myId) {
-      list = list.filter(r => String((r as any).submittedBy ?? '') === myId || String((r as any).submittedBy ?? '') === this.userEmail());
+      list = list.filter(r =>
+        String((r as any).submittedBy ?? '') === myId ||
+        String((r as any).submittedBy ?? '') === this.userEmail()
+      );
     }
 
     list.sort((a: any, b: any) => {
@@ -147,12 +160,41 @@ export class DashboardV2Page implements OnInit {
     return list;
   });
 
-  onSelect(row: ForecastRecord){ this.selected.set(row); }
-  onCloseDrawer(){ this.selected.set(null); }
-  onFiltersChange(next: DashboardFilters){ this.filters.set(next); }
+  // UI handlers
+  onSelect(row: ForecastRecord): void {
+    this.selected.set(row);
+  }
 
-  onPickStatus(status: string){
-    // clicking a status card sets filter and scrolls to table naturally
+  onCloseDrawer(): void {
+    this.selected.set(null);
+  }
+
+  onFiltersChange(next: DashboardFilters): void {
+    this.filters.set(next);
+  }
+
+  onPickStatus(status: string): void {
     this.filters.set({ ...this.filters(), status: status as any });
+  }
+
+
+  openRecord(row: ForecastRecord): void {
+    this.selected.set(row);
+  }
+
+  createNewForecastRecord(): void {
+    this.router.navigate(['/forecast/new']);
+  }
+
+  // 🔥 called when drawer emits updated record (ex: after claim)
+  onRecordUpdated(updated: ForecastRecord): void {
+    this.rows.update(list => list.map(r => (r.id === updated.id ? updated : r)));
+
+    const cur = this.selected();
+    if (cur?.id === updated.id) {
+      this.selected.set(updated);
+    }
+
+    this.cdr.detectChanges();
   }
 }

@@ -62,10 +62,73 @@ app.post('/users', (req, res) => {
 // =========================
 
 // GET all forecast records
+// GET all forecast records (supports query params)
 app.get('/forecast-records', (req, res) => {
+    // Disable caching so dev requests don't return 304
+    res.set('Cache-Control', 'no-store');
+
     const data = loadData();
-    res.json(data.forecastRecords);
+    let rows = Array.isArray(data.forecastRecords) ? [...data.forecastRecords] : [];
+
+    const {
+        status = 'All',
+        assigned = 'all',
+        q = '',
+        page = '1',
+        pageSize = '25',
+        sort = 'updatedAt:desc',
+    } = req.query;
+
+    // Normalize status so older records still behave
+    const normalizeStatus = (r) => {
+        if (r && r.status) return r.status;
+        if (r && (r.submittedAt || r.submittedBy)) return 'Submitted';
+        return 'Draft';
+    };
+
+    rows = rows.map(r => ({ ...r, status: normalizeStatus(r) }));
+
+    // Filter: status
+    if (status && status !== 'All') {
+        rows = rows.filter(r => String(r.status) === String(status));
+    }
+
+    // Filter: assigned
+    if (assigned === 'claimed') {
+        rows = rows.filter(r => !!r.assignedToUserId);
+    } else if (assigned === 'unclaimed') {
+        rows = rows.filter(r => !r.assignedToUserId);
+    }
+
+    // Filter: free-text (supports both schemas: title + requirementsTitle + apfsNumber)
+    const needle = String(q || '').trim().toLowerCase();
+    if (needle) {
+        rows = rows.filter(r => {
+            const hay = `${r.apfsNumber ?? ''} ${r.requirementsTitle ?? ''} ${r.title ?? ''}`.toLowerCase();
+            return hay.includes(needle);
+        });
+    }
+
+    // Sort (supports createdAt/updatedAt)
+    const [fieldRaw, dirRaw] = String(sort).split(':');
+    const field = fieldRaw === 'createdAt' ? 'createdAt' : 'updatedAt';
+    const dir = dirRaw === 'asc' ? 'asc' : 'desc';
+
+    rows.sort((a, b) => {
+        const av = new Date(a?.[field] ?? 0).getTime();
+        const bv = new Date(b?.[field] ?? 0).getTime();
+        return dir === 'asc' ? av - bv : bv - av;
+    });
+
+    // Paging (1-based)
+    const p = Math.max(1, parseInt(String(page), 10) || 1);
+    const ps = Math.max(1, parseInt(String(pageSize), 10) || 25);
+    const start = (p - 1) * ps;
+
+    res.json(rows.slice(start, start + ps));
 });
+
+
 
 // GET one forecast record
 app.get('/forecast-records/:id', (req, res) => {

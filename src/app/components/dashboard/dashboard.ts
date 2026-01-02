@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../auth/auth.service';
 
-import { ForecastRecordService } from '../../features/forecast/forecast-record/forecast-record/forecast-record.service';
+import { ForecastRecordService } from '../../features/forecast/forecast-record/services/forecast-record.service';
 import { ForecastRecord } from '../../features/forecast/forecast-record/models/forecast-record.model';
 
 type ClaimedRecord = {

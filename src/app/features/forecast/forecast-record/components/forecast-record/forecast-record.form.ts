@@ -5,7 +5,7 @@ import {
     ValidationErrors,
     Validators,
 } from '@angular/forms';
-import { ForecastRecord, ForecastRecordStatus } from '../models/forecast-record.model';
+import { ForecastRecord, ForecastRecordStatus } from '../../models/forecast-record.model';
 
 export type ForecastRecordFormGroup = FormGroup<{
     /** System / workflow */

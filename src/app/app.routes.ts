@@ -12,9 +12,9 @@ import { Dashboard } from './components/dashboard/dashboard';
 import { DashboardV2Page } from './features/dashboard-v2/dashboard-v2.page';
 import { authGuard } from './auth/auth-guard';
 
-// ✅ Forecast components (paths verified from your tree)
+// ✅ Forecast components
 import { ForecastListComponent } from './features/forecast/forecast-list/forecast-list';
-import { ForecastRecordComponent } from './features/forecast/forecast-record/forecast-record/forecast-record';
+import { ForecastRecordComponent } from './features/forecast/forecast-record/components/forecast-record/forecast-record';
 
 export const routes: Routes = [
     { path: '', redirectTo: 'welcome', pathMatch: 'full', data: { title: 'Welcome' } },
@@ -32,34 +32,26 @@ export const routes: Routes = [
         path: 'dashboard',
         component: Dashboard,
         canActivate: [authGuard],
-        data: { title: 'Dashboard' }
+        data: { title: 'Dashboard' },
     },
 
     {
         path: 'dashboard-v2',
         component: DashboardV2Page,
         canActivate: [authGuard],
-        data: { title: 'Dashboard v2' }
+        data: { title: 'Dashboard v2' },
     },
 
     // =========================
     // Forecast routes
     // =========================
 
-    // Forecast dashboard (simple list for now)
-    {
-        path: 'forecast',
-        component: ForecastListComponent,
-        canActivate: [authGuard],
-        data: { title: 'Forecast Dashboard' }
-    },
-
-    // Create new forecast record
+    // Create new forecast record (keep above /forecast and /forecast/:id)
     {
         path: 'forecast/new',
         component: ForecastRecordComponent,
         canActivate: [authGuard],
-        data: { title: 'New Forecast Record' }
+        data: { title: 'New Forecast Record' },
     },
 
     // Edit/view existing forecast record
@@ -67,9 +59,17 @@ export const routes: Routes = [
         path: 'forecast/:id',
         component: ForecastRecordComponent,
         canActivate: [authGuard],
-        data: { title: 'Forecast Record' }
+        data: { title: 'Forecast Record' },
+    },
+
+    // Forecast dashboard (simple list for now)
+    {
+        path: 'forecast',
+        component: ForecastListComponent,
+        canActivate: [authGuard],
+        data: { title: 'Forecast Dashboard' },
     },
 
     // Fallback
-    { path: '**', redirectTo: 'welcome' }
+    { path: '**', redirectTo: 'welcome' },
 ];

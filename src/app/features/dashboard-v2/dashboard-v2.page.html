@@ -1,34 +1,37 @@
-<app-topbar-v2 [env]="env()" [roleLabel]="roleLabel()" [displayName]="displayName()"></app-topbar-v2>
+<div class="dashboard-v2">
 
-<div class="shell">
-  <app-nav-rail class="rail"></app-nav-rail>
+  <!-- Top bar / nav -->
+  <app-topbar-v2></app-topbar-v2>
 
-  <main class="main">
-    <header class="page-head">
-      <div>
-        <div class="title">Dashboard</div>
-        <div class="subtitle">Visibility & workflow health</div>
+  <div class="layout">
+    <app-nav-rail></app-nav-rail>
+
+    <main class="content">
+
+      <!-- Action bar -->
+      <div class="apfs-actionbar">
+        <button type="button" class="btn-create" (click)="createNewForecastRecord()">
+          Create New Forecast Record
+        </button>
       </div>
-    </header>
 
-    <section class="grid">
-      <div class="card frame-corner grid-left">
-        <app-status-cards [items]="statusCounts()" (pick)="onPickStatus($event)"></app-status-cards>
-      </div>
+      <!-- Status cards 
+      <app-status-cards [counts]="statusCounts()" (pickStatus)="onPickStatus($event)"></app-status-cards>
+-->
+      <!-- Workflow health (optional)
+      <app-workflow-health></app-workflow-health>
+ -->
+      <!-- Filters -->
+      <!-- <app-dashboard-filters [filters]="filters()" (filtersChange)="onFiltersChange($event)"></app-dashboard-filters> -->
 
-      <div class="card grid-right">
-        <app-workflow-health [rows]="workableRows()"></app-workflow-health>
-      </div>
-    </section>
+      <!-- Records table -->
+      <app-records-table [rows]="filteredRows()" (rowClick)="openRecord($event)"></app-records-table>
 
-    <section class="card controls">
-      <app-dashboard-filters [value]="filters()" (valueChange)="onFiltersChange($event)"></app-dashboard-filters>
-    </section>
 
-    <section class="card table-wrap">
-      <app-records-table [rows]="filteredRows()" (rowClick)="onSelect($event)"></app-records-table>
-    </section>
-  </main>
+    </main>
+  </div>
 
-  <app-record-drawer [record]="selected()" (close)="onCloseDrawer()"></app-record-drawer>
+  <!-- Drawer: ONLY render when we have a record -->
+  <app-record-drawer *ngIf="selected() as r" [record]="r" (close)="onCloseDrawer()"
+    (recordUpdated)="onRecordUpdated($event)"></app-record-drawer>
 </div>

@@ -1,20 +1,36 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
 import { delay } from 'rxjs/operators';
 
+import { environment } from 'src/environments/environment'
+
+
 import { ForecastRecord } from '../models/forecast-record.model';
 import { createEmptyForecastRecord } from '../models/forecast-record.factory';
+
+export type ForecastRecordQuery = {
+  q?: string;                         // free-text search (apfsNumber/title/etc)
+  status?: string | 'All';            // e.g. 'Draft' | 'Submitted' | 'All'
+  assigned?: 'claimed' | 'unclaimed' | 'all';
+  page?: number;                      // 1-based
+  pageSize?: number;
+  sort?: 'updatedAt:desc' | 'updatedAt:asc' | 'createdAt:desc' | 'createdAt:asc';
+};
+
 
 @Injectable({ providedIn: 'root' })
 export class ForecastRecordService {
   private readonly http = inject(HttpClient);
 
-  // Flip this to false when your API is ready
-  private readonly useMock = true;
+  // Configurable switches (no code edits needed later)
+  private readonly useMock = environment.useMockApi;
+
+
 
   // Your node route is /forecast-records (no /api)
-  private readonly baseUrl = 'http://localhost:3000/forecast-records';
+  private readonly baseUrl = `${environment.apiBaseUrl}/forecast-records`;
 
   // In-memory store for mock mode (keyed by id as string)
   private readonly store = new Map<string, ForecastRecord>();
@@ -29,7 +45,6 @@ export class ForecastRecordService {
     if (!this.useMock || this.seeded) return;
     this.seeded = true;
 
-    // Seed a handful of rows so the dashboard has Queue + Claimed examples
     const mk = (partial: Partial<ForecastRecord>) => {
       const id = Date.now() + Math.floor(Math.random() * 10000);
       const rec: ForecastRecord = {
@@ -41,7 +56,7 @@ export class ForecastRecordService {
         assignedToUserId: null,
         assignedToName: null,
         assignedAt: null,
-        apfsNumber: `APFS-${String(id).slice(-6)}`,
+        apfsNumber: `APFS-${String(id).slice(-5)}`,
         requirementsTitle: `Mock Requirement ${String(id).slice(-4)}`,
         ...partial,
       };
@@ -61,29 +76,31 @@ export class ForecastRecordService {
   }
 
   /** GET /forecast-records/:id */
-  getById(id: string): Observable<ForecastRecord> {
+  getById(id: number | string): Observable<ForecastRecord> {
+    const idStr = String(id);
+
     if (!this.useMock) {
-      return this.http.get<ForecastRecord>(`${this.baseUrl}/${encodeURIComponent(id)}`);
+      return this.http.get<ForecastRecord>(`${this.baseUrl}/${encodeURIComponent(idStr)}`);
     }
 
     this.ensureSeeded();
 
-    const existing = this.store.get(id);
+    const existing = this.store.get(idStr);
     if (!existing) {
       const mock: ForecastRecord = {
         ...createEmptyForecastRecord(),
-        id: Number.isFinite(Number(id)) ? Number(id) : undefined,
+        id: Number.isFinite(Number(idStr)) ? Number(idStr) : undefined,
         status: 'Draft',
         createdAt: this.nowIso(),
         updatedAt: this.nowIso(),
         assignedToUserId: null,
         assignedToName: null,
         assignedAt: null,
-        apfsNumber: `APFS-${id}`,
-        requirementsTitle: `Mock Requirement ${id}`,
+        apfsNumber: `APFS-${idStr}`,
+        requirementsTitle: `Mock Requirement ${idStr}`,
       };
 
-      this.store.set(id, mock);
+      this.store.set(idStr, mock);
       return of(mock).pipe(delay(150));
     }
 
@@ -106,12 +123,9 @@ export class ForecastRecordService {
       id,
       createdAt: record.createdAt ?? now,
       updatedAt: now,
-
-      // default to unclaimed on create
       assignedToUserId: record.assignedToUserId ?? null,
       assignedToName: record.assignedToName ?? null,
       assignedAt: record.assignedAt ?? null,
-
       apfsNumber:
         record.apfsNumber ??
         `APFS-${Math.floor(Math.random() * 1000000)
@@ -163,16 +177,71 @@ export class ForecastRecordService {
     return of(submitted).pipe(delay(150));
   }
 
+
   /** GET /forecast-records */
-  list(): Observable<ForecastRecord[]> {
+  list(query: ForecastRecordQuery = {}): Observable<ForecastRecord[]> {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 25;
+    const assigned = query.assigned ?? 'all';
+    const sort = query.sort ?? 'updatedAt:desc';
+    const status = query.status ?? 'All';
+    const q = query.q?.trim();
+
+    // ---------- REAL API ----------
     if (!this.useMock) {
-      return this.http.get<ForecastRecord[]>(this.baseUrl);
+      let params = new HttpParams()
+        .set('page', String(page))
+        .set('pageSize', String(pageSize))
+        .set('sort', sort);
+
+      if (q) params = params.set('q', q);
+      if (status && status !== 'All') params = params.set('status', status);
+      if (assigned && assigned !== 'all') params = params.set('assigned', assigned);
+      console.log('[ForecastRecordService.list] query=', query, 'url=', this.baseUrl);
+      return this.http.get<ForecastRecord[]>(this.baseUrl, { params });
     }
 
+    // ---------- MOCK MODE ----------
     this.ensureSeeded();
 
-    return of(Array.from(this.store.values())).pipe(delay(150));
+    let rows = Array.from(this.store.values());
+
+    // Filter: status
+    if (status !== 'All') {
+      rows = rows.filter((r) => r.status === status);
+    }
+
+    // Filter: assigned
+    if (assigned === 'claimed') {
+      rows = rows.filter((r) => !!r.assignedToUserId);
+    } else if (assigned === 'unclaimed') {
+      rows = rows.filter((r) => !r.assignedToUserId);
+    }
+
+    // Filter: free text (apfsNumber + requirementsTitle)
+    if (q) {
+      const needle = q.toLowerCase();
+      rows = rows.filter((r) =>
+        `${r.apfsNumber ?? ''} ${r.requirementsTitle ?? ''}`.toLowerCase().includes(needle)
+      );
+    }
+
+    // Sort
+    const [field, dir] = sort.split(':') as ['updatedAt' | 'createdAt', 'asc' | 'desc'];
+    rows.sort((a, b) => {
+      const av = new Date((a as any)[field] ?? 0).getTime();
+      const bv = new Date((b as any)[field] ?? 0).getTime();
+      return dir === 'asc' ? av - bv : bv - av;
+    });
+
+    // Page (1-based)
+    const start = (page - 1) * pageSize;
+    rows = rows.slice(start, start + pageSize);
+
+    return of(rows).pipe(delay(150));
   }
+
+
 
   /** POST /forecast-records/:id/claim */
   claim(
@@ -187,10 +256,7 @@ export class ForecastRecordService {
 
     const existing = this.store.get(String(id));
     if (!existing) return throwError(() => new Error(`ForecastRecord ${id} not found`));
-
-    if (existing.assignedToUserId) {
-      return throwError(() => new Error(`ForecastRecord ${id} already claimed`));
-    }
+    if (existing.assignedToUserId) return throwError(() => new Error(`ForecastRecord ${id} already claimed`));
 
     const claimed: ForecastRecord = {
       ...existing,
@@ -218,7 +284,6 @@ export class ForecastRecordService {
     const existing = this.store.get(String(id));
     if (!existing) return throwError(() => new Error(`ForecastRecord ${id} not found`));
 
-    // Optional mock guard (mirrors server idea)
     if (
       existing.assignedToUserId &&
       payload?.userId &&

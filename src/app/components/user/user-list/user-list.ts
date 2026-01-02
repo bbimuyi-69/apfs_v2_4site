@@ -1,7 +1,7 @@
-import { Component , OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { User } from '../../../models/user.model'; 
-import { UserService } from '../../../services/user';
+import { User } from '../../../core/models/user.model';
+import { UserService } from '../../../core/services/user.service';
 
 
 @Component({
@@ -15,20 +15,20 @@ export class UserList implements OnInit {
 
   users: User[] = [];
 
-  constructor( private userService:UserService,private cdr: ChangeDetectorRef ) {
+  constructor(private userService: UserService, private cdr: ChangeDetectorRef) {
     //
-  } 
+  }
 
   ngOnInit() {
     this.userService.getUsers().subscribe({
       next: (data: User[]) => {
         this.users = data;
-        console.debug('Data Loaded:', this.users) ;
+        console.debug('Data Loaded:', this.users);
         this.cdr.detectChanges();
-    },error: (error) => {
-        console.error('Error fetching users:', error) ;
-        }
-    });   
+      }, error: (error) => {
+        console.error('Error fetching users:', error);
+      }
+    });
   }
 
 

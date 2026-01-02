@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
 import { delay, tap } from 'rxjs/operators';
 import { AuthSession, UserLoginRequest } from './auth.model';
-import { User } from '../models/user.model';
+import { User } from '../core/models/user.model';
 
 const SESSION_KEY = 'apfs_auth_session_v1';
 
