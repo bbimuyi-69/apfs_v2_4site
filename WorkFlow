@@ -2,6 +2,12 @@ role: 'Requirements',
 role: 'Contracting Office',
 role: 'APFS Coordinator',
 
+"status": "Draft",
+"status": "New",
+"status": "Requirements",
+"status": "Contracting",
+"status": "APFS Coordinator",
+
 
 import { AuthService } from '../../auth/auth.service';
 private auth: AuthService,

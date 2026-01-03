@@ -1,5 +1,6 @@
 <div class="apfs-page">
     <form *ngIf="form" class="apfs-form" [formGroup]="form" (ngSubmit)="onSaveDraft()">
+
         <!-- Optional status / loading -->
         <div *ngIf="isLoading" class="apfs-loading">Loading…</div>
 
@@ -7,10 +8,28 @@
             {{ loadError }}
         </div>
 
-        <!-- IMPORTANT: no (ngSubmit) so Enter key can’t auto-submit/navigate -->
-        <form class="apfs-form" *ngIf="form" [formGroup]="form">
+        <!-- =========================
+         System / Header Section
+         ========================= -->
+        <section class="sec">
+            <div class="sec-h">
+                <div class="sec-title">
+                    Record Info
+                    <span class="sec-sub">System managed</span>
+                </div>
 
-            <!-- APFS Number / Component -->
+                <div class="sec-meta">
+                    <span class="pill role">Role: {{ roleLabel }}</span>
+
+                    <span *ngIf="!isEditMode" class="pill ro" title="Open with ?mode=edit to make changes">
+                        Read-only
+                    </span>
+                    <span *ngIf="isEditMode" class="pill ok" title="Edit mode enabled">
+                        Edit mode
+                    </span>
+                </div>
+            </div>
+
             <div class="grid-2">
                 <div class="field">
                     <label>APFS Number</label>
@@ -27,8 +46,32 @@
                     <div class="hint">Select the Component, Subcomponent and/or Division.</div>
                 </div>
             </div>
+        </section>
 
-            <!-- Requirements -->
+        <!-- =========================
+         Requirements Section
+         ========================= -->
+        <section class="sec" [class.readonly]="isEditMode && !canEditRequirementsSection">
+            <div class="sec-h">
+                <div class="sec-title">
+                    Requirements
+                    <span class="sec-sub">Owned by Requirements</span>
+                </div>
+
+                <div class="sec-meta">
+                    <span *ngIf="!isEditMode" class="pill ro" title="Open with ?mode=edit to make changes">
+                        Read-only
+                    </span>
+                    <span *ngIf="isEditMode && !canEditRequirementsSection" class="pill ro"
+                        title="Only Requirements role can edit this section">
+                        Read-only
+                    </span>
+                    <span *ngIf="canEditRequirementsSection" class="pill ok" title="You can edit this section">
+                        Editable
+                    </span>
+                </div>
+            </div>
+
             <div class="field">
                 <label>Requirements Title</label>
                 <input type="text" formControlName="requirementsTitle" />
@@ -42,8 +85,7 @@
                 <textarea rows="6" formControlName="requirement"></textarea>
                 <div class="hint">
                     Provide descriptive text detailing the requirements for the anticipated opportunity. Limit word
-                    count to
-                    500.
+                    count to 500.
                 </div>
                 <div class="error"
                     *ngIf="form.controls.requirement.touched && form.controls.requirement.errors?.['maxWords']">
@@ -51,7 +93,6 @@
                 </div>
             </div>
 
-            <!-- Program Level -->
             <div class="field">
                 <label>Program level</label>
                 <select formControlName="programLevel">
@@ -61,8 +102,29 @@
                 </select>
                 <div class="hint">A program level can be selected from the drop down menu if it applies.</div>
             </div>
+        </section>
 
-            <!-- Small Business -->
+        <!-- =========================
+         APFS Coordinator Section
+         ========================= -->
+        <section class="sec" [class.readonly]="isEditMode && !canEditCoordinatorSection">
+            <div class="sec-h">
+                <div class="sec-title">
+                    Small Business
+                    <span class="sec-sub">Owned by APFS Coordinator</span>
+                </div>
+
+                <div class="sec-meta">
+                    <span *ngIf="isEditMode && !canEditCoordinatorSection" class="pill ro"
+                        title="Only APFS Coordinator can edit these fields">
+                        Read-only
+                    </span>
+                    <span *ngIf="canEditCoordinatorSection" class="pill ok" title="You can edit this section">
+                        Editable
+                    </span>
+                </div>
+            </div>
+
             <div class="grid-2">
                 <div class="field">
                     <label>Small business set aside</label>
@@ -80,8 +142,29 @@
                     <div class="hint">This field is updated by the APFS Coordinator.</div>
                 </div>
             </div>
+        </section>
 
-            <!-- Dollar / NAICS -->
+        <!-- =========================
+         Value Classification Section
+         ========================= -->
+        <section class="sec" [class.readonly]="isEditMode && !canEditClassificationSection">
+            <div class="sec-h">
+                <div class="sec-title">
+                    Value Classification
+                    <span class="sec-sub">Owned by APFS Coordinator / Contracting Office</span>
+                </div>
+
+                <div class="sec-meta">
+                    <span *ngIf="isEditMode && !canEditClassificationSection" class="pill ro"
+                        title="Only APFS Coordinator or Contracting Office can edit this section">
+                        Read-only
+                    </span>
+                    <span *ngIf="canEditClassificationSection" class="pill ok" title="You can edit this section">
+                        Editable
+                    </span>
+                </div>
+            </div>
+
             <div class="grid-2">
                 <div class="field">
                     <label>Dollar range</label>
@@ -104,8 +187,29 @@
                     </div>
                 </div>
             </div>
+        </section>
 
-            <!-- Contracting / Strategic sourcing -->
+        <!-- =========================
+         Contracting Office Section
+         ========================= -->
+        <section class="sec" [class.readonly]="isEditMode && !canEditContractingSection">
+            <div class="sec-h">
+                <div class="sec-title">
+                    Contracting Office
+                    <span class="sec-sub">Owned by Contracting Office</span>
+                </div>
+
+                <div class="sec-meta">
+                    <span *ngIf="isEditMode && !canEditContractingSection" class="pill ro"
+                        title="Only Contracting Office can edit these fields">
+                        Read-only
+                    </span>
+                    <span *ngIf="canEditContractingSection" class="pill ok" title="You can edit this section">
+                        Editable
+                    </span>
+                </div>
+            </div>
+
             <div class="grid-2">
                 <div class="field">
                     <label>Contract type</label>
@@ -146,7 +250,6 @@
                 </div>
             </div>
 
-            <!-- Competitive / Contract status -->
             <div class="grid-2">
                 <div class="field">
                     <label>Competitive</label>
@@ -167,7 +270,6 @@
                 </div>
             </div>
 
-            <!-- Incumbent / Contract number -->
             <div class="grid-2">
                 <div class="field">
                     <label>Incumbent</label>
@@ -181,24 +283,11 @@
                     <div class="hint">Notate the Contract Number in the text box provided.</div>
                 </div>
             </div>
+        </section>
 
-            <!-- Actions -->
-            <div class="actions">
-                <!-- IMPORTANT: explicit click save -->
-                <button type="button" class="btn-save" (click)="onSaveDraft()" [disabled]="isLoading || !isEditMode">
-                    Save &amp; Continue
-                </button>
-
-                <button type="button" class="btn-cancel" (click)="onCancel()">
-                    Cancel
-                </button>
-            </div>
-
-            <div class="hint" *ngIf="!isEditMode">
-                Viewing mode. Open with <span class="mono">?mode=edit</span> to edit.
-            </div>
-
-        </form>
+        <!-- =========================
+         Actions
+         ========================= -->
         <div class="apfs-actions">
             <button type="submit" class="btn-primary" [disabled]="!isEditMode || isLoading">
                 Save Draft
@@ -212,5 +301,10 @@
                 Cancel
             </button>
         </div>
+
+        <div class="hint" *ngIf="!isEditMode">
+            Viewing mode. Open with <span class="mono">?mode=edit</span> to edit.
+        </div>
+
     </form>
 </div>

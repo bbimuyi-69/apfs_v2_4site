@@ -87,6 +87,32 @@ export class ForecastRecordComponent {
     return this.status === 'Submitted';
   }
 
+  /**Additonal Getters for role based field access */
+  get roleLabel(): string {
+    return this.userProfile?.role ?? 'Unknown';
+  }
+
+  private hasEditRightsFor(role: 'Requirements' | 'Contracting Office' | 'APFS Coordinator'): boolean {
+    return (this.userProfile?.role ?? '').trim().toLowerCase() === role.toLowerCase();
+  }
+
+  get canEditRequirementsSection(): boolean {
+    return this.isEditMode && this.hasEditRightsFor('Requirements');
+  }
+  get canEditCoordinatorSection(): boolean {
+    return this.isEditMode && this.hasEditRightsFor('APFS Coordinator');
+  }
+  get canEditContractingSection(): boolean {
+    return this.isEditMode && this.hasEditRightsFor('Contracting Office');
+  }
+
+  // If you keep value classification shared:
+  get canEditClassificationSection(): boolean {
+    return this.isEditMode && (this.canEditCoordinatorSection || this.canEditContractingSection);
+  }
+  /**End Role Based field enebalement getters */
+
+
   /**
    * Applies:
    * 1) View/Edit mode
