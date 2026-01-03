@@ -1,8 +1,10 @@
 <div class="apfs-page">
-    <div class="apfs-shell" *ngIf="form; else noForm">
+    <div class="apfs-shell" *ngIf="form; else noForm" [class.no-rail]="!showRecordRail">
+
 
         <!-- LEFT RAIL: Record Actions -->
-        <aside class="record-rail" aria-label="Record actions">
+        <aside class="record-rail" aria-label="Record actions" *ngIf="showRecordRail">
+
 
             <!-- Utilities -->
             <div class="rail-card">

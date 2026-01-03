@@ -16,6 +16,18 @@
     align-items: start;
 }
 
+/* When rail is hidden (New record), give the form full width */
+.apfs-shell.no-rail {
+    grid-template-columns: 1fr;
+    max-width: 920px;
+    /* match your original form width */
+}
+
+.apfs-shell.no-rail .apfs-form {
+    width: 100%;
+}
+
+
 /* Header */
 .apfs-titlebar {
     background: #1f4f7a;

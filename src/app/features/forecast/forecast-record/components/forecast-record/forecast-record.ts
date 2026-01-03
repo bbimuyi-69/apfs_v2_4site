@@ -111,6 +111,19 @@ export class ForecastRecordComponent {
     return this.userProfile?.role ?? 'Unknown';
   }
 
+  /** Show or hide the record rail based on status */
+  get showRecordRail(): boolean {
+    // If this is /forecast/new (no recordId yet), hide the rail.
+    if (!this.recordId) return false;
+
+    // Otherwise, fallback to workflow status logic.
+    const railStatus = this.normalizeRailStatus(this.status);
+    return railStatus !== 'New' && railStatus !== 'Unknown';
+  }
+
+
+
+
   private hasEditRightsFor(role: 'Requirements' | 'Contracting Office' | 'APFS Coordinator'): boolean {
     return (this.userProfile?.role ?? '').trim().toLowerCase() === role.toLowerCase();
   }
