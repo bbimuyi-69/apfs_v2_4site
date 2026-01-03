@@ -6,6 +6,16 @@
     box-sizing: border-box;
 }
 
+/* NEW: rail + main container */
+.apfs-shell {
+    max-width: 1120px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 14px;
+    align-items: start;
+}
+
 /* Header */
 .apfs-titlebar {
     background: #1f4f7a;
@@ -45,8 +55,10 @@
 
 /* Form container */
 .apfs-form {
-    max-width: 920px;
-    margin: 0 auto;
+    /* was max-width: 920px; margin auto; — shell now controls layout */
+    max-width: none;
+    margin: 0;
+
     background: #ffffff;
     padding: 18px 20px 22px;
     border: 1px solid #dcdcdc;
@@ -56,6 +68,107 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
+}
+
+/* -----------------------------------
+   LEFT RAIL (Record Actions)
+----------------------------------- */
+.record-rail {
+    position: sticky;
+    top: 14px;
+
+    width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.rail-title {
+    margin: 2px 0 0;
+    font-size: 13px;
+    font-weight: 800;
+    color: #1a1a1a;
+}
+
+.rail-card {
+    border: 1px solid #cfcfcf;
+    background: #f3f3f3;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 14px rgba(16, 24, 40, 0.05);
+}
+
+.rail-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 9px 10px;
+    border: 0;
+    border-bottom: 1px solid #d8d8d8;
+    background: #efefef;
+    color: #1b1b1b;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: left;
+}
+
+.rail-btn:last-child {
+    border-bottom: 0;
+}
+
+.rail-btn:hover {
+    background: #e7e7e7;
+}
+
+.rail-btn:active {
+    background: #dedede;
+}
+
+.rail-btn[disabled] {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+.rail-icon {
+    font-size: 13px;
+    opacity: .85;
+}
+
+/* Subtle “legacy-style” color cues */
+.rail-btn-primary {
+    background: #1f5fae;
+    color: #fff;
+    border-bottom: 1px solid #184d8c;
+}
+
+.rail-btn-primary:hover {
+    filter: brightness(0.97);
+}
+
+.rail-btn-accent {
+    background: #f2b233;
+    color: #1b1b1b;
+    border-bottom: 1px solid #d89d2c;
+}
+
+.rail-btn-warn {
+    background: #efefef;
+    color: #1b1b1b;
+}
+
+.rail-btn-danger {
+    background: #efefef;
+    color: #1b1b1b;
+}
+
+/* little status pills at rail bottom */
+.rail-foot {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
 /* -----------------------------------
@@ -337,6 +450,18 @@
 }
 
 /* Responsive behavior */
+@media (max-width: 980px) {
+    .apfs-shell {
+        grid-template-columns: 1fr;
+    }
+
+    .record-rail {
+        position: static;
+        width: 100%;
+        order: -1;
+    }
+}
+
 @media (max-width: 760px) {
     .grid-2 {
         grid-template-columns: 1fr;

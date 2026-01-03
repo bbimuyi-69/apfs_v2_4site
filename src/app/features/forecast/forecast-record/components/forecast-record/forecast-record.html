@@ -1,310 +1,362 @@
 <div class="apfs-page">
-    <form *ngIf="form" class="apfs-form" [formGroup]="form" (ngSubmit)="onSaveDraft()">
+    <div class="apfs-shell" *ngIf="form; else noForm">
 
-        <!-- Optional status / loading -->
-        <div *ngIf="isLoading" class="apfs-loading">Loading…</div>
+        <!-- LEFT RAIL: Record Actions -->
+        <aside class="record-rail" aria-label="Record actions">
 
-        <div *ngIf="loadError" class="apfs-error">
-            {{ loadError }}
-        </div>
+            <!-- Utilities -->
+            <div class="rail-card">
+                <button type="button" class="rail-btn" (click)="onPrintableView()">
+                    Printable View <span class="rail-icon" aria-hidden="true">🖨️</span>
+                </button>
 
-        <!-- =========================
-         System / Header Section
-         ========================= -->
-        <section class="sec">
-            <div class="sec-h">
-                <div class="sec-title">
-                    Record Info
-                    <span class="sec-sub">System managed</span>
-                </div>
+                <button type="button" class="rail-btn" (click)="onCsvDownload()">
+                    CSV Download <span class="rail-icon" aria-hidden="true">⬇️</span>
+                </button>
 
-                <div class="sec-meta">
-                    <span class="pill role">Role: {{ roleLabel }}</span>
+                <button type="button" class="rail-btn" (click)="onRecordHistory()">
+                    Record History
+                </button>
 
-                    <span *ngIf="!isEditMode" class="pill ro" title="Open with ?mode=edit to make changes">
-                        Read-only
-                    </span>
-                    <span *ngIf="isEditMode" class="pill ok" title="Edit mode enabled">
-                        Edit mode
-                    </span>
-                </div>
+                <button type="button" class="rail-btn" (click)="onChangeLog()">
+                    Change Log
+                </button>
+
+                <button type="button" class="rail-btn" (click)="onReassign()" [disabled]="!canReassign || isLoading">
+                    Reassign Record
+                </button>
             </div>
 
-            <div class="grid-2">
-                <div class="field">
-                    <label>APFS Number</label>
-                    <input type="text" formControlName="apfsNumber" placeholder="Automatically Generated On Creation" />
-                    <div class="hint">This is assigned by the APFS Application.</div>
-                </div>
+            <h3 class="rail-title">Record Actions</h3>
 
-                <div class="field">
-                    <label>Component</label>
-                    <select formControlName="component">
-                        <option value="" disabled>Select…</option>
-                        <option value="CBP">CBP</option>
-                    </select>
-                    <div class="hint">Select the Component, Subcomponent and/or Division.</div>
-                </div>
-            </div>
-        </section>
+            <!-- Primary actions -->
+            <div class="rail-card">
+                <!-- OPTION A: Save calls handler directly -->
+                <button type="button" class="rail-btn rail-btn-primary" (click)="onSaveDraft()"
+                    [disabled]="!canSave || isLoading">
+                    Save <span class="rail-icon" aria-hidden="true">💾</span>
+                </button>
 
-        <!-- =========================
-         Requirements Section
-         ========================= -->
-        <section class="sec" [class.readonly]="isEditMode && !canEditRequirementsSection">
-            <div class="sec-h">
-                <div class="sec-title">
-                    Requirements
-                    <span class="sec-sub">Owned by Requirements</span>
-                </div>
+                <button type="button" class="rail-btn rail-btn-warn" (click)="onUnassign()"
+                    [disabled]="!canUnassign || isLoading">
+                    Unassign <span class="rail-icon" aria-hidden="true">↩️</span>
+                </button>
 
-                <div class="sec-meta">
-                    <span *ngIf="!isEditMode" class="pill ro" title="Open with ?mode=edit to make changes">
-                        Read-only
-                    </span>
-                    <span *ngIf="isEditMode && !canEditRequirementsSection" class="pill ro"
-                        title="Only Requirements role can edit this section">
-                        Read-only
-                    </span>
-                    <span *ngIf="canEditRequirementsSection" class="pill ok" title="You can edit this section">
-                        Editable
-                    </span>
-                </div>
+                <button type="button" class="rail-btn rail-btn-accent" (click)="onSubmit()"
+                    [disabled]="!canApproveSend || isLoading">
+                    Approve &amp; Send <span class="rail-icon" aria-hidden="true">✈️</span>
+                </button>
+
+                <button type="button" class="rail-btn rail-btn-danger" (click)="onDelete()"
+                    [disabled]="!canDelete || isLoading">
+                    Delete <span class="rail-icon" aria-hidden="true">✖</span>
+                </button>
             </div>
 
-            <div class="field">
-                <label>Requirements Title</label>
-                <input type="text" formControlName="requirementsTitle" />
-                <div class="hint">
-                    Enter a brief title to the requirement which will be included in email to industry.
-                </div>
+            <div class="rail-foot">
+                <span class="pill role">Role: {{ roleLabel }}</span>
+                <span *ngIf="!isEditMode" class="pill ro" title="Open with ?mode=edit to make changes">
+                    Read-only
+                </span>
+                <span *ngIf="isEditMode" class="pill ok" title="Edit mode enabled">
+                    Edit mode
+                </span>
+            </div>
+        </aside>
+
+        <!-- MAIN FORM COLUMN -->
+        <form class="apfs-form" [formGroup]="form">
+
+            <!-- Optional status / loading -->
+            <div *ngIf="isLoading" class="apfs-loading">Loading…</div>
+
+            <div *ngIf="loadError" class="apfs-error">
+                {{ loadError }}
             </div>
 
-            <div class="field">
-                <label>Requirement</label>
-                <textarea rows="6" formControlName="requirement"></textarea>
-                <div class="hint">
-                    Provide descriptive text detailing the requirements for the anticipated opportunity. Limit word
-                    count to 500.
-                </div>
-                <div class="error"
-                    *ngIf="form.controls.requirement.touched && form.controls.requirement.errors?.['maxWords']">
-                    Requirement exceeds 500 words.
-                </div>
-            </div>
+            <!-- =========================
+       System / Header Section
+       ========================= -->
+            <section class="sec">
+                <div class="sec-h">
+                    <div class="sec-title">
+                        Record Info
+                        <span class="sec-sub">System managed</span>
+                    </div>
 
-            <div class="field">
-                <label>Program level</label>
-                <select formControlName="programLevel">
-                    <option *ngFor="let o of programLevels; trackBy: trackByValue" [value]="o.value">
-                        {{ o.label }}
-                    </option>
-                </select>
-                <div class="hint">A program level can be selected from the drop down menu if it applies.</div>
-            </div>
-        </section>
+                    <div class="sec-meta">
+                        <span class="pill role">Role: {{ roleLabel }}</span>
 
-        <!-- =========================
-         APFS Coordinator Section
-         ========================= -->
-        <section class="sec" [class.readonly]="isEditMode && !canEditCoordinatorSection">
-            <div class="sec-h">
-                <div class="sec-title">
-                    Small Business
-                    <span class="sec-sub">Owned by APFS Coordinator</span>
-                </div>
-
-                <div class="sec-meta">
-                    <span *ngIf="isEditMode && !canEditCoordinatorSection" class="pill ro"
-                        title="Only APFS Coordinator can edit these fields">
-                        Read-only
-                    </span>
-                    <span *ngIf="canEditCoordinatorSection" class="pill ok" title="You can edit this section">
-                        Editable
-                    </span>
-                </div>
-            </div>
-
-            <div class="grid-2">
-                <div class="field">
-                    <label>Small business set aside</label>
-                    <select formControlName="smallBusinessSetAside">
-                        <option value="">N/A</option>
-                    </select>
-                    <div class="hint">This field is updated by the APFS Coordinator.</div>
-                </div>
-
-                <div class="field">
-                    <label>Small business program</label>
-                    <select formControlName="smallBusinessProgram">
-                        <option value="">----------</option>
-                    </select>
-                    <div class="hint">This field is updated by the APFS Coordinator.</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- =========================
-         Value Classification Section
-         ========================= -->
-        <section class="sec" [class.readonly]="isEditMode && !canEditClassificationSection">
-            <div class="sec-h">
-                <div class="sec-title">
-                    Value Classification
-                    <span class="sec-sub">Owned by APFS Coordinator / Contracting Office</span>
-                </div>
-
-                <div class="sec-meta">
-                    <span *ngIf="isEditMode && !canEditClassificationSection" class="pill ro"
-                        title="Only APFS Coordinator or Contracting Office can edit this section">
-                        Read-only
-                    </span>
-                    <span *ngIf="canEditClassificationSection" class="pill ok" title="You can edit this section">
-                        Editable
-                    </span>
-                </div>
-            </div>
-
-            <div class="grid-2">
-                <div class="field">
-                    <label>Dollar range</label>
-                    <select formControlName="dollarRange">
-                        <option *ngFor="let o of dollarRanges; trackBy: trackByValue" [value]="o.value">
-                            {{ o.label }}
-                        </option>
-                    </select>
-                    <div class="hint">Select the dollar range for the total estimated value.</div>
-                </div>
-
-                <div class="field">
-                    <label>NAICS Code</label>
-                    <select formControlName="naicsCode">
-                        <option value="">----------</option>
-                    </select>
-                    <div class="hint">
-                        Enter a NAICS Code that pertains to the anticipated opportunity.
-                        Enter keywords in the text box to locate the applicable NAICS.
+                        <span *ngIf="!isEditMode" class="pill ro" title="Open with ?mode=edit to make changes">
+                            Read-only
+                        </span>
+                        <span *ngIf="isEditMode" class="pill ok" title="Edit mode enabled">
+                            Edit mode
+                        </span>
                     </div>
                 </div>
-            </div>
-        </section>
 
-        <!-- =========================
-         Contracting Office Section
-         ========================= -->
-        <section class="sec" [class.readonly]="isEditMode && !canEditContractingSection">
-            <div class="sec-h">
-                <div class="sec-title">
-                    Contracting Office
-                    <span class="sec-sub">Owned by Contracting Office</span>
-                </div>
+                <div class="grid-2">
+                    <div class="field">
+                        <label>APFS Number</label>
+                        <input type="text" formControlName="apfsNumber"
+                            placeholder="Automatically Generated On Creation" />
+                        <div class="hint">This is assigned by the APFS Application.</div>
+                    </div>
 
-                <div class="sec-meta">
-                    <span *ngIf="isEditMode && !canEditContractingSection" class="pill ro"
-                        title="Only Contracting Office can edit these fields">
-                        Read-only
-                    </span>
-                    <span *ngIf="canEditContractingSection" class="pill ok" title="You can edit this section">
-                        Editable
-                    </span>
-                </div>
-            </div>
-
-            <div class="grid-2">
-                <div class="field">
-                    <label>Contract type</label>
-                    <select formControlName="contractType">
-                        <option *ngFor="let o of contractTypes; trackBy: trackByValue" [value]="o.value">
-                            {{ o.label }}
-                        </option>
-                    </select>
-                    <div class="hint">This field is updated by the Contracting Officer.</div>
-                </div>
-
-                <div class="field">
-                    <label>Will a strategic sourcing vehicle be used?</label>
-                    <select formControlName="strategicSourcingVehicleUsed">
-                        <option *ngFor="let o of yesNoUnknown; trackBy: trackByValue" [value]="o.value">
-                            {{ o.label }}
-                        </option>
-                    </select>
-                    <div class="hint">This field is updated by the Contracting Officer.</div>
-                </div>
-            </div>
-
-            <div class="grid-2">
-                <div class="field">
-                    <label>Strategic Sourcing Vehicle</label>
-                    <select formControlName="strategicSourcingVehicle">
-                        <option value="">----------</option>
-                    </select>
-                    <div class="hint">This field is updated by the Contracting Officer.</div>
-                </div>
-
-                <div class="field">
-                    <label>Type of Award</label>
-                    <select formControlName="typeOfAward">
-                        <option value="">----------</option>
-                    </select>
-                    <div class="hint">This field is updated by the Contracting Officer.</div>
-                </div>
-            </div>
-
-            <div class="grid-2">
-                <div class="field">
-                    <label>Competitive</label>
-                    <select formControlName="competitive">
-                        <option value="">----------</option>
-                    </select>
-                    <div class="hint">Choose the status of the anticipated opportunity from the drop down.</div>
-                </div>
-
-                <div class="field">
-                    <label>Contract status</label>
-                    <select formControlName="contractStatus">
-                        <option value="">----------</option>
-                    </select>
-                    <div class="hint">
-                        Identify if the contract is a new opportunity or a re-compete from the drop down menu.
+                    <div class="field">
+                        <label>Component</label>
+                        <select formControlName="component">
+                            <option value="" disabled>Select…</option>
+                            <option value="CBP">CBP</option>
+                        </select>
+                        <div class="hint">Select the Component, Subcomponent and/or Division.</div>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <div class="grid-2">
-                <div class="field">
-                    <label>Incumbent</label>
-                    <input type="text" formControlName="incumbent" />
-                    <div class="hint">Identify the incumbent in the text box.</div>
+            <!-- =========================
+       Requirements Section
+       ========================= -->
+            <section class="sec" [class.readonly]="isEditMode && !canEditRequirementsSection">
+                <div class="sec-h">
+                    <div class="sec-title">
+                        Requirements
+                        <span class="sec-sub">Owned by Requirements</span>
+                    </div>
+
+                    <div class="sec-meta">
+                        <span *ngIf="!isEditMode" class="pill ro">Read-only</span>
+                        <span *ngIf="isEditMode && !canEditRequirementsSection" class="pill ro">
+                            Read-only
+                        </span>
+                        <span *ngIf="canEditRequirementsSection" class="pill ok">
+                            Editable
+                        </span>
+                    </div>
                 </div>
 
                 <div class="field">
-                    <label>Contract number</label>
-                    <input type="text" formControlName="contractNumber" />
-                    <div class="hint">Notate the Contract Number in the text box provided.</div>
+                    <label>Requirements Title</label>
+                    <input type="text" formControlName="requirementsTitle" />
+                    <div class="hint">
+                        Enter a brief title to the requirement which will be included in email to industry.
+                    </div>
                 </div>
+
+                <div class="field">
+                    <label>Requirement</label>
+                    <textarea rows="6" formControlName="requirement"></textarea>
+                    <div class="hint">
+                        Provide descriptive text detailing the requirements for the anticipated opportunity. Limit word
+                        count to 500.
+                    </div>
+                    <div class="error"
+                        *ngIf="form.controls.requirement.touched && form.controls.requirement.errors?.['maxWords']">
+                        Requirement exceeds 500 words.
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label>Program level</label>
+                    <select formControlName="programLevel">
+                        <option *ngFor="let o of programLevels; trackBy: trackByValue" [value]="o.value">
+                            {{ o.label }}
+                        </option>
+                    </select>
+                    <div class="hint">A program level can be selected from the drop down menu if it applies.</div>
+                </div>
+            </section>
+
+            <!-- =========================
+       APFS Coordinator Section
+       ========================= -->
+            <section class="sec" [class.readonly]="isEditMode && !canEditCoordinatorSection">
+                <div class="sec-h">
+                    <div class="sec-title">
+                        Small Business
+                        <span class="sec-sub">Owned by APFS Coordinator</span>
+                    </div>
+
+                    <div class="sec-meta">
+                        <span *ngIf="isEditMode && !canEditCoordinatorSection" class="pill ro">Read-only</span>
+                        <span *ngIf="canEditCoordinatorSection" class="pill ok">Editable</span>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="field">
+                        <label>Small business set aside</label>
+                        <select formControlName="smallBusinessSetAside">
+                            <option value="">N/A</option>
+                        </select>
+                        <div class="hint">This field is updated by the APFS Coordinator.</div>
+                    </div>
+
+                    <div class="field">
+                        <label>Small business program</label>
+                        <select formControlName="smallBusinessProgram">
+                            <option value="">----------</option>
+                        </select>
+                        <div class="hint">This field is updated by the APFS Coordinator.</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- =========================
+       Value Classification Section
+       ========================= -->
+            <section class="sec" [class.readonly]="isEditMode && !canEditClassificationSection">
+                <div class="sec-h">
+                    <div class="sec-title">
+                        Value Classification
+                        <span class="sec-sub">Owned by APFS Coordinator / Contracting Office</span>
+                    </div>
+
+                    <div class="sec-meta">
+                        <span *ngIf="isEditMode && !canEditClassificationSection" class="pill ro">Read-only</span>
+                        <span *ngIf="canEditClassificationSection" class="pill ok">Editable</span>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="field">
+                        <label>Dollar range</label>
+                        <select formControlName="dollarRange">
+                            <option *ngFor="let o of dollarRanges; trackBy: trackByValue" [value]="o.value">
+                                {{ o.label }}
+                            </option>
+                        </select>
+                        <div class="hint">Select the dollar range for the total estimated value.</div>
+                    </div>
+
+                    <div class="field">
+                        <label>NAICS Code</label>
+                        <select formControlName="naicsCode">
+                            <option value="">----------</option>
+                        </select>
+                        <div class="hint">
+                            Enter a NAICS Code that pertains to the anticipated opportunity.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- =========================
+       Contracting Office Section
+       ========================= -->
+            <section class="sec" [class.readonly]="isEditMode && !canEditContractingSection">
+                <div class="sec-h">
+                    <div class="sec-title">
+                        Contracting Office
+                        <span class="sec-sub">Owned by Contracting Office</span>
+                    </div>
+
+                    <div class="sec-meta">
+                        <span *ngIf="isEditMode && !canEditContractingSection" class="pill ro">Read-only</span>
+                        <span *ngIf="canEditContractingSection" class="pill ok">Editable</span>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="field">
+                        <label>Contract type</label>
+                        <select formControlName="contractType">
+                            <option *ngFor="let o of contractTypes; trackBy: trackByValue" [value]="o.value">
+                                {{ o.label }}
+                            </option>
+                        </select>
+                        <div class="hint">This field is updated by the Contracting Officer.</div>
+                    </div>
+
+                    <div class="field">
+                        <label>Will a strategic sourcing vehicle be used?</label>
+                        <select formControlName="strategicSourcingVehicleUsed">
+                            <option *ngFor="let o of yesNoUnknown; trackBy: trackByValue" [value]="o.value">
+                                {{ o.label }}
+                            </option>
+                        </select>
+                        <div class="hint">This field is updated by the Contracting Officer.</div>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="field">
+                        <label>Strategic Sourcing Vehicle</label>
+                        <select formControlName="strategicSourcingVehicle">
+                            <option value="">----------</option>
+                        </select>
+                        <div class="hint">This field is updated by the Contracting Officer.</div>
+                    </div>
+
+                    <div class="field">
+                        <label>Type of Award</label>
+                        <select formControlName="typeOfAward">
+                            <option value="">----------</option>
+                        </select>
+                        <div class="hint">This field is updated by the Contracting Officer.</div>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="field">
+                        <label>Competitive</label>
+                        <select formControlName="competitive">
+                            <option value="">----------</option>
+                        </select>
+                        <div class="hint">Choose the status of the anticipated opportunity from the drop down.</div>
+                    </div>
+
+                    <div class="field">
+                        <label>Contract status</label>
+                        <select formControlName="contractStatus">
+                            <option value="">----------</option>
+                        </select>
+                        <div class="hint">
+                            Identify if the contract is a new opportunity or a re-compete.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="field">
+                        <label>Incumbent</label>
+                        <input type="text" formControlName="incumbent" />
+                        <div class="hint">Identify the incumbent.</div>
+                    </div>
+
+                    <div class="field">
+                        <label>Contract number</label>
+                        <input type="text" formControlName="contractNumber" />
+                        <div class="hint">Notate the Contract Number.</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Optional bottom buttons (can remove later) -->
+            <div class="apfs-actions">
+                <button type="button" class="btn-primary" (click)="onSaveDraft()" [disabled]="!canSave || isLoading">
+                    Save Draft
+                </button>
+
+                <button type="button" class="btn-secondary" (click)="onSubmit()"
+                    [disabled]="!canApproveSend || isLoading">
+                    Submit
+                </button>
+
+                <button type="button" class="btn-ghost" (click)="onCancel()">
+                    Cancel
+                </button>
             </div>
-        </section>
 
-        <!-- =========================
-         Actions
-         ========================= -->
-        <div class="apfs-actions">
-            <button type="submit" class="btn-primary" [disabled]="!isEditMode || isLoading">
-                Save Draft
-            </button>
+            <div class="hint" *ngIf="!isEditMode">
+                Viewing mode. Open with <span class="mono">?mode=edit</span> to edit.
+            </div>
 
-            <button type="button" class="btn-secondary" (click)="onSubmit()" [disabled]="!isEditMode || isLoading">
-                Submit
-            </button>
+        </form>
+    </div>
 
-            <button type="button" class="btn-ghost" (click)="onCancel()">
-                Cancel
-            </button>
-        </div>
-
-        <div class="hint" *ngIf="!isEditMode">
-            Viewing mode. Open with <span class="mono">?mode=edit</span> to edit.
-        </div>
-
-    </form>
+    <ng-template #noForm>
+        <div class="apfs-loading">Loading…</div>
+    </ng-template>
 </div>

@@ -33,6 +33,16 @@ import {
 
 import { AuthService } from '../../../../../auth/auth.service';
 
+type RailStatus = 'New' | 'Draft' | 'Requirements' | 'Contracting' | 'APFS Coordinator' | 'Submitted' | 'Unknown';
+
+interface RailPermissions {
+  canReassign: boolean;
+  canSave: boolean;
+  canUnassign: boolean;
+  canApproveSend: boolean;
+  canDelete: boolean;
+}
+
 @Component({
   selector: 'app-forecast-record',
   standalone: true,
@@ -77,6 +87,15 @@ export class ForecastRecordComponent {
   /** Cached per-load; safe to re-read anytime */
   private userProfile: UserProfileLike | null = null;
 
+  /** Record Actions rail permissions (drives left rail buttons) */
+  rail: RailPermissions = {
+    canReassign: false,
+    canSave: false,
+    canUnassign: false,
+    canApproveSend: false,
+    canDelete: false,
+  };
+
   get status(): ForecastRecordStatus | null {
     return this.form?.get('status')?.value ?? null;
   }
@@ -87,7 +106,7 @@ export class ForecastRecordComponent {
     return this.status === 'Submitted';
   }
 
-  /**Additonal Getters for role based field access */
+  /** Additional Getters for role based field access */
   get roleLabel(): string {
     return this.userProfile?.role ?? 'Unknown';
   }
@@ -110,8 +129,122 @@ export class ForecastRecordComponent {
   get canEditClassificationSection(): boolean {
     return this.isEditMode && (this.canEditCoordinatorSection || this.canEditContractingSection);
   }
-  /**End Role Based field enebalement getters */
+  /** End Role Based field enablement getters */
 
+  // --- Rail convenience getters for HTML ---
+  get canReassign(): boolean { return this.rail.canReassign; }
+  get canSave(): boolean { return this.rail.canSave; }
+  get canUnassign(): boolean { return this.rail.canUnassign; }
+  get canApproveSend(): boolean { return this.rail.canApproveSend; }
+  get canDelete(): boolean { return this.rail.canDelete; }
+
+  /**
+   * Normalize whatever "status" values exist today into the workflow statuses you listed.
+   * This protects you while the backend/UI are evolving.
+   */
+  private normalizeRailStatus(raw: unknown): RailStatus {
+    const s = String(raw ?? '').trim();
+    if (!s) return 'Unknown';
+
+    // exact matches you told me
+    if (s === 'New') return 'New';
+    if (s === 'Draft') return 'Draft';
+    if (s === 'Requirements') return 'Requirements';
+    if (s === 'Contracting') return 'Contracting';
+    if (s === 'APFS Coordinator') return 'APFS Coordinator';
+
+    // existing enum you already have in code
+    if (s === 'Submitted') return 'Submitted';
+
+    // tolerant matching (in case backend sends slightly different labels)
+    const lower = s.toLowerCase();
+    if (lower.includes('require')) return 'Requirements';
+    if (lower.includes('contract')) return 'Contracting';
+    if (lower.includes('coordinator')) return 'APFS Coordinator';
+    if (lower.includes('draft')) return 'Draft';
+    if (lower.includes('submit')) return 'Submitted';
+    if (lower.includes('new')) return 'New';
+
+    return 'Unknown';
+  }
+
+  private normalizeRailRole(): 'Requirements' | 'Contracting' | 'APFS Coordinator' | 'Admin' | 'Viewer' {
+    const roleRaw = (this.userProfile?.role ?? '').trim().toLowerCase();
+    if (!roleRaw) return 'Viewer';
+
+    // map your current labels
+    if (roleRaw === 'requirements') return 'Requirements';
+    if (roleRaw === 'contracting office' || roleRaw === 'contracting') return 'Contracting';
+    if (roleRaw === 'apfs coordinator' || roleRaw.includes('coordinator')) return 'APFS Coordinator';
+
+    // optional: if you have admin later
+    if (roleRaw === 'admin' || roleRaw.includes('admin')) return 'Admin';
+
+    return 'Viewer';
+  }
+
+  /**
+   * Until assignment exists in your model, we infer "assignedToMe" as:
+   * - user is in edit mode AND their role matches the owning lane (status).
+   * Later, replace this with record.assignedToUserId === user.id
+   */
+  private computeAssignedToMe(status: RailStatus, role: string): boolean {
+    const roleNorm = role.trim().toLowerCase();
+
+    if (!this.isEditMode) return false;
+
+    if (status === 'Requirements') return roleNorm === 'requirements';
+    if (status === 'Contracting') return roleNorm === 'contracting office' || roleNorm === 'contracting';
+    if (status === 'APFS Coordinator') return roleNorm === 'apfs coordinator';
+
+    // For New/Draft, treat as "mine" in edit mode
+    if (status === 'New' || status === 'Draft') return true;
+
+    return false;
+  }
+
+  private computeRailPermissions(): void {
+    const status = this.normalizeRailStatus(this.status);
+    const role = this.normalizeRailRole();
+    const isAdmin = role === 'Admin';
+    const isCoordinator = role === 'APFS Coordinator';
+
+    const assignedToMe = this.computeAssignedToMe(status, this.userProfile?.role ?? '');
+
+    const canReassign =
+      (status === 'Requirements' || status === 'Contracting' || status === 'APFS Coordinator') &&
+      (isCoordinator || isAdmin);
+
+    const canSave =
+      (status === 'New' ||
+        status === 'Draft' ||
+        status === 'Requirements' ||
+        status === 'Contracting' ||
+        status === 'APFS Coordinator') &&
+      (assignedToMe || isCoordinator || isAdmin);
+
+    const canUnassign =
+      (status === 'Requirements' || status === 'Contracting' || status === 'APFS Coordinator') &&
+      (assignedToMe || isCoordinator || isAdmin);
+
+    // "Approve & Send" means "complete my lane and route forward"
+    const canApproveSend =
+      this.isEditMode &&
+      (assignedToMe || isAdmin) &&
+      (
+        (status === 'Requirements' && role === 'Requirements') ||
+        (status === 'Contracting' && role === 'Contracting') ||
+        (status === 'APFS Coordinator' && role === 'APFS Coordinator') ||
+        isAdmin
+      );
+
+    // Only allow delete early in lifecycle
+    const canDelete =
+      (status === 'New' || status === 'Draft') &&
+      (assignedToMe || isAdmin);
+
+    this.rail = { canReassign, canSave, canUnassign, canApproveSend, canDelete };
+  }
 
   /**
    * Applies:
@@ -133,6 +266,9 @@ export class ForecastRecordComponent {
       // View mode: hard disable entire form.
       this.form.disable({ emitEvent: false });
     }
+
+    // Update rail flags any time access state changes
+    this.computeRailPermissions();
   }
 
   /** Forces UI refresh (needed in zoneless / OnPush-ish setups) */
@@ -239,6 +375,7 @@ export class ForecastRecordComponent {
 
   onSaveDraft(): void {
     if (!this.form) return;
+    if (!this.canSave) return;
 
     const raw = this.form.getRawValue() as any;
 
@@ -255,8 +392,14 @@ export class ForecastRecordComponent {
     });
   }
 
+  /**
+   * This is your current submit behavior.
+   * In the rail UI, you can bind "Approve & Send" to onSubmit() for now.
+   * Later we'll evolve it into workflow routing (Requirements -> Contracting -> Coordinator).
+   */
   onSubmit(): void {
     if (!this.form) return;
+    if (!this.canApproveSend) return;
 
     const raw = this.form.getRawValue() as any;
 
@@ -290,5 +433,37 @@ export class ForecastRecordComponent {
 
   createNewForecastRecord(): void {
     this.router.navigate(['/forecast/new']);
+  }
+
+  // ---- Rail button handlers (stubbed; wire as you like) ----
+  onPrintableView(): void {
+    window.print();
+  }
+
+  onCsvDownload(): void {
+    console.warn('CSV download not wired yet');
+  }
+
+  onRecordHistory(): void {
+    console.warn('Record history not wired yet');
+  }
+
+  onChangeLog(): void {
+    console.warn('Change log not wired yet');
+  }
+
+  onReassign(): void {
+    if (!this.canReassign) return;
+    console.warn('Reassign not wired yet');
+  }
+
+  onUnassign(): void {
+    if (!this.canUnassign) return;
+    console.warn('Unassign not wired yet');
+  }
+
+  onDelete(): void {
+    if (!this.canDelete) return;
+    console.warn('Delete not wired yet');
   }
 }
