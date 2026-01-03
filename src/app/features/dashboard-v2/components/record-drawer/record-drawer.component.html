@@ -1,8 +1,9 @@
 <!-- Backdrop -->
-<div class="backdrop" [class.closing]="closing" (click)="requestClose()"></div>
+<div class="backdrop" [class.open]="!!record && !closing" [class.closing]="closing" (click)="requestClose()"></div>
 
 <!-- Drawer -->
-<aside class="drawer" [class.closing]="closing">
+<aside class="drawer" [class.open]="!!record && !closing" [class.closing]="closing" (click)="$event.stopPropagation()">
+
   <div class="head">
     <div class="title">Focus Frame</div>
     <button class="btn" type="button" (click)="requestClose()">✕</button>

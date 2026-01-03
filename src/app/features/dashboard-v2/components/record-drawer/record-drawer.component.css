@@ -1,18 +1,4 @@
 /* Drawer base */
-.drawer {
-  position: fixed;
-  top: 0;
-  right: 0;
-  width: 420px;
-  max-width: 95vw;
-  height: 100vh;
-  background: #fff;
-  z-index: 60;
-
-  /* CLOSED by default */
-  transform: translateX(100%);
-  transition: transform 180ms ease;
-}
 
 .content .summary {
   background: #fff;
@@ -79,31 +65,35 @@
   border-top: 1px solid rgba(0, 0, 0, .06);
 }
 
-/* OPEN when record is rendered */
-.drawer:not(.closing) .content {
-  /* no-op: just presence hook */
+.drawer {
+  transform: translateX(100%);
+  transition: transform 180ms ease;
 }
 
-/* OPEN STATE */
-.drawer:not(.closing) {
+.drawer.open {
   transform: translateX(0);
 }
 
-/* CLOSING animation */
 .drawer.closing {
   transform: translateX(100%);
 }
 
-/* Backdrop */
 .backdrop {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, .35);
   z-index: 50;
-  opacity: 1;
+  opacity: 0;
+  pointer-events: none;
   transition: opacity 180ms ease;
+}
+
+.backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .backdrop.closing {
   opacity: 0;
+  pointer-events: none;
 }
