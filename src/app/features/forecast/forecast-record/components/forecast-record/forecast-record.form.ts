@@ -71,10 +71,21 @@ export type ForecastRecordFormGroup = FormGroup<{
     sbSpecialistEmail: FormControl<string | null>;
 }>;
 
-export function buildForecastRecordForm(
-    record: ForecastRecord
-): ForecastRecordFormGroup {
-    return new FormGroup({
+export type UserProfileLike = {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: 'Requirements' | 'Contracting Office' | 'APFS Coordinator' | string;
+    title?: string;
+    office?: string;
+    component?: string;
+    employeeType?: string;
+    isActive?: boolean;
+};
+
+export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordFormGroup {
+    const form = new FormGroup({
         /** System generated */
         apfsNumber: new FormControl({ value: record.apfsNumber, disabled: true }),
 
@@ -83,7 +94,7 @@ export function buildForecastRecordForm(
             { nonNullable: true }
         ),
 
-        /** Editable by requester */
+        /** Editable by requester (role toggled later) */
         component: new FormControl(record.component, {
             validators: [Validators.required],
         }),
@@ -100,36 +111,19 @@ export function buildForecastRecordForm(
 
         programLevel: new FormControl(record.programLevel),
 
-        /** APFS Coordinator-updated (disabled for now) */
-        smallBusinessSetAside: new FormControl({
-            value: record.smallBusinessSetAside,
-            disabled: true,
-        }),
-        smallBusinessProgram: new FormControl({
-            value: record.smallBusinessProgram,
-            disabled: true,
-        }),
+        /** APFS Coordinator updated fields (role toggled later) */
+        smallBusinessSetAside: new FormControl(record.smallBusinessSetAside),
+        smallBusinessProgram: new FormControl(record.smallBusinessProgram),
 
+        /** Value classification (role toggled later) */
         dollarRange: new FormControl(record.dollarRange),
         naicsCode: new FormControl(record.naicsCode),
 
-        /** Contracting Officer-updated (disabled for now) */
-        contractType: new FormControl({
-            value: record.contractType,
-            disabled: true,
-        }),
-        strategicSourcingVehicleUsed: new FormControl({
-            value: record.strategicSourcingVehicleUsed,
-            disabled: true,
-        }),
-        strategicSourcingVehicle: new FormControl({
-            value: record.strategicSourcingVehicle,
-            disabled: true,
-        }),
-        typeOfAward: new FormControl({
-            value: record.typeOfAward,
-            disabled: true,
-        }),
+        /** Contracting Officer updated fields (role toggled later) */
+        contractType: new FormControl(record.contractType),
+        strategicSourcingVehicleUsed: new FormControl(record.strategicSourcingVehicleUsed),
+        strategicSourcingVehicle: new FormControl(record.strategicSourcingVehicle),
+        typeOfAward: new FormControl(record.typeOfAward),
 
         competitive: new FormControl(record.competitive),
         contractStatus: new FormControl(record.contractStatus),
@@ -137,93 +131,164 @@ export function buildForecastRecordForm(
         incumbent: new FormControl(record.incumbent),
         contractNumber: new FormControl(record.contractNumber),
 
-        estimatedPopStart: new FormControl({
-            value: record.estimatedPopStart,
-            disabled: true,
-        }),
-        estimatedPopEnd: new FormControl({
-            value: record.estimatedPopEnd,
-            disabled: true,
-        }),
+        /** Dates (role toggled later) */
+        estimatedPopStart: new FormControl(record.estimatedPopStart),
+        estimatedPopEnd: new FormControl(record.estimatedPopEnd),
         fiscalYear: new FormControl(record.fiscalYear),
 
-        anticipatedAwardDate: new FormControl({
-            value: record.anticipatedAwardDate,
-            disabled: true,
+        anticipatedAwardDate: new FormControl(record.anticipatedAwardDate),
+        estimatedSolicitationReleaseDate: new FormControl(record.estimatedSolicitationReleaseDate),
+
+        placeOfPerformanceCity: new FormControl(record.placeOfPerformanceCity),
+        placeOfPerformanceState: new FormControl(record.placeOfPerformanceState),
+
+        primaryContactFirstName: new FormControl(record.primaryContactFirstName, {
+            nonNullable: true,
+            validators: [Validators.required, Validators.maxLength(100)],
         }),
-        estimatedSolicitationReleaseDate: new FormControl({
-            value: record.estimatedSolicitationReleaseDate,
-            disabled: true,
+        primaryContactLastName: new FormControl(record.primaryContactLastName, {
+            nonNullable: true,
+            validators: [Validators.required, Validators.maxLength(100)],
+        }),
+        primaryContactPhone: new FormControl(record.primaryContactPhone),
+        primaryContactEmail: new FormControl(record.primaryContactEmail, {
+            nonNullable: true,
+            validators: [Validators.required, Validators.email, Validators.maxLength(254)],
         }),
 
-        placeOfPerformanceCity: new FormControl(
-            record.placeOfPerformanceCity
-        ),
-        placeOfPerformanceState: new FormControl(
-            record.placeOfPerformanceState
-        ),
+        alternateContactFirstName: new FormControl(record.alternateContactFirstName),
+        alternateContactLastName: new FormControl(record.alternateContactLastName),
+        alternateContactPhone: new FormControl(record.alternateContactPhone),
+        alternateContactEmail: new FormControl(record.alternateContactEmail, {
+            validators: [Validators.email],
+        }),
 
-        primaryContactFirstName: new FormControl(
-            record.primaryContactFirstName,
-            {
-                nonNullable: true,
-                validators: [Validators.required, Validators.maxLength(100)],
-            }
-        ),
-        primaryContactLastName: new FormControl(
-            record.primaryContactLastName,
-            {
-                nonNullable: true,
-                validators: [Validators.required, Validators.maxLength(100)],
-            }
-        ),
-        primaryContactPhone: new FormControl(
-            record.primaryContactPhone
-        ),
-        primaryContactEmail: new FormControl(
-            record.primaryContactEmail,
-            {
-                nonNullable: true,
-                validators: [
-                    Validators.required,
-                    Validators.email,
-                    Validators.maxLength(254),
-                ],
-            }
-        ),
+        /** Coordinator-updated (role toggled later) */
+        sbSpecialistFirstName: new FormControl(record.sbSpecialistFirstName),
+        sbSpecialistLastName: new FormControl(record.sbSpecialistLastName),
+        sbSpecialistPhone: new FormControl(record.sbSpecialistPhone),
+        sbSpecialistEmail: new FormControl(record.sbSpecialistEmail),
+    }) as ForecastRecordFormGroup;
 
-        alternateContactFirstName: new FormControl(
-            record.alternateContactFirstName
-        ),
-        alternateContactLastName: new FormControl(
-            record.alternateContactLastName
-        ),
-        alternateContactPhone: new FormControl(
-            record.alternateContactPhone
-        ),
-        alternateContactEmail: new FormControl(
-            record.alternateContactEmail,
-            { validators: [Validators.email] }
-        ),
+    // Safe default: keep non-requestor sections locked until permissions are applied.
+    lockDownByDefault(form);
 
-        /** Coordinator-updated (disabled for now) */
-        sbSpecialistFirstName: new FormControl({
-            value: record.sbSpecialistFirstName,
-            disabled: true,
-        }),
-        sbSpecialistLastName: new FormControl({
-            value: record.sbSpecialistLastName,
-            disabled: true,
-        }),
-        sbSpecialistPhone: new FormControl({
-            value: record.sbSpecialistPhone,
-            disabled: true,
-        }),
-        sbSpecialistEmail: new FormControl({
-            value: record.sbSpecialistEmail,
-            disabled: true,
-        }),
-    });
+    return form;
+}
+
+/**
+ * Apply role-based enablement.
+ * Call this AFTER enabling the form in edit mode.
+ * (Your component does: form.enable() then this, so this always wins.)
+ */
+export function applyForecastRecordRolePermissions(
+    form: ForecastRecordFormGroup,
+    profile: UserProfileLike | null | undefined
+): void {
+
+    console.log('[Perms] role=', profile?.role);
+    const role = (profile?.role ?? '').trim().toLowerCase();
+    const isRequirements = role === 'requirements';
+    const isContractingOffice = role === 'contracting office';
+    const isCoordinator = role === 'apfs coordinator';
+
+    // System-managed fields always disabled
+    hardDisable(form.controls.apfsNumber);
+    hardDisable(form.controls.status);
+
+    // Requirements section
+    setEnabled(form.controls.component, isRequirements);
+    setEnabled(form.controls.requirementsTitle, isRequirements);
+    setEnabled(form.controls.requirement, isRequirements);
+    setEnabled(form.controls.programLevel, isRequirements);
+
+    // Coordinator section
+    setEnabled(form.controls.smallBusinessSetAside, isCoordinator);
+    setEnabled(form.controls.smallBusinessProgram, isCoordinator);
+
+    setEnabled(form.controls.sbSpecialistFirstName, isCoordinator);
+    setEnabled(form.controls.sbSpecialistLastName, isCoordinator);
+    setEnabled(form.controls.sbSpecialistPhone, isCoordinator);
+    setEnabled(form.controls.sbSpecialistEmail, isCoordinator);
+
+    // Value classification (default: Coordinator + Contracting Office)
+    setEnabled(form.controls.dollarRange, isCoordinator || isContractingOffice);
+    setEnabled(form.controls.naicsCode, isCoordinator || isContractingOffice);
+
+    // Contracting Office section
+    setEnabled(form.controls.contractType, isContractingOffice);
+    setEnabled(form.controls.strategicSourcingVehicleUsed, isContractingOffice);
+    setEnabled(form.controls.strategicSourcingVehicle, isContractingOffice);
+    setEnabled(form.controls.typeOfAward, isContractingOffice);
+
+    setEnabled(form.controls.competitive, isContractingOffice);
+    setEnabled(form.controls.contractStatus, isContractingOffice);
+    setEnabled(form.controls.incumbent, isContractingOffice);
+    setEnabled(form.controls.contractNumber, isContractingOffice);
+
+    setEnabled(form.controls.estimatedPopStart, isContractingOffice);
+    setEnabled(form.controls.estimatedPopEnd, isContractingOffice);
+    setEnabled(form.controls.anticipatedAwardDate, isContractingOffice);
+    setEnabled(form.controls.estimatedSolicitationReleaseDate, isContractingOffice);
+
+    // Fiscal year: keep with Requirements by default (change if needed)
+    setEnabled(form.controls.fiscalYear, isRequirements);
+
+    // Place of performance + POCs:
+    // Your original file left these editable; keep them editable for Requirements by default.
+    // If you want all roles to edit POCs, change to: true
+    setEnabled(form.controls.placeOfPerformanceCity, isRequirements);
+    setEnabled(form.controls.placeOfPerformanceState, isRequirements);
+
+    setEnabled(form.controls.primaryContactFirstName, isRequirements);
+    setEnabled(form.controls.primaryContactLastName, isRequirements);
+    setEnabled(form.controls.primaryContactPhone, isRequirements);
+    setEnabled(form.controls.primaryContactEmail, isRequirements);
+
+    setEnabled(form.controls.alternateContactFirstName, isRequirements);
+    setEnabled(form.controls.alternateContactLastName, isRequirements);
+    setEnabled(form.controls.alternateContactPhone, isRequirements);
+    setEnabled(form.controls.alternateContactEmail, isRequirements);
+}
+
+/**
+ * Default lock-down so that if permissions are not applied,
+ * CO/Coordinator fields don’t accidentally become editable.
+ */
+function lockDownByDefault(form: ForecastRecordFormGroup) {
+    const keysToDisable: Array<keyof ForecastRecordFormGroup['controls']> = [
+        'smallBusinessSetAside',
+        'smallBusinessProgram',
+        'dollarRange',
+        'naicsCode',
+        'contractType',
+        'strategicSourcingVehicleUsed',
+        'strategicSourcingVehicle',
+        'typeOfAward',
+        'competitive',
+        'contractStatus',
+        'incumbent',
+        'contractNumber',
+        'estimatedPopStart',
+        'estimatedPopEnd',
+        'anticipatedAwardDate',
+        'estimatedSolicitationReleaseDate',
+        'sbSpecialistFirstName',
+        'sbSpecialistLastName',
+        'sbSpecialistPhone',
+        'sbSpecialistEmail',
+    ];
+
+    keysToDisable.forEach((k) => hardDisable(form.controls[k]));
+}
+
+/** Enable/disable helpers */
+function setEnabled(control: AbstractControl, enabled: boolean) {
+    if (enabled) control.enable({ emitEvent: false });
+    else control.disable({ emitEvent: false });
+}
+function hardDisable(control: AbstractControl) {
+    control.disable({ emitEvent: false });
 }
 
 /** Validator: max word count (APFS says 500) */
@@ -232,8 +297,6 @@ function maxWords(limit: number) {
         const text = (control.value ?? '').trim();
         if (!text) return null;
         const words = text.split(/\s+/).filter(Boolean).length;
-        return words > limit
-            ? { maxWords: { limit, actual: words } }
-            : null;
+        return words > limit ? { maxWords: { limit, actual: words } } : null;
     };
 }

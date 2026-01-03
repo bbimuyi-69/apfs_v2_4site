@@ -1,3 +1,30 @@
+role: 'Requirements',
+role: 'Contracting Office',
+role: 'APFS Coordinator',
+
+
+import { AuthService } from '../../auth/auth.service';
+private auth: AuthService,
+
+const a: any = this.auth as any;
+    const u =
+      a?.currentUser ??
+      (typeof a?.getCurrentUser === 'function' ? a.getCurrentUser() : null);
+
+    if (u) {
+      this.userEmail.set(u.email ?? u.upn ?? u.username ?? 'Unknown');
+      this.displayName.set(u.displayName ?? u.name ?? 'User');
+
+      const rawRoles =
+        u.roles ??
+        u.role ??
+        a?.roles ??
+        (typeof a?.getRoles === 'function' ? a.getRoles() : []);
+
+      const roles = Array.isArray(rawRoles) ? rawRoles : rawRoles ? [String(rawRoles)] : [];
+      this.roleLabel.set(roles[0] ?? 'User');
+    }
+
 Form Errors:
 A program level needs to be selected before approving.
 A dollar range needs to be selected before approving.

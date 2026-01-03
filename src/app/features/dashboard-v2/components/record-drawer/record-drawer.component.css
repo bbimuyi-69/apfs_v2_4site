@@ -66,9 +66,15 @@
 }
 
 .drawer {
-  transform: translateX(100%);
-  transition: transform 180ms ease;
+  position: fixed;
+  top: var(--topbar-h);
+  right: 0;
+  bottom: 0;
+  width: 420px;
+  /* whatever you use */
+  z-index: 1000;
 }
+
 
 .drawer.open {
   transform: translateX(0);

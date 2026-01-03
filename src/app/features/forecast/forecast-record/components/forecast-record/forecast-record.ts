@@ -5,7 +5,13 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { combineLatest, of } from 'rxjs';
 import { catchError, switchMap, timeout } from 'rxjs/operators';
 
-import { buildForecastRecordForm, ForecastRecordFormGroup } from './forecast-record.form';
+import {
+  buildForecastRecordForm,
+  ForecastRecordFormGroup,
+  applyForecastRecordRolePermissions,
+  UserProfileLike,
+} from './forecast-record.form';
+
 import { createEmptyForecastRecord } from '../../models/forecast-record.factory';
 import { ForecastRecord, ForecastRecordStatus } from '../../models/forecast-record.model';
 import { ForecastRecordService } from '../../services/forecast-record.service';
@@ -25,6 +31,8 @@ import {
   OptionItem,
 } from '../../models/forecast-record.lookups';
 
+import { AuthService } from '../../../../../auth/auth.service';
+
 @Component({
   selector: 'app-forecast-record',
   standalone: true,
@@ -37,6 +45,7 @@ export class ForecastRecordComponent {
   private readonly router = inject(Router);
   private readonly service = inject(ForecastRecordService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly auth = inject(AuthService);
 
   // Lookups
   readonly programLevels = APFS_PROGRAM_LEVELS;
@@ -65,6 +74,9 @@ export class ForecastRecordComponent {
   isLoading = true;
   loadError: string | null = null;
 
+  /** Cached per-load; safe to re-read anytime */
+  private userProfile: UserProfileLike | null = null;
+
   get status(): ForecastRecordStatus | null {
     return this.form?.get('status')?.value ?? null;
   }
@@ -75,25 +87,69 @@ export class ForecastRecordComponent {
     return this.status === 'Submitted';
   }
 
-  private applyEditState(): void {
+  /**
+   * Applies:
+   * 1) View/Edit mode
+   * 2) Role-based restrictions (re-applied after enabling, so it always wins)
+   */
+  private applyAccessState(): void {
     if (!this.form) return;
-    if (this.isEditMode) this.form.enable({ emitEvent: false });
-    else this.form.disable({ emitEvent: false });
+
+    console.log('[Access] mode=', this.isEditMode, 'role=', this.userProfile?.role);
+
+    if (this.isEditMode) {
+      // Enable everything first, then re-disable the restricted fields by role.
+      this.form.enable({ emitEvent: false });
+      console.log('[Access] after enable: contractType disabled?', this.form.controls.contractType.disabled);
+      applyForecastRecordRolePermissions(this.form, this.userProfile);
+      console.log('[Access] after perms: contractType disabled?', this.form.controls.contractType.disabled);
+    } else {
+      // View mode: hard disable entire form.
+      this.form.disable({ emitEvent: false });
+    }
   }
 
   /** Forces UI refresh (needed in zoneless / OnPush-ish setups) */
   private flushView(): void {
-    // markForCheck is safe even if not OnPush; detectChanges forces immediate repaint
     this.cdr.markForCheck();
     this.cdr.detectChanges();
   }
 
+  /**
+   * Keep AuthService quirks isolated to the component layer.
+   * We produce a clean UserProfileLike object for the form layer.
+   */
+  private extractUserProfileFromAuth(): UserProfileLike | null {
+    // Your AuthService exposes the logged-in user via getters:
+    //   get user(): User | null
+    //   get session(): AuthSession | null
+    const u: any = (this.auth as any).user ?? (this.auth as any).session?.user ?? null;
 
+    console.log('[AuthProbe] user=', u, 'session=', (this.auth as any).session);
+
+    if (!u) return null;
+
+    return {
+      id: u.id ?? 0,
+      firstName: u.firstName ?? '',
+      lastName: u.lastName ?? '',
+      email: u.email ?? '',
+      role: u.role ?? 'User',
+      title: u.title,
+      office: u.office,
+      component: u.component,
+      employeeType: u.employeeType,
+      isActive: u.isActive,
+    };
+  }
 
   ngOnInit(): void {
+    // Cache user profile early (re-read later if you support switching)
+    this.userProfile = this.extractUserProfileFromAuth();
+
     // Render a form shell immediately
     this.form = buildForecastRecordForm(createEmptyForecastRecord());
-    this.applyEditState();
+    this.applyAccessState();
     this.isLoading = true;
     this.flushView();
 
@@ -113,13 +169,10 @@ export class ForecastRecordComponent {
             this.recordId = null;
             this.isEditMode = true;
 
-            // ✅ create intent
-            //this.isCreateMode = true;
-
             this.isLoading = false;
 
             this.form = buildForecastRecordForm(createEmptyForecastRecord());
-            this.applyEditState();
+            this.applyAccessState();
             this.flushView();
 
             return of(null);
@@ -127,11 +180,8 @@ export class ForecastRecordComponent {
 
           // /forecast/:id
           this.recordId = idParam;
-
-          // ✅ edit intent
-          //this.isCreateMode = false;
-
           this.isEditMode = wantsEdit;
+
           this.isLoading = true;
           this.flushView();
 
@@ -151,13 +201,15 @@ export class ForecastRecordComponent {
       .subscribe((record) => {
         console.log('[ForecastRecord] got record:', record);
 
+        // Re-read profile in case auth was late to populate
+        this.userProfile = this.extractUserProfileFromAuth();
+
         this.form = buildForecastRecordForm(record ?? createEmptyForecastRecord());
-        this.applyEditState();
+        this.applyAccessState();
         this.isLoading = false;
         this.flushView();
       });
   }
-
 
   onSaveDraft(): void {
     if (!this.form) return;
@@ -176,7 +228,6 @@ export class ForecastRecordComponent {
       error: (e: unknown) => console.error('Save failed', e),
     });
   }
-
 
   onSubmit(): void {
     if (!this.form) return;
