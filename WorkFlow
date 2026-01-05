@@ -1,47 +1,27 @@
 role: 'Requirements',
-role: 'Contracting Office',
-role: 'APFS Coordinator',
+  role: 'Contracting Office',
+    role: 'APFS Coordinator',
 
-"status": "Draft",
-"status": "New",
-"status": "Requirements",
-"status": "Contracting",
-"status": "APFS Coordinator",
+      "status": "Draft",
+        "status": "New",
+          "status": "Requirements",
+            "status": "Contracting",
+              "status": "APFS Coordinator",
 
 
-import { AuthService } from '../../auth/auth.service';
-private auth: AuthService,
 
-const a: any = this.auth as any;
-    const u =
-      a?.currentUser ??
-      (typeof a?.getCurrentUser === 'function' ? a.getCurrentUser() : null);
 
-    if (u) {
-      this.userEmail.set(u.email ?? u.upn ?? u.username ?? 'Unknown');
-      this.displayName.set(u.displayName ?? u.name ?? 'User');
-
-      const rawRoles =
-        u.roles ??
-        u.role ??
-        a?.roles ??
-        (typeof a?.getRoles === 'function' ? a.getRoles() : []);
-
-      const roles = Array.isArray(rawRoles) ? rawRoles : rawRoles ? [String(rawRoles)] : [];
-      this.roleLabel.set(roles[0] ?? 'User');
-    }
-
-Form Errors:
+                Form Errors:
 A program level needs to be selected before approving.
 A dollar range needs to be selected before approving.
-Competitive or Non-competitive needs to be selected before approving.
+Competitive or Non - competitive needs to be selected before approving.
 A Contract status needs to be selected before approving.
 A City needs to be entered before approving.
 A State needs to be entered before approving.
 A contact first name needs to be entered before approving.
 A contact last name needs to be entered before approving.
 A contact phone number needs to be entered before approving.
-A valid contact government email address ('.mil', '.gov', '@bvti.com') needs to be entered before approving.
+A valid contact government email address('.mil', '.gov', '@bvti.com') needs to be entered before approving.
 A NAICS code needs to be entered before approving.
 A Contracting Office needs to be added before approving this record
 A Fiscal Year needs to be added before approving
@@ -50,9 +30,17 @@ A Fiscal Year needs to be added before approving
 
 In Contracting:
 These fields are required
-- A Contract Type needs to be added before approving this record
-- You must select whether a Strategic Source Vehicle is going to be used before approving.
+  - A Contract Type needs to be added before approving this record
+    - You must select whether a Strategic Source Vehicle is going to be used before approving.
 - A period of performance start date needs to be entered before approving.
 - A period of performance end date needs to be entered before approving.
 - An anticipated award date needs to be entered before approving.
 - An estimated solicitation release date needs to be entered before approving. 
+
+In APFS Coordinator:
+Form Errors:
+A Small Business Program needs to be selected before approving.
+A Small Business Specialist / APFS Coordinator POC first name needs to be entered before approving.
+A Small Business Specialist / APFS Coordinator POC last name needs to be entered before approving.
+A Small Business Specialist / APFS Coordinator POC phone number needs to be entered before approving.
+A valid Small Business Specialist / APFS Coordinator POC government email address('.mil', '.gov', '@bvti.com') needs to be entered before approving.
