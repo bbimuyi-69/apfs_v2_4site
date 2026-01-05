@@ -1,11 +1,26 @@
+// server.js (drop-in)
+
+// If you're using Node 18+ and want top-level await, ignore. This is CommonJS-friendly.
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 
+const API_PREFIX = '/api';
+
 const app = express();
-app.use(cors());
+
+// CORS (fine for dev; lock down origins for prod later)
+app.use(cors({ origin: true, credentials: true }));
+
+// JSON body parsing
 app.use(express.json());
+
+// Disable caching globally (helps avoid confusing dev 304/cached responses)
+app.use((req, res, next) => {
+    res.set('Cache-Control', 'no-store');
+    next();
+});
 
 // =========================
 // JSON DB helpers
@@ -31,22 +46,29 @@ function saveData(data) {
 }
 
 // =========================
+// HEALTH
+// =========================
+app.get(`${API_PREFIX}/health`, (req, res) => {
+    res.json({ ok: true, ts: new Date().toISOString() });
+});
+
+// =========================
 // USER ROUTES
 // =========================
-app.get('/users', (req, res) => {
+app.get(`${API_PREFIX}/users`, (req, res) => {
     const data = loadData();
     res.json(data.users);
 });
 
-app.get('/users/:id', (req, res) => {
+app.get(`${API_PREFIX}/users/:id`, (req, res) => {
     const userId = Number(req.params.id);
     const data = loadData();
-    const user = data.users.find(u => u.id === userId);
+    const user = data.users.find((u) => u.id === userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json(user);
 });
 
-app.post('/users', (req, res) => {
+app.post(`${API_PREFIX}/users`, (req, res) => {
     const data = loadData();
     const newUser = {
         ...req.body,
@@ -61,12 +83,8 @@ app.post('/users', (req, res) => {
 // FORECAST RECORD ROUTES
 // =========================
 
-// GET all forecast records
 // GET all forecast records (supports query params)
-app.get('/forecast-records', (req, res) => {
-    // Disable caching so dev requests don't return 304
-    res.set('Cache-Control', 'no-store');
-
+app.get(`${API_PREFIX}/forecast-records`, (req, res) => {
     const data = loadData();
     let rows = Array.isArray(data.forecastRecords) ? [...data.forecastRecords] : [];
 
@@ -86,24 +104,24 @@ app.get('/forecast-records', (req, res) => {
         return 'Draft';
     };
 
-    rows = rows.map(r => ({ ...r, status: normalizeStatus(r) }));
+    rows = rows.map((r) => ({ ...r, status: normalizeStatus(r) }));
 
     // Filter: status
     if (status && status !== 'All') {
-        rows = rows.filter(r => String(r.status) === String(status));
+        rows = rows.filter((r) => String(r.status) === String(status));
     }
 
     // Filter: assigned
     if (assigned === 'claimed') {
-        rows = rows.filter(r => !!r.assignedToUserId);
+        rows = rows.filter((r) => !!r.assignedToUserId);
     } else if (assigned === 'unclaimed') {
-        rows = rows.filter(r => !r.assignedToUserId);
+        rows = rows.filter((r) => !r.assignedToUserId);
     }
 
     // Filter: free-text (supports both schemas: title + requirementsTitle + apfsNumber)
     const needle = String(q || '').trim().toLowerCase();
     if (needle) {
-        rows = rows.filter(r => {
+        rows = rows.filter((r) => {
             const hay = `${r.apfsNumber ?? ''} ${r.requirementsTitle ?? ''} ${r.title ?? ''}`.toLowerCase();
             return hay.includes(needle);
         });
@@ -128,14 +146,12 @@ app.get('/forecast-records', (req, res) => {
     res.json(rows.slice(start, start + ps));
 });
 
-
-
 // GET one forecast record
-app.get('/forecast-records/:id', (req, res) => {
+app.get(`${API_PREFIX}/forecast-records/:id`, (req, res) => {
     const recordId = Number(req.params.id);
     const data = loadData();
 
-    const record = data.forecastRecords.find(r => r.id === recordId);
+    const record = data.forecastRecords.find((r) => r.id === recordId);
     if (!record) {
         return res.status(404).json({ error: 'Forecast record not found' });
     }
@@ -144,7 +160,7 @@ app.get('/forecast-records/:id', (req, res) => {
 });
 
 // CREATE forecast record
-app.post('/forecast-records', (req, res) => {
+app.post(`${API_PREFIX}/forecast-records`, (req, res) => {
     const data = loadData();
     const now = new Date().toISOString();
 
@@ -159,7 +175,7 @@ app.post('/forecast-records', (req, res) => {
         assignedToName: null,
         assignedAt: null,
 
-        ...req.body
+        ...req.body,
     };
 
     data.forecastRecords.push(newRecord);
@@ -168,11 +184,11 @@ app.post('/forecast-records', (req, res) => {
 });
 
 // UPDATE forecast record
-app.put('/forecast-records/:id', (req, res) => {
+app.put(`${API_PREFIX}/forecast-records/:id`, (req, res) => {
     const recordId = Number(req.params.id);
     const data = loadData();
 
-    const idx = data.forecastRecords.findIndex(r => r.id === recordId);
+    const idx = data.forecastRecords.findIndex((r) => r.id === recordId);
     if (idx === -1) {
         return res.status(404).json({ error: 'Forecast record not found' });
     }
@@ -181,7 +197,7 @@ app.put('/forecast-records/:id', (req, res) => {
     const updated = {
         ...existing,
         ...req.body,
-        id: existing.id,
+        id: existing.id, // never allow id changes
         updatedAt: new Date().toISOString(),
     };
 
@@ -191,22 +207,24 @@ app.put('/forecast-records/:id', (req, res) => {
 });
 
 // SUBMIT forecast record
-app.post('/forecast-records/:id/submit', (req, res) => {
+app.post(`${API_PREFIX}/forecast-records/:id/submit`, (req, res) => {
     const recordId = Number(req.params.id);
     const data = loadData();
 
-    const idx = data.forecastRecords.findIndex(r => r.id === recordId);
+    const idx = data.forecastRecords.findIndex((r) => r.id === recordId);
     if (idx === -1) {
         return res.status(404).json({ error: 'Forecast record not found' });
     }
 
     const existing = data.forecastRecords[idx];
+    const now = new Date().toISOString();
+
     const submitted = {
         ...existing,
         status: 'Submitted',
-        submittedAt: new Date().toISOString(),
+        submittedAt: now,
         submittedBy: req.body?.submittedBy ?? null,
-        updatedAt: new Date().toISOString(),
+        updatedAt: now,
     };
 
     data.forecastRecords[idx] = submitted;
@@ -219,11 +237,11 @@ app.post('/forecast-records/:id/submit', (req, res) => {
 // =========================
 
 // CLAIM a forecast record
-app.post('/forecast-records/:id/claim', (req, res) => {
+app.post(`${API_PREFIX}/forecast-records/:id/claim`, (req, res) => {
     const recordId = Number(req.params.id);
     const data = loadData();
 
-    const idx = data.forecastRecords.findIndex(r => r.id === recordId);
+    const idx = data.forecastRecords.findIndex((r) => r.id === recordId);
     if (idx === -1) {
         return res.status(404).json({ error: 'Forecast record not found' });
     }
@@ -256,11 +274,11 @@ app.post('/forecast-records/:id/claim', (req, res) => {
 });
 
 // UNCLAIM a forecast record
-app.post('/forecast-records/:id/unclaim', (req, res) => {
+app.post(`${API_PREFIX}/forecast-records/:id/unclaim`, (req, res) => {
     const recordId = Number(req.params.id);
     const data = loadData();
 
-    const idx = data.forecastRecords.findIndex(r => r.id === recordId);
+    const idx = data.forecastRecords.findIndex((r) => r.id === recordId);
     if (idx === -1) {
         return res.status(404).json({ error: 'Forecast record not found' });
     }
@@ -270,23 +288,20 @@ app.post('/forecast-records/:id/unclaim', (req, res) => {
     const requesterId = req.body?.userId ?? null;
     const force = !!req.body?.force;
 
-    if (
-        existing.assignedToUserId &&
-        !force &&
-        requesterId &&
-        existing.assignedToUserId !== requesterId
-    ) {
+    if (existing.assignedToUserId && !force && requesterId && existing.assignedToUserId !== requesterId) {
         return res.status(403).json({
             error: 'Only the assignee can unclaim this record',
         });
     }
+
+    const now = new Date().toISOString();
 
     const unclaimed = {
         ...existing,
         assignedToUserId: null,
         assignedToName: null,
         assignedAt: null,
-        updatedAt: new Date().toISOString(),
+        updatedAt: now,
     };
 
     data.forecastRecords[idx] = unclaimed;
