@@ -117,9 +117,10 @@
                 </div>
             </section>
 
+
             <!-- =========================
-       Requirements Section
-       ========================= -->
+     Requirements Section
+     ========================= -->
             <section class="sec" [class.readonly]="isEditMode && !canEditRequirementsSection">
                 <div class="sec-h">
                     <div class="sec-title">
@@ -138,6 +139,47 @@
                     </div>
                 </div>
 
+                <!-- Primary Contact -->
+                <div class="subsec">
+                    <div class="subsec-title">Primary Contact</div>
+
+                    <div class="grid-3">
+                        <div class="field">
+                            <label>
+                                First Name <span class="req">*</span>
+                            </label>
+                            <input type="text" formControlName="primaryContactFirstName" />
+                            <div class="error" *ngIf="form.controls.primaryContactFirstName.touched
+                 && form.controls.primaryContactFirstName.errors?.['required']">
+                                First name is required.
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label>
+                                Last Name <span class="req">*</span>
+                            </label>
+                            <input type="text" formControlName="primaryContactLastName" />
+                            <div class="error" *ngIf="form.controls.primaryContactLastName.touched
+                 && form.controls.primaryContactLastName.errors?.['required']">
+                                Last name is required.
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label>
+                                Email <span class="req">*</span>
+                            </label>
+                            <input type="email" formControlName="primaryContactEmail" />
+                            <div class="error" *ngIf="form.controls.primaryContactEmail.touched
+                 && form.controls.primaryContactEmail.errors">
+                                Valid email is required.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Requirements -->
                 <div class="field">
                     <label>Requirements Title</label>
                     <input type="text" formControlName="requirementsTitle" />
@@ -150,11 +192,11 @@
                     <label>Requirement</label>
                     <textarea rows="6" formControlName="requirement"></textarea>
                     <div class="hint">
-                        Provide descriptive text detailing the requirements for the anticipated opportunity. Limit word
-                        count to 500.
+                        Provide descriptive text detailing the requirements for the anticipated opportunity.
+                        Limit word count to 500.
                     </div>
-                    <div class="error"
-                        *ngIf="form.controls.requirement.touched && form.controls.requirement.errors?.['maxWords']">
+                    <div class="error" *ngIf="form.controls.requirement.touched
+             && form.controls.requirement.errors?.['maxWords']">
                         Requirement exceeds 500 words.
                     </div>
                 </div>
@@ -166,9 +208,12 @@
                             {{ o.label }}
                         </option>
                     </select>
-                    <div class="hint">A program level can be selected from the drop down menu if it applies.</div>
+                    <div class="hint">
+                        A program level can be selected from the drop down menu if it applies.
+                    </div>
                 </div>
             </section>
+
 
             <!-- =========================
        APFS Coordinator Section
@@ -334,6 +379,11 @@
                     </div>
                 </div>
             </section>
+
+            <div class="hint">
+                canApproveSend={{canApproveSend}} | isLoading={{isLoading}} | formValid={{form?.valid}}
+            </div>
+
 
             <!-- Optional bottom buttons (can remove later) -->
             <div class="apfs-actions">

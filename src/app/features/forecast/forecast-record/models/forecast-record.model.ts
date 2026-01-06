@@ -1,24 +1,35 @@
-export type ForecastRecordStatus =
-    | 'Draft'
-    | 'Submitted'
-    | 'InReview'
-    | 'NeedsInfo'
-    | 'Approved'
-    | 'Rejected'
-    | 'Completed';
+import { ForecastStatus, ForecastWorkflowLane } from './forecast-record.enums';
+
+/**
+ * Keep this ONLY if older code still references `status`.
+ * Make it an alias of the workflow lane (not the business status).
+ */
+export type ForecastRecordStatus = ForecastWorkflowLane;
 
 export interface ForecastRecord {
     /** Workflow / persistence */
-    id?: number;                         // Node JSON DB id (Date.now())
+    id?: number; // Node JSON DB id (Date.now())
+
+    /**
+     * Legacy alias (optional).
+     * Prefer `workflowStatus` going forward.
+     */
     status: ForecastRecordStatus;
+
+    /** Workflow ownership (lane) */
+    workflowStatus: ForecastWorkflowLane;
+
+    /** Business approval outcome */
+    forecastStatus: ForecastStatus;
+
     createdAt?: string;
     updatedAt?: string;
     submittedAt?: string | null;
     submittedBy?: string | null;
 
     /** 🔑 Assignment / claim ownership (NEW) */
-    assignedToUserId?: string | null;    // used for Queue vs Claimed logic
-    assignedToName?: string | null;      // display only
+    assignedToUserId?: string | null; // used for Queue vs Claimed logic
+    assignedToName?: string | null; // display only
     assignedAt?: string | null;
 
     /** System-generated */
@@ -27,7 +38,7 @@ export interface ForecastRecord {
     /** Top section */
     component: string | null;
     requirementsTitle: string;
-    requirement: string;                // (500-word limit)
+    requirement: string; // (500-word limit)
     programLevel: string | null;
 
     /** APFS Coordinator updated fields */

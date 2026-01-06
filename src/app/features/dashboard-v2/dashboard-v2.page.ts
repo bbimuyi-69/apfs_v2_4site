@@ -11,9 +11,11 @@ import { RecordsTableComponent } from './components/records-table/records-table.
 import { RecordDrawerComponent } from './components/record-drawer/record-drawer.component';
 
 import { ForecastRecordService } from '../forecast/forecast-record/services/forecast-record.service';
-import { ForecastRecord, ForecastRecordStatus } from '../forecast/forecast-record/models/forecast-record.model';
+import { ForecastRecord } from '../forecast/forecast-record/models/forecast-record.model';
 import { AuthService } from '../../auth/auth.service';
 import { DashboardFilters, StatusCount } from './models/dashboard-v2.models';
+
+import { ForecastWorkflowLane } from '../forecast/forecast-record/models/forecast-record.enums';
 
 @Component({
   selector: 'app-dashboard-v2',
@@ -52,13 +54,19 @@ export class DashboardV2Page implements OnInit {
   // Filters
   readonly filters = signal<DashboardFilters>({
     q: '',
-    status: 'All',
+    status: 'All',          // now interpreted as workflow lane label, e.g. 'Draft'
     sort: 'updated_desc',
     mineClaimed: false,
     mineSubmitted: false,
   });
 
-  private readonly WORKABLE_STATUSES = new Set<string>(['Draft', 'Submitted', 'InReview', 'NeedsInfo']);
+  // ✅ Workflow lanes that are "workable" (i.e., not final)
+  private readonly WORKABLE_LANES = new Set<ForecastWorkflowLane>([
+    ForecastWorkflowLane.Draft,
+    ForecastWorkflowLane.Requirements,
+    ForecastWorkflowLane.Contracting,
+    ForecastWorkflowLane.APFSCoordinator,
+  ]);
 
   ngOnInit(): void {
     const a: any = this.auth as any;
@@ -113,15 +121,50 @@ export class DashboardV2Page implements OnInit {
     );
   }
 
+  /**
+   * ✅ Canonical lane accessor for dashboard
+   * Prefer workflowStatus; fall back to legacy status.
+   */
+  private getLane(r: ForecastRecord): ForecastWorkflowLane {
+    const lane = (r as any).workflowStatus ?? (r as any).status ?? ForecastWorkflowLane.Draft;
+
+    // If API ever sends unknown strings, coerce safely
+    if (
+      lane === ForecastWorkflowLane.Draft ||
+      lane === ForecastWorkflowLane.Requirements ||
+      lane === ForecastWorkflowLane.Contracting ||
+      lane === ForecastWorkflowLane.APFSCoordinator ||
+      lane === ForecastWorkflowLane.Published
+    ) {
+      return lane;
+    }
+
+    return ForecastWorkflowLane.Draft;
+  }
+
   // Computeds
   readonly workableRows = computed(() =>
-    this.rows().filter(r => this.WORKABLE_STATUSES.has(String((r as any).status ?? 'Draft')))
+    this.rows().filter(r => this.WORKABLE_LANES.has(this.getLane(r)))
   );
 
+  /**
+   * ✅ Counts by workflow lane (your 5 states)
+   * NOTE: StatusCount.status is typed in your models; if it expects string, enum values are strings, so fine.
+   */
   readonly statusCounts = computed<StatusCount[]>(() => {
     const list = this.rows();
-    const statuses: ForecastRecordStatus[] = ['Draft', 'Submitted', 'InReview', 'NeedsInfo', 'Approved', 'Rejected', 'Completed'];
-    return statuses.map(s => ({ status: s, count: list.filter(r => r.status === s).length }));
+    const lanes: ForecastWorkflowLane[] = [
+      ForecastWorkflowLane.Draft,
+      ForecastWorkflowLane.Requirements,
+      ForecastWorkflowLane.Contracting,
+      ForecastWorkflowLane.APFSCoordinator,
+      ForecastWorkflowLane.Published,
+    ];
+
+    return lanes.map(lane => ({
+      status: lane as any,
+      count: list.filter(r => this.getLane(r) === lane).length,
+    }));
   });
 
   readonly filteredRows = computed(() => {
@@ -129,7 +172,10 @@ export class DashboardV2Page implements OnInit {
     const f = this.filters();
     const myId = this.getMyUserId();
 
-    if (f.status !== 'All') list = list.filter(r => r.status === f.status);
+    // ✅ Filter by workflow lane (Draft/Requirements/Contracting/APFS Coordinator/Published)
+    if (f.status !== 'All') {
+      list = list.filter(r => String(this.getLane(r)) === String(f.status));
+    }
 
     if (f.q.trim()) {
       const q = f.q.toLowerCase();
@@ -176,7 +222,6 @@ export class DashboardV2Page implements OnInit {
   onPickStatus(status: string): void {
     this.filters.set({ ...this.filters(), status: status as any });
   }
-
 
   openRecord(row: ForecastRecord): void {
     this.selected.set(row);

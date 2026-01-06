@@ -1,10 +1,19 @@
 import { ForecastRecord } from './forecast-record.model';
+import { ForecastStatus, ForecastWorkflowLane } from './forecast-record.enums';
 
 export function createEmptyForecastRecord(): ForecastRecord {
     return {
         /** Workflow / persistence */
         id: undefined,
-        status: 'Draft',
+        status: ForecastWorkflowLane.Draft,
+
+
+        // ✅ workflow lane starts in Draft
+        workflowStatus: ForecastWorkflowLane.Draft,
+
+        // ✅ business status enum stays enum-safe
+        forecastStatus: ForecastStatus.Draft,
+
         createdAt: undefined,
         updatedAt: undefined,
         submittedAt: null,

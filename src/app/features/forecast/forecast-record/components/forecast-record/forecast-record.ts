@@ -2,8 +2,10 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { combineLatest, of } from 'rxjs';
+import { combineLatest, of, EMPTY } from 'rxjs';
 import { catchError, switchMap, timeout } from 'rxjs/operators';
+
+import { ForecastWorkflowLane } from '../../models/forecast-record.enums';
 
 import {
   buildForecastRecordForm,
@@ -33,7 +35,13 @@ import {
 
 import { AuthService } from '../../../../../auth/auth.service';
 
-type RailStatus = 'New' | 'Draft' | 'Requirements' | 'Contracting' | 'APFS Coordinator' | 'Submitted' | 'Unknown';
+type RailStatus =
+  | 'Draft'
+  | 'Requirements'
+  | 'Contracting'
+  | 'APFS Coordinator'
+  | 'Published'
+  | 'Unknown';
 
 interface RailPermissions {
   canReassign: boolean;
@@ -96,14 +104,21 @@ export class ForecastRecordComponent {
     canDelete: false,
   };
 
+  /** Canonical lane */
+  get workflowStatus(): ForecastWorkflowLane | null {
+    return this.form?.get('workflowStatus')?.value ?? null;
+  }
+
+  /** Legacy alias (keep only until everything uses workflowStatus everywhere) */
   get status(): ForecastRecordStatus | null {
-    return this.form?.get('status')?.value ?? null;
+    return (this.form?.get('status')?.value ?? this.workflowStatus ?? null) as ForecastRecordStatus | null;
   }
+
   get isDraft(): boolean {
-    return this.status === 'Draft';
+    return this.workflowStatus === ForecastWorkflowLane.Draft;
   }
-  get isSubmitted(): boolean {
-    return this.status === 'Submitted';
+  get isPublished(): boolean {
+    return this.workflowStatus === ForecastWorkflowLane.Published;
   }
 
   /** Additional Getters for role based field access */
@@ -116,16 +131,18 @@ export class ForecastRecordComponent {
     // If this is /forecast/new (no recordId yet), hide the rail.
     if (!this.recordId) return false;
 
-    // Otherwise, fallback to workflow status logic.
-    const railStatus = this.normalizeRailStatus(this.status);
-    return railStatus !== 'New' && railStatus !== 'Unknown';
+    const railStatus = this.normalizeRailStatus(this.workflowStatus);
+    return railStatus !== 'Unknown';
   }
 
-
-
-
   private hasEditRightsFor(role: 'Requirements' | 'Contracting Office' | 'APFS Coordinator'): boolean {
-    return (this.userProfile?.role ?? '').trim().toLowerCase() === role.toLowerCase();
+    const r = (this.userProfile?.role ?? '').trim().toLowerCase();
+
+    if (role === 'Requirements') return r === 'requirements';
+    if (role === 'APFS Coordinator') return r === 'apfs coordinator' || r.includes('coordinator');
+
+    // Contracting lane can be labeled either way in auth
+    return r === 'contracting' || r === 'contracting office';
   }
 
   get canEditRequirementsSection(): boolean {
@@ -159,24 +176,18 @@ export class ForecastRecordComponent {
     const s = String(raw ?? '').trim();
     if (!s) return 'Unknown';
 
-    // exact matches you told me
-    if (s === 'New') return 'New';
     if (s === 'Draft') return 'Draft';
     if (s === 'Requirements') return 'Requirements';
     if (s === 'Contracting') return 'Contracting';
     if (s === 'APFS Coordinator') return 'APFS Coordinator';
+    if (s === 'Published') return 'Published';
 
-    // existing enum you already have in code
-    if (s === 'Submitted') return 'Submitted';
-
-    // tolerant matching (in case backend sends slightly different labels)
     const lower = s.toLowerCase();
+    if (lower.includes('draft')) return 'Draft';
     if (lower.includes('require')) return 'Requirements';
     if (lower.includes('contract')) return 'Contracting';
     if (lower.includes('coordinator')) return 'APFS Coordinator';
-    if (lower.includes('draft')) return 'Draft';
-    if (lower.includes('submit')) return 'Submitted';
-    if (lower.includes('new')) return 'New';
+    if (lower.includes('publish')) return 'Published';
 
     return 'Unknown';
   }
@@ -210,14 +221,14 @@ export class ForecastRecordComponent {
     if (status === 'Contracting') return roleNorm === 'contracting office' || roleNorm === 'contracting';
     if (status === 'APFS Coordinator') return roleNorm === 'apfs coordinator';
 
-    // For New/Draft, treat as "mine" in edit mode
-    if (status === 'New' || status === 'Draft') return true;
+    // For Draft, treat as "mine" in edit mode
+    if (status === 'Draft') return true;
 
     return false;
   }
 
   private computeRailPermissions(): void {
-    const status = this.normalizeRailStatus(this.status);
+    const status = this.normalizeRailStatus(this.workflowStatus);
     const role = this.normalizeRailRole();
     const isAdmin = role === 'Admin';
     const isCoordinator = role === 'APFS Coordinator';
@@ -225,27 +236,31 @@ export class ForecastRecordComponent {
     const assignedToMe = this.computeAssignedToMe(status, this.userProfile?.role ?? '');
 
     const canReassign =
+      status !== 'Published' &&
       (status === 'Requirements' || status === 'Contracting' || status === 'APFS Coordinator') &&
       (isCoordinator || isAdmin);
 
     const canSave =
-      (status === 'New' ||
-        status === 'Draft' ||
+      status !== 'Published' &&
+      (status === 'Draft' ||
         status === 'Requirements' ||
         status === 'Contracting' ||
         status === 'APFS Coordinator') &&
       (assignedToMe || isCoordinator || isAdmin);
 
     const canUnassign =
+      status !== 'Published' &&
       (status === 'Requirements' || status === 'Contracting' || status === 'APFS Coordinator') &&
       (assignedToMe || isCoordinator || isAdmin);
 
     // "Approve & Send" means "complete my lane and route forward"
+    // ✅ Allow Requirements role to submit from Draft as well (new records start as Draft)
     const canApproveSend =
+      status !== 'Published' &&
       this.isEditMode &&
       (assignedToMe || isAdmin) &&
       (
-        (status === 'Requirements' && role === 'Requirements') ||
+        ((status === 'Draft' || status === 'Requirements') && role === 'Requirements') ||
         (status === 'Contracting' && role === 'Contracting') ||
         (status === 'APFS Coordinator' && role === 'APFS Coordinator') ||
         isAdmin
@@ -253,7 +268,8 @@ export class ForecastRecordComponent {
 
     // Only allow delete early in lifecycle
     const canDelete =
-      (status === 'New' || status === 'Draft') &&
+      status !== 'Published' &&
+      (status === 'Draft') &&
       (assignedToMe || isAdmin);
 
     this.rail = { canReassign, canSave, canUnassign, canApproveSend, canDelete };
@@ -295,9 +311,6 @@ export class ForecastRecordComponent {
    * We produce a clean UserProfileLike object for the form layer.
    */
   private extractUserProfileFromAuth(): UserProfileLike | null {
-    // Your AuthService exposes the logged-in user via getters:
-    //   get user(): User | null
-    //   get session(): AuthSession | null
     const u: any = (this.auth as any).user ?? (this.auth as any).session?.user ?? null;
 
     console.log('[AuthProbe] user=', u, 'session=', (this.auth as any).session);
@@ -325,6 +338,7 @@ export class ForecastRecordComponent {
     // Render a form shell immediately
     this.form = buildForecastRecordForm(createEmptyForecastRecord());
     this.applyAccessState();
+    this.hydratePrimaryContactFromProfile(); // ✅ autofill (and recompute rail)
     this.isLoading = true;
     this.flushView();
 
@@ -348,9 +362,11 @@ export class ForecastRecordComponent {
 
             this.form = buildForecastRecordForm(createEmptyForecastRecord());
             this.applyAccessState();
+            this.hydratePrimaryContactFromProfile(); // ✅ autofill (and recompute rail)
             this.flushView();
 
-            return of(null);
+            // ✅ IMPORTANT: don't emit null into subscribe (it rebuilds & can wipe)
+            return EMPTY;
           }
 
           // /forecast/:id
@@ -381,16 +397,21 @@ export class ForecastRecordComponent {
 
         this.form = buildForecastRecordForm(record ?? createEmptyForecastRecord());
         this.applyAccessState();
+        this.hydratePrimaryContactFromProfile(); // ✅ autofill (won’t overwrite loaded record)
         this.isLoading = false;
         this.flushView();
       });
   }
 
   onSaveDraft(): void {
+    this.logInvalidControls();
     if (!this.form) return;
     if (!this.canSave) return;
 
     const raw = this.form.getRawValue() as any;
+
+    // Keep legacy status synced to workflow lane (for backend / older UI)
+    raw.status = raw.workflowStatus ?? raw.status;
 
     // Ensure id is present for updates (form likely doesn't contain id)
     const payload: ForecastRecord = this.recordId
@@ -405,16 +426,38 @@ export class ForecastRecordComponent {
     });
   }
 
-  /**
-   * This is your current submit behavior.
-   * In the rail UI, you can bind "Approve & Send" to onSubmit() for now.
-   * Later we'll evolve it into workflow routing (Requirements -> Contracting -> Coordinator).
-   */
+  logInvalidControls(): void {
+    if (!this.form) return;
+
+    const invalid = Object.entries(this.form.controls)
+      .filter(([_, c]) => c.invalid)
+      .map(([name, c]) => ({
+        name,
+        value: (c as any).value,
+        errors: c.errors,
+        touched: c.touched,
+        dirty: c.dirty,
+      }));
+
+    console.table(invalid);
+    console.log('form errors', this.form.errors);
+  }
+
   onSubmit(): void {
     if (!this.form) return;
     if (!this.canApproveSend) return;
 
+    this.form.markAllAsTouched();
+    if (this.form.invalid) return;
+
     const raw = this.form.getRawValue() as any;
+
+    // ✅ advance workflow lane (canonical)
+    const next = this.nextWorkflowStatus(this.form.controls.workflowStatus.value);
+
+    // keep both fields in sync for now (legacy + canonical)
+    raw.workflowStatus = next;
+    raw.status = next;
 
     const payload: ForecastRecord = this.recordId
       ? ({ ...raw, id: Number(this.recordId) } as ForecastRecord)
@@ -423,20 +466,8 @@ export class ForecastRecordComponent {
     const save$ = this.recordId ? this.service.update(payload) : this.service.create(payload);
 
     save$.subscribe({
-      next: (saved) => {
-        const id = (saved as any)?.id ?? this.recordId;
-
-        if (!id) {
-          this.router.navigate(['/dashboard-v2']);
-          return;
-        }
-
-        this.service.submit(Number(id), (saved as any)?.submittedBy ?? null).subscribe({
-          next: () => this.router.navigate(['/dashboard-v2']),
-          error: (e: unknown) => console.error('Submit failed', e),
-        });
-      },
-      error: (e: unknown) => console.error('Save before submit failed', e),
+      next: () => this.router.navigate(['/dashboard-v2']),
+      error: (e: unknown) => console.error('Route forward failed', e),
     });
   }
 
@@ -449,21 +480,10 @@ export class ForecastRecordComponent {
   }
 
   // ---- Rail button handlers (stubbed; wire as you like) ----
-  onPrintableView(): void {
-    window.print();
-  }
-
-  onCsvDownload(): void {
-    console.warn('CSV download not wired yet');
-  }
-
-  onRecordHistory(): void {
-    console.warn('Record history not wired yet');
-  }
-
-  onChangeLog(): void {
-    console.warn('Change log not wired yet');
-  }
+  onPrintableView(): void { window.print(); }
+  onCsvDownload(): void { console.warn('CSV download not wired yet'); }
+  onRecordHistory(): void { console.warn('Record history not wired yet'); }
+  onChangeLog(): void { console.warn('Change log not wired yet'); }
 
   onReassign(): void {
     if (!this.canReassign) return;
@@ -478,5 +498,47 @@ export class ForecastRecordComponent {
   onDelete(): void {
     if (!this.canDelete) return;
     console.warn('Delete not wired yet');
+  }
+
+  private hydratePrimaryContactFromProfile(): void {
+    if (!this.form) return;
+
+    const u = this.userProfile;
+    if (!u) return;
+
+    const c = this.form.controls as any;
+
+    const first = c.primaryContactFirstName?.value;
+    const last = c.primaryContactLastName?.value;
+    const email = c.primaryContactEmail?.value;
+
+    // Only auto-fill if empty (prevents overwriting existing record values)
+    if (!first && !last && !email) {
+      this.form.patchValue(
+        {
+          primaryContactFirstName: u.firstName ?? '',
+          primaryContactLastName: u.lastName ?? '',
+          primaryContactEmail: u.email ?? '',
+        },
+        { emitEvent: true }
+      );
+    }
+
+    console.log('[PrimaryContact] after patch:', {
+      first: this.form.controls.primaryContactFirstName.value,
+      last: this.form.controls.primaryContactLastName.value,
+      email: this.form.controls.primaryContactEmail.value,
+      formValid: this.form.valid,
+    });
+
+    this.computeRailPermissions();
+  }
+
+  private nextWorkflowStatus(cur: ForecastWorkflowLane | null): ForecastWorkflowLane {
+    if (!cur || cur === ForecastWorkflowLane.Draft) return ForecastWorkflowLane.Requirements;
+    if (cur === ForecastWorkflowLane.Requirements) return ForecastWorkflowLane.Contracting;
+    if (cur === ForecastWorkflowLane.Contracting) return ForecastWorkflowLane.APFSCoordinator;
+    if (cur === ForecastWorkflowLane.APFSCoordinator) return ForecastWorkflowLane.Published;
+    return ForecastWorkflowLane.Published;
   }
 }

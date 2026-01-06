@@ -6,6 +6,7 @@ import { environment } from 'src/environments/environment';
 
 import { ForecastRecord } from '../models/forecast-record.model';
 import { createEmptyForecastRecord } from '../models/forecast-record.factory';
+import { ForecastWorkflowLane } from '../models/forecast-record.enums';
 
 export type ForecastRecordQuery = {
   q?: string;
@@ -32,16 +33,34 @@ export class ForecastRecordService {
     return new Date().toISOString();
   }
 
+  /**
+   * Coerce anything (string/unknown) into a known workflow lane enum.
+   * Keeps you safe while the DB/old seed data evolves.
+   */
+  private coerceLane(v: any): ForecastWorkflowLane {
+    return (
+      v === ForecastWorkflowLane.Draft ||
+      v === ForecastWorkflowLane.Requirements ||
+      v === ForecastWorkflowLane.Contracting ||
+      v === ForecastWorkflowLane.APFSCoordinator ||
+      v === ForecastWorkflowLane.Published
+    )
+      ? v
+      : ForecastWorkflowLane.Draft;
+  }
+
   private ensureSeeded(): void {
     if (!this.useMock || this.seeded) return;
     this.seeded = true;
 
     const mk = (partial: Partial<ForecastRecord>) => {
       const id = Date.now() + Math.floor(Math.random() * 10000);
+
+      const lane = this.coerceLane((partial as any).workflowStatus ?? (partial as any).status);
+
       const rec: ForecastRecord = {
         ...createEmptyForecastRecord(),
         id,
-        status: 'Draft',
         createdAt: this.nowIso(),
         updatedAt: this.nowIso(),
         assignedToUserId: null,
@@ -49,15 +68,21 @@ export class ForecastRecordService {
         assignedAt: null,
         apfsNumber: `APFS-${String(id).slice(-5)}`,
         requirementsTitle: `Mock Requirement ${String(id).slice(-4)}`,
-        ...partial,
+        ...partial, // ✅ this may override workflowStatus intentionally
       };
+
+
       this.store.set(String(id), rec);
     };
 
-    mk({ status: 'Draft', component: 'CISA', programLevel: 'Program' });
-    mk({ status: 'Submitted', component: 'HQ', programLevel: 'Division' });
+    mk({ workflowStatus: ForecastWorkflowLane.Draft, component: 'CISA', programLevel: 'Program' });
+
+    // Previously "Submitted" — in your new 5-lane model, that’s just moving to the next lane.
+    // If you want seeded records in Requirements, do this:
+    mk({ workflowStatus: ForecastWorkflowLane.Requirements, component: 'HQ', programLevel: 'Division' });
+
     mk({
-      status: 'Draft',
+      workflowStatus: ForecastWorkflowLane.Draft,
       component: 'Ops',
       programLevel: 'Office',
       assignedToUserId: 'mock-user',
@@ -77,10 +102,16 @@ export class ForecastRecordService {
 
     const existing = this.store.get(idStr);
     if (!existing) {
+      const lane = ForecastWorkflowLane.Draft;
+
       const mock: ForecastRecord = {
         ...createEmptyForecastRecord(),
         id: Number.isFinite(Number(idStr)) ? Number(idStr) : undefined,
-        status: 'Draft',
+
+        // ✅ FIX: assign properties, don’t drop a bare enum expression
+        workflowStatus: lane,
+        status: lane,
+
         createdAt: this.nowIso(),
         updatedAt: this.nowIso(),
         assignedToUserId: null,
@@ -94,7 +125,15 @@ export class ForecastRecordService {
       return of(mock).pipe(delay(150));
     }
 
-    return of(existing).pipe(delay(150));
+    // ✅ if older stored records exist, keep them normalized
+    const normalized: ForecastRecord = {
+      ...existing,
+      workflowStatus: this.coerceLane((existing as any).workflowStatus ?? (existing as any).status),
+      status: this.coerceLane((existing as any).status ?? (existing as any).workflowStatus),
+    };
+
+    this.store.set(idStr, normalized);
+    return of(normalized).pipe(delay(150));
   }
 
   create(record: ForecastRecord): Observable<ForecastRecord> {
@@ -107,9 +146,16 @@ export class ForecastRecordService {
     const id = Date.now();
     const now = this.nowIso();
 
+    const lane = this.coerceLane((record as any).workflowStatus ?? (record as any).status);
+
     const created: ForecastRecord = {
       ...record,
       id,
+
+      // ✅ keep lane fields consistent
+      workflowStatus: lane,
+      status: lane,
+
       createdAt: record.createdAt ?? now,
       updatedAt: now,
       assignedToUserId: record.assignedToUserId ?? null,
@@ -135,11 +181,26 @@ export class ForecastRecordService {
 
     this.ensureSeeded();
 
-    const updated: ForecastRecord = { ...record, updatedAt: this.nowIso() };
+    const lane = this.coerceLane((record as any).workflowStatus ?? (record as any).status);
+
+    const updated: ForecastRecord = {
+      ...record,
+      workflowStatus: lane,
+      status: lane,
+      updatedAt: this.nowIso(),
+    };
+
     this.store.set(String(record.id), updated);
     return of(updated).pipe(delay(150));
   }
 
+  /**
+   * In your new 5-lane world, "submit" should usually mean: move to the next lane,
+   * not set a legacy string like 'Submitted'.
+   *
+   * We'll keep the endpoint name, but update lane:
+   * Draft/Requirements -> Contracting, Contracting -> APFS Coordinator, Coordinator -> Published
+   */
   submit(id: number, submittedBy: string | null = null): Observable<ForecastRecord> {
     if (!this.useMock) {
       return this.http.post<ForecastRecord>(`${this.baseUrl}/${id}/submit`, { submittedBy });
@@ -151,9 +212,20 @@ export class ForecastRecordService {
     if (!existing) return throwError(() => new Error(`ForecastRecord ${id} not found`));
 
     const now = this.nowIso();
+
+    const cur = this.coerceLane((existing as any).workflowStatus ?? (existing as any).status);
+
+    const next =
+      cur === ForecastWorkflowLane.Draft ? ForecastWorkflowLane.Requirements
+        : cur === ForecastWorkflowLane.Requirements ? ForecastWorkflowLane.Contracting
+          : cur === ForecastWorkflowLane.Contracting ? ForecastWorkflowLane.APFSCoordinator
+            : cur === ForecastWorkflowLane.APFSCoordinator ? ForecastWorkflowLane.Published
+              : ForecastWorkflowLane.Published;
+
     const submitted: ForecastRecord = {
       ...existing,
-      status: 'Submitted',
+      workflowStatus: next,
+      status: next,
       submittedAt: now,
       submittedBy,
       updatedAt: now,
@@ -186,9 +258,15 @@ export class ForecastRecordService {
 
     this.ensureSeeded();
 
-    let rows = Array.from(this.store.values());
+    let rows = Array.from(this.store.values()).map(r => ({
+      ...r,
+      workflowStatus: this.coerceLane((r as any).workflowStatus ?? (r as any).status),
+      status: this.coerceLane((r as any).status ?? (r as any).workflowStatus),
+    }));
 
-    if (status !== 'All') rows = rows.filter((r) => r.status === status);
+    if (status !== 'All') {
+      rows = rows.filter((r) => String(r.workflowStatus) === String(status) || String(r.status) === String(status));
+    }
 
     if (assigned === 'claimed') rows = rows.filter((r) => !!r.assignedToUserId);
     else if (assigned === 'unclaimed') rows = rows.filter((r) => !r.assignedToUserId);

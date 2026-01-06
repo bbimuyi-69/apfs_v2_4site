@@ -5,12 +5,19 @@ import {
     ValidationErrors,
     Validators,
 } from '@angular/forms';
+
 import { ForecastRecord, ForecastRecordStatus } from '../../models/forecast-record.model';
+import { ForecastWorkflowLane } from '../../models/forecast-record.enums';
 
 export type ForecastRecordFormGroup = FormGroup<{
     /** System / workflow */
     apfsNumber: FormControl<string | null>;
+
+    /** Legacy alias (keep disabled) */
     status: FormControl<ForecastRecordStatus>;
+
+    /** ✅ Real workflow lane (keep disabled) */
+    workflowStatus: FormControl<ForecastWorkflowLane>;
 
     /** Top section */
     component: FormControl<string | null>;
@@ -85,12 +92,25 @@ export type UserProfileLike = {
 };
 
 export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordFormGroup {
+    // ✅ Canonical lane value. Prefer workflowStatus; fall back to legacy status.
+    const lane: ForecastWorkflowLane =
+        (record.workflowStatus ??
+            (record.status as any) ??
+            ForecastWorkflowLane.Draft) as ForecastWorkflowLane;
+
     const form = new FormGroup({
         /** System generated */
         apfsNumber: new FormControl({ value: record.apfsNumber, disabled: true }),
 
+        /** Legacy alias - keep disabled */
         status: new FormControl(
-            { value: record.status ?? 'Draft', disabled: true },
+            { value: (record.status ?? lane) as any, disabled: true },
+            { nonNullable: true }
+        ),
+
+        /** ✅ Real workflow lane - keep disabled */
+        workflowStatus: new FormControl(
+            { value: lane, disabled: true },
             { nonNullable: true }
         ),
 
@@ -185,16 +205,16 @@ export function applyForecastRecordRolePermissions(
     form: ForecastRecordFormGroup,
     profile: UserProfileLike | null | undefined
 ): void {
-
     console.log('[Perms] role=', profile?.role);
     const role = (profile?.role ?? '').trim().toLowerCase();
     const isRequirements = role === 'requirements';
-    const isContractingOffice = role === 'contracting office';
+    const isContractingOffice = role === 'contracting office' || role === 'contracting';
     const isCoordinator = role === 'apfs coordinator';
 
     // System-managed fields always disabled
     hardDisable(form.controls.apfsNumber);
     hardDisable(form.controls.status);
+    hardDisable(form.controls.workflowStatus);
 
     // Requirements section
     setEnabled(form.controls.component, isRequirements);
@@ -234,9 +254,7 @@ export function applyForecastRecordRolePermissions(
     // Fiscal year: keep with Requirements by default (change if needed)
     setEnabled(form.controls.fiscalYear, isRequirements);
 
-    // Place of performance + POCs:
-    // Your original file left these editable; keep them editable for Requirements by default.
-    // If you want all roles to edit POCs, change to: true
+    // Place of performance + POCs (Requirements by default)
     setEnabled(form.controls.placeOfPerformanceCity, isRequirements);
     setEnabled(form.controls.placeOfPerformanceState, isRequirements);
 
