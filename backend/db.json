@@ -4,13 +4,61 @@
       "id": 1765895124405,
       "firstName": "Chief",
       "lastName": "Nerd",
-      "title": "Chief Nerd",
+      "title": "Senior Program Analyst",
       "email": "cn@gmail.com",
       "employeeType": "Federal Employee",
       "component": "CBP",
-      "office": "Office of Trade",
       "role": "Requestor",
-      "isActive": false
+      "office": "Office of Trade",
+      "isActive": true
+    },
+    {
+      "id": 1765895124406,
+      "firstName": "Riley",
+      "lastName": "Requirements",
+      "title": "Requirements Analyst",
+      "email": "requirements@dhs.gov",
+      "employeeType": "Federal Employee",
+      "component": "DHS",
+      "role": "Requirements",
+      "office": "Program Office",
+      "isActive": true
+    },
+    {
+      "id": 1765895124407,
+      "firstName": "Casey",
+      "lastName": "Contracting",
+      "title": "Contracting Officer",
+      "email": "contracting@dhs.gov",
+      "employeeType": "Federal Employee",
+      "component": "DHS",
+      "role": "Contracting Office",
+      "office": "Acquisitions",
+      "isActive": true
+    },
+    {
+      "id": 1765895124408,
+      "firstName": "Alex",
+      "lastName": "Coordinator",
+      "title": "APFS Coordinator",
+      "email": "coordinator@dhs.gov",
+      "employeeType": "Federal Employee",
+      "component": "DHS",
+      "role": "APFS Coordinator",
+      "office": "Headquarters",
+      "isActive": true
+    },
+    {
+      "id": 1765895124409,
+      "firstName": "Jordan",
+      "lastName": "Admin",
+      "title": "System Administrator",
+      "email": "admin@dhs.gov",
+      "employeeType": "Federal Employee",
+      "component": "DHS",
+      "role": "System Administrator",
+      "office": "OCIO",
+      "isActive": true
     }
   ],
   "forecastRecords": []

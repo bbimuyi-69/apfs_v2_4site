@@ -2,8 +2,9 @@ import { CommonModule } from '@angular/common';
 import { Component, HostListener, inject, ElementRef } from '@angular/core';
 import { RouterModule, RouterOutlet, Router, NavigationEnd, ActivatedRoute } from '@angular/router';
 import { filter, map } from 'rxjs/operators';
-import { Header } from './core/layout/header/header';
 
+import { Header } from './core/layout/header/header';
+import { AuthService } from './auth/auth.service';
 
 type DropdownKey = 'government' | 'documentation';
 
@@ -11,7 +12,7 @@ type DropdownKey = 'government' | 'documentation';
   selector: 'app-root',
   standalone: true,
   imports: [
-    CommonModule,      // ✅ required for *ngIf, *ngFor, etc.
+    CommonModule,
     RouterOutlet,
     RouterModule,
     Header
@@ -23,6 +24,7 @@ export class App {
   title = '';
 
   private readonly el = inject(ElementRef<HTMLElement>);
+  private readonly auth = inject(AuthService);
 
   dropdowns: Record<DropdownKey, boolean> = {
     government: false,
@@ -30,6 +32,11 @@ export class App {
   };
 
   constructor(private router: Router, private activatedRoute: ActivatedRoute) {
+    // ✅ Restore session on refresh (dev: uses x-user-email header)
+    if (this.auth.isLoggedIn) {
+      this.auth.loadMe().subscribe({ error: () => { } });
+    }
+
     this.router.events
       .pipe(
         filter((event): event is NavigationEnd => event instanceof NavigationEnd),
@@ -41,7 +48,6 @@ export class App {
       )
       .subscribe((title) => {
         this.title = title ?? '';
-        // Optional: close dropdowns on navigation
         this.closeDropdowns();
       });
   }
@@ -60,15 +66,12 @@ export class App {
     this.dropdowns.documentation = false;
   }
 
-  // ✅ Close ONLY when clicking outside the app root (prevents instant close)
   @HostListener('document:click', ['$event'])
   onDocumentClick(ev: MouseEvent): void {
     const target = ev.target as Node | null;
     if (!target) return;
 
-    // If click is inside this component, do nothing
     if (this.el.nativeElement.contains(target)) return;
-
     this.closeDropdowns();
   }
 

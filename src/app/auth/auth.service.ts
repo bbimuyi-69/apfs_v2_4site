@@ -1,75 +1,20 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
-import { delay, tap } from 'rxjs/operators';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { BehaviorSubject, Observable, throwError, of } from 'rxjs';
+import { catchError, map, switchMap, tap } from 'rxjs/operators';
+
 import { AuthSession, UserLoginRequest } from './auth.model';
 import { User } from '../core/models/user.model';
 
 const SESSION_KEY = 'apfs_auth_session_v1';
 
-/**
- * Mock users for role-based testing.
- * Login with:
- *  - admin / password
- *  - requirements / password
- *  - contracting / password
- *  - coordinator / password
- */
-const MOCK_USERS: Record<string, User> = {
-  admin: {
-    id: 1,
-    firstName: 'Admin',
-    lastName: 'User',
-    title: 'Contract Specialist',
-    email: 'admin@example.gov',
-    employeeType: 'Federal Employee',
-    component: 'DHS',
-    role: 'Contracting Office',
-    office: 'HQ',
-    isActive: true,
-  },
-
-  requirements: {
-    id: 2,
-    firstName: 'Riley',
-    lastName: 'Requirements',
-    title: 'Requirements Analyst',
-    email: 'requirements@example.gov',
-    employeeType: 'Federal Employee',
-    component: 'DHS',
-    role: 'Requirements',
-    office: 'Program Office',
-    isActive: true,
-  },
-
-  contracting: {
-    id: 3,
-    firstName: 'Casey',
-    lastName: 'Contracting',
-    title: 'Contracting Officer',
-    email: 'contracting@example.gov',
-    employeeType: 'Federal Employee',
-    component: 'DHS',
-    role: 'Contracting Office',
-    office: 'Acquisitions',
-    isActive: true,
-  },
-
-  coordinator: {
-    id: 4,
-    firstName: 'Alex',
-    lastName: 'Coordinator',
-    title: 'APFS Coordinator',
-    email: 'coordinator@example.gov',
-    employeeType: 'Federal Employee',
-    component: 'DHS',
-    role: 'APFS Coordinator',
-    office: 'HQ',
-    isActive: true,
-  },
-};
+type LoginResponse = { token: string; user: User };
+type MeResponse = { user: User };
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private readonly http = inject(HttpClient);
+
   private sessionSubject = new BehaviorSubject<AuthSession | null>(this.loadSession());
   readonly session$ = this.sessionSubject.asObservable();
 
@@ -85,39 +30,87 @@ export class AuthService {
     return !!this.session;
   }
 
+  /**
+   * DEV login:
+   * - requires password === 'password' (same behavior you had)
+   * - username is treated as email OR a short alias (admin/requirements/contracting/coordinator)
+   * - user is loaded from the backend user table (db.json)
+   */
   login(req: UserLoginRequest): Observable<AuthSession> {
     if (req.password !== 'password') {
       return throwError(() => new Error('Invalid username or password'));
     }
 
-    const key = req.username?.toLowerCase();
-    const user = key ? MOCK_USERS[key] : undefined;
-
-    if (!user) {
+    const raw = String(req.username || '').trim();
+    if (!raw) {
       return throwError(() => new Error('Invalid username or password'));
     }
 
-    const session: AuthSession = {
-      user,
-      token: `mock-token-${user.id}`,
-    };
+    const email = this.toEmail(raw);
 
-    return of(session).pipe(
-      delay(400),
-      tap(s => this.saveSession(s))
+    return this.http.post<LoginResponse>('/api/auth/login', { email }).pipe(
+      map(({ token, user }) => {
+        const session: AuthSession = { token, user };
+        return session;
+      }),
+      tap((s) => this.saveSession(s)),
+      catchError((err) => {
+        // Normalize message for UI
+        const msg =
+          err?.status === 401 ? 'Invalid username or password' :
+            err?.error?.error ? String(err.error.error) :
+              err?.message ? String(err.message) :
+                'Login failed';
+        return throwError(() => new Error(msg));
+      })
     );
   }
 
+  /**
+   * Call this on app startup (AppComponent / AppInitializer) to restore the
+   * current user from the server if you have a stored session/email.
+   *
+   * In DEV mode, backend supports x-user-email header (or ?email=).
+   */
+  loadMe(): Observable<User> {
+    const email = this.session?.user?.email || this.getStoredEmail();
+    if (!email) {
+      return throwError(() => new Error('No session'));
+    }
+
+    const headers = new HttpHeaders({ 'x-user-email': email });
+
+    return this.http.get<MeResponse>('/api/auth/me', { headers }).pipe(
+      tap((r) => {
+        // keep existing token if present (dev token is stable, but this is safe)
+        const token = this.session?.token || 'dev-token';
+        this.saveSession({ token, user: r.user });
+      }),
+      map((r) => r.user),
+      catchError((err) => {
+        // If server says unauthorized, clear local session
+        if (err?.status === 401) this.saveSession(null);
+        return throwError(() => new Error('Session expired'));
+      })
+    );
+  }
 
   logout(): void {
     this.saveSession(null);
   }
 
+  // -----------------------
+  // Session storage helpers
+  // -----------------------
+
   private saveSession(session: AuthSession | null): void {
     if (session) {
       sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      // DEV helper: store email explicitly for /auth/me header use
+      sessionStorage.setItem(`${SESSION_KEY}_email`, session.user?.email ?? '');
     } else {
       sessionStorage.removeItem(SESSION_KEY);
+      sessionStorage.removeItem(`${SESSION_KEY}_email`);
     }
     this.sessionSubject.next(session);
   }
@@ -132,5 +125,30 @@ export class AuthService {
       sessionStorage.removeItem(SESSION_KEY);
       return null;
     }
+  }
+
+  private getStoredEmail(): string {
+    return String(sessionStorage.getItem(`${SESSION_KEY}_email`) || '').trim();
+  }
+
+  /**
+   * Accept either:
+   *  - full email: admin@example.gov
+   *  - legacy aliases: admin / requirements / contracting / coordinator
+   */
+  private toEmail(usernameOrEmail: string): string {
+    const v = usernameOrEmail.trim().toLowerCase();
+
+    if (v.includes('@')) return v;
+
+    // Backwards compatible aliases (optional)
+    const aliasMap: Record<string, string> = {
+      admin: 'admin@example.gov',
+      requirements: 'requirements@example.gov',
+      contracting: 'contracting@example.gov',
+      coordinator: 'coordinator@example.gov',
+    };
+
+    return aliasMap[v] ?? v; // if they typed something weird, let backend reject it
   }
 }
