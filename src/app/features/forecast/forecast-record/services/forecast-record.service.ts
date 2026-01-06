@@ -344,4 +344,31 @@ export class ForecastRecordService {
     this.store.set(String(id), unclaimed);
     return of(unclaimed).pipe(delay(150));
   }
+
+  /*  delete(id: number, opts?: { userId?: number; force?: boolean }) {
+      let params = new HttpParams();
+      if (opts?.userId != null) params = params.set('userId', String(opts.userId));
+      if (opts?.force != null) params = params.set('force', String(opts.force));
+  
+      return this.http.delete<void>(`${this.baseUrl}/${id}`, { params });
+    }*/
+
+  delete(id: number, opts: { userId?: number | null; force: boolean }) {
+    let params = new HttpParams().set('force', String(opts.force));
+
+    if (opts.userId != null) {
+      params = params.set('userId', String(opts.userId));
+    }
+
+    return this.http.delete<void>(`${this.baseUrl}/${id}`, { params });
+  }
+
+
+
+
+
+
+
+
+
 }

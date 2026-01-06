@@ -309,6 +309,69 @@ app.post(`${API_PREFIX}/forecast-records/:id/unclaim`, (req, res) => {
     res.json(unclaimed);
 });
 
+// DELETE a forecast record (assignee-only force delete)
+// DELETE a forecast record (assignee-only force delete)
+app.delete(`${API_PREFIX}/forecast-records/:id`, (req, res) => {
+    const recordId = Number(req.params.id);
+    if (!Number.isFinite(recordId)) {
+        return res.status(400).json({ error: 'Invalid record id' });
+    }
+
+    const data = loadData();
+
+    const idx = data.forecastRecords.findIndex(r => Number(r.id) === recordId);
+    if (idx === -1) {
+        return res.status(404).json({ error: 'Forecast record not found' });
+    }
+
+    const existing = data.forecastRecords[idx];
+
+    // DELETE bodies are unreliable → use query params
+    const requesterId =
+        req.query.userId != null ? Number(req.query.userId) : null;
+
+    const force =
+        String(req.query.force || '').toLowerCase() === 'true';
+
+    // Normalize stored assigned user id (string or number)
+    const assignedId =
+        existing.assignedToUserId != null
+            ? Number(existing.assignedToUserId)
+            : null;
+
+    /* Assigned record rules
+    if (assignedId != null) {
+        // requester must be present
+        if (!Number.isFinite(requesterId)) {
+            return res.status(403).json({
+                error: 'Assigned record requires assignee to force delete',
+            });
+        }
+
+        // requester must be the assignee
+        if (assignedId !== requesterId) {
+            return res.status(403).json({
+                error: 'Only the assignee can delete this record',
+            });
+        }
+
+        // force flag required
+        if (!force) {
+            return res.status(409).json({
+                error: 'Force delete required for assigned record',
+            });
+        }
+    }*/
+
+    // All checks passed → delete
+    data.forecastRecords.splice(idx, 1);
+    saveData(data);
+
+    return res.status(204).send();
+});
+
+
+
 // =========================
 // START SERVER
 // =========================

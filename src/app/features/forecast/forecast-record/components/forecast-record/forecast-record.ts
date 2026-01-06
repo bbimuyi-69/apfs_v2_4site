@@ -88,6 +88,13 @@ export class ForecastRecordComponent {
   // State
   form: ForecastRecordFormGroup | null = null;
   recordId: string | null = null;
+
+  /**
+   * ✅ API record reference
+   * Keep separate from form state.
+   */
+  record: ForecastRecord | null = null;
+
   isEditMode = false;
   isLoading = true;
   loadError: string | null = null;
@@ -166,7 +173,25 @@ export class ForecastRecordComponent {
   get canSave(): boolean { return this.rail.canSave; }
   get canUnassign(): boolean { return this.rail.canUnassign; }
   get canApproveSend(): boolean { return this.rail.canApproveSend; }
-  get canDelete(): boolean { return this.rail.canDelete; }
+
+  /**
+   * ✅ Delete enablement based on API record assignment + current user
+   * - Unassigned => allow delete
+   * - Assigned => only assignee can delete
+   */
+  get canDelete(): boolean {
+    if (!this.recordId) return false;
+    if (this.isLoading) return false;
+    if (!this.record) return false;
+
+    const assignedToUserId =
+      this.record.assignedToUserId != null ? Number(this.record.assignedToUserId) : null;
+
+    if (assignedToUserId == null) return true; // unassigned => can delete
+
+    const me = this.currentUserId;
+    return me != null && assignedToUserId === me;
+  }
 
   /**
    * Normalize whatever "status" values exist today into the workflow statuses you listed.
@@ -356,6 +381,7 @@ export class ForecastRecordComponent {
           // /forecast/new
           if (!idParam || idParam === 'new') {
             this.recordId = null;
+            this.record = null; // ✅ clear API record reference
             this.isEditMode = true;
 
             this.isLoading = false;
@@ -391,6 +417,9 @@ export class ForecastRecordComponent {
       )
       .subscribe((record) => {
         console.log('[ForecastRecord] got record:', record);
+
+        // ✅ store API record reference (even if null)
+        this.record = record;
 
         // Re-read profile in case auth was late to populate
         this.userProfile = this.extractUserProfileFromAuth();
@@ -471,6 +500,60 @@ export class ForecastRecordComponent {
     });
   }
 
+  onDelete(): void {
+    if (!this.recordId) return;
+    if (!this.record) return;
+
+    const id = Number(this.recordId);
+    if (!Number.isFinite(id)) return;
+
+    const currentUserId = this.currentUserId;
+
+    const assignedToUserId =
+      this.record.assignedToUserId != null ? Number(this.record.assignedToUserId) : null;
+
+    // If assigned to someone else, block (UI rule)
+    if (assignedToUserId != null && currentUserId != null && assignedToUserId !== currentUserId) {
+      alert('This record is assigned to another user. Only the assignee can delete it.');
+      return;
+    }
+
+    const force = assignedToUserId != null;
+
+    const ok = force
+      ? confirm('This record is assigned to you.\n\nForce delete? This cannot be undone.')
+      : confirm('Delete this record? This cannot be undone.');
+
+    if (!ok) return;
+
+    this.isLoading = true;
+
+    this.service.delete(id, { userId: currentUserId, force }).subscribe({
+      next: () => this.router.navigate(['/dashboard-v2']),
+      error: (e: unknown) => {
+        console.error('Delete failed', e);
+        this.isLoading = false;
+      },
+    });
+  }
+
+  private get currentUserId(): number | null {
+    const id = (this.auth as any)?.session?.user?.id ?? (this.auth as any)?.user?.id ?? null;
+    return id != null ? Number(id) : null;
+  }
+
+  private get assignedToUserId(): number | null {
+    const v = this.record?.assignedToUserId ?? null;
+    return v != null ? Number(v) : null;
+  }
+
+  get isAssignee(): boolean {
+    const me = this.currentUserId;
+    const assigned = this.assignedToUserId;
+    if (me == null || assigned == null) return false;
+    return assigned === me;
+  }
+
   onCancel(): void {
     this.router.navigate(['/dashboard-v2']);
   }
@@ -493,11 +576,6 @@ export class ForecastRecordComponent {
   onUnassign(): void {
     if (!this.canUnassign) return;
     console.warn('Unassign not wired yet');
-  }
-
-  onDelete(): void {
-    if (!this.canDelete) return;
-    console.warn('Delete not wired yet');
   }
 
   private hydratePrimaryContactFromProfile(): void {
