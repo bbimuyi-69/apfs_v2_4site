@@ -21,6 +21,6 @@ export const OFFICES_BY_COMPONENT: Record<string, string[]> = {
 };
 
 export const ROLES_BY_EMPLOYEE_TYPE: Record<EmployeeType, string[]> = {
-    'Federal Employee': ['Requestor', 'Approver', 'Admin', 'Read Only'],
-    Contractor: ['Requestor', 'Read Only']
+    'Federal Employee': ['Requirements', 'Contracting', 'APFS Coordinator', 'Admin'],
+    Contractor: ['Requirements']
 };

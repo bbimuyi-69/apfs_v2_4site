@@ -8,7 +8,7 @@ import { Rob } from './components/common/rob/rob';
 import { Request } from './components/accounts/request/request';
 import { RequestNewUserForm } from './components/user/request-new-user-form/request-new-user-form';
 import { UserLogin } from './auth/user-login/user-login';
-import { Dashboard } from './components/dashboard/dashboard';
+import { Dashboard } from './components/dashboard_oldwillarchive/dashboard';
 import { DashboardV2Page } from './features/dashboard-v2/dashboard-v2.page';
 import { authGuard } from './auth/auth-guard';
 
@@ -28,12 +28,7 @@ export const routes: Routes = [
     { path: 'request-new-user', component: RequestNewUserForm, data: { title: 'Request New User' } },
     { path: 'user-login', component: UserLogin, data: { title: 'User Login' } },
 
-    {
-        path: 'dashboard',
-        component: Dashboard,
-        canActivate: [authGuard],
-        data: { title: 'Dashboard' },
-    },
+
 
     {
         path: 'dashboard-v2',
