@@ -1,86 +1,31 @@
-/* ===============================
-   APFS Angular Homepage Styles
-   =============================== */
-
 :host {
     display: block;
-    background: #f5f7fa;
-    font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Header */
-.apfs-header {
-    background: #ffffff;
-    border-bottom: 2px solid #264a78;
+.subcontent-band {
+    background: transparent;
+    /* or keep your page bg */
 }
 
-.apfs-header-inner {
-    max-width: 1200px;
-    margin: auto;
-    padding: 10px 15px;
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: center;
-    gap: 20px;
-}
-
-.logo {
-    font-size: 22px;
-    font-weight: bold;
-    color: #264a78;
-}
-
-.nav-links a {
-    margin-right: 15px;
-    text-decoration: none;
-    color: #264a78;
-    font-weight: 500;
-}
-
-.nav-links a.active {
-    border-bottom: 3px solid #264a78;
-}
-
-.gov-banner {
-    font-size: 12px;
-    color: #333;
-}
-
-/* Main content */
-.apfs-content {
-    max-width: 1200px;
-    margin: 30px auto;
-    padding: 0 15px;
-}
-
-/* Welcome panel */
-.welcome-panel {
-    background: #264a78;
-    color: #ffffff;
-    padding: 15px 20px;
-    border-radius: 3px;
-}
-
-.welcome-panel h1 {
-    margin: 0 0 10px;
-    font-size: 20px;
-}
-
-/* Sub Content panel */
 .subcontent-panel {
-    background: #782664;
+    background: #c2c0c1;
+    /* <-- move the gray here */
     color: #ffffff;
     padding: 15px 20px;
-    border-radius: 3px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    /* helps ensure corners clip cleanly */
 }
 
+/* Typography */
 .subcontent-panel p {
-    margin: 0 0 10px;
+    margin: 0;
     font-size: 20px;
+    line-height: 1.4;
 }
 
-
-/* Cards */
+/* If/when you re-enable cards later, keep them scoped to Welcome */
 .card-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -103,12 +48,12 @@
 
 .card-body {
     padding: 15px;
-    font-size: 10px;
+    font-size: 12px;
     line-height: 1.6;
 }
 
-/* Buttons */
-.btn {
+/* Buttons scoped to Welcome cards only (prevents conflicts with app-header buttons) */
+.card-body .btn {
     display: inline-block;
     margin-top: 15px;
     padding: 8px 12px;
@@ -117,50 +62,20 @@
     cursor: pointer;
 }
 
-.btn-success {
+.card-body .btn-success {
     background: #3a8f3a;
     color: #ffffff;
 }
 
-.btn-primary {
+.card-body .btn-primary {
     background: #264a78;
     color: #ffffff;
 }
 
-.btn-secondary {
+.card-body .btn-secondary {
     background: #e0e0e0;
     color: #000;
     margin-left: 5px;
-}
-
-/* Info section */
-.info-section {
-    margin-top: 40px;
-}
-
-.info-section h2 {
-    margin-top: 25px;
-    font-size: 10px;
-}
-
-.info-section p {
-    margin-top: 25px;
-    font-size: 10px;
-}
-
-/* Footer */
-.apfs-footer {
-    background: #ffffff;
-    border-top: 1px solid #ccc;
-    text-align: center;
-    padding: 15px;
-    font-size: 13px;
-}
-
-.apfs-footer a {
-    color: #264a78;
-    text-decoration: none;
-    margin: 0 5px;
 }
 
 /* Responsive */
@@ -169,7 +84,7 @@
         grid-template-columns: 1fr;
     }
 
-    .apfs-header-inner {
-        grid-template-columns: 1fr;
-        text-align: center;
+    .subcontent-panel p {
+        font-size: 18px;
     }
+}

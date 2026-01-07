@@ -1,7 +1,13 @@
 {
-  "name": "guitar-sales-system",
+  "name": "fourSite-system",
   "version": "0.0.0",
+  "private": true,
+  "packageManager": "npm@11.6.3",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
+    "preinstall": "node -e \"const m=+process.versions.node.split('.')[0]; if(m!==22){console.error('❌ Use Node 22.x for this project. Current: '+process.versions.node); process.exit(1)}\"",
     "ng": "ng",
     "start": "ng serve --proxy-config proxy.conf.json",
     "start:noproxy": "ng serve",
@@ -21,8 +27,6 @@
       }
     ]
   },
-  "private": true,
-  "packageManager": "npm@11.6.3",
   "dependencies": {
     "@angular/common": "^21.0.0",
     "@angular/compiler": "^21.0.0",

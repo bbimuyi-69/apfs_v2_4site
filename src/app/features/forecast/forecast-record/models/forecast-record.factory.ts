@@ -5,13 +5,11 @@ export function createEmptyForecastRecord(): ForecastRecord {
     return {
         /** Workflow / persistence */
         id: undefined,
-        status: ForecastWorkflowLane.Draft,
 
-
-        // ✅ workflow lane starts in Draft
+        // ✅ workflow lane starts in Draft (single source of truth)
         workflowStatus: ForecastWorkflowLane.Draft,
 
-        // ✅ business status enum stays enum-safe
+        // ✅ business approval outcome
         forecastStatus: ForecastStatus.Draft,
 
         createdAt: undefined,
@@ -19,15 +17,18 @@ export function createEmptyForecastRecord(): ForecastRecord {
         submittedAt: null,
         submittedBy: null,
 
+        /** 🔑 Assignment / claim ownership */
+        assignedToUserId: null,
+        assignedToName: null,
+        assignedAt: null,
+
         /** System-generated */
         apfsNumber: null,
 
         /** Top section */
         component: null,
-
         requirementsTitle: '',
         requirement: '',
-
         programLevel: null,
 
         /** APFS Coordinator updated fields */

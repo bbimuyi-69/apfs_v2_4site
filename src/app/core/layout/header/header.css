@@ -3,10 +3,16 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+
+    /* keep padding for content */
     padding: 0 18px;
-    background: #264a73;
+
+    /* ✅ background/shadow now live on the full-width band wrapper */
+    background: transparent;
+    box-shadow: none;
+
+
     color: #fff;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
 .header-left {
@@ -15,17 +21,12 @@
     gap: 10px;
 }
 
-.brand {
+.app-brand {
     color: #fff;
     text-decoration: none;
     font-weight: 700;
     letter-spacing: 0.2px;
     font-size: 18px;
-}
-
-.brand-sub {
-    font-size: 12px;
-    opacity: 0.9;
 }
 
 .header-right {
@@ -64,8 +65,9 @@
     color: #222;
 }
 
+/* ✅ Sign in link should be white on the blue band */
 .btn-link {
-    color: #fff;
+    color: #0a0a0a;
     text-decoration: none;
     border: 1px solid rgba(255, 255, 255, 0.35);
     padding: 6px 10px;

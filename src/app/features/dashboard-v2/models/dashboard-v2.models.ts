@@ -1,9 +1,9 @@
-import { ForecastRecordStatus } from '../../forecast/forecast-record/models/forecast-record.model';
+import { ForecastWorkflowLane } from '../../forecast/forecast-record/models/forecast-record.enums';
 
-export type DashboardStatus = ForecastRecordStatus | 'All';
+export type DashboardStatus = ForecastWorkflowLane | 'All';
 
 export interface StatusCount {
-  status: ForecastRecordStatus;
+  status: ForecastWorkflowLane;
   count: number;
 }
 

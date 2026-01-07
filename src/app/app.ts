@@ -11,28 +11,29 @@ type DropdownKey = 'government' | 'documentation';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterOutlet,
-    RouterModule,
-    Header
-  ],
+  imports: [CommonModule, RouterOutlet, RouterModule, Header],
   templateUrl: './app.html',
-  styleUrls: ['./app.css']
+  styleUrls: ['./app.css'],
 })
 export class App {
   title = '';
 
   private readonly el = inject(ElementRef<HTMLElement>);
-  private readonly auth = inject(AuthService);
+
+  // ✅ public so template can use auth.isLoggedIn
+  public readonly auth = inject(AuthService);
+
+  private readonly router = inject(Router);
+  private readonly activatedRoute = inject(ActivatedRoute);
 
   dropdowns: Record<DropdownKey, boolean> = {
     government: false,
     documentation: false,
   };
 
-  constructor(private router: Router, private activatedRoute: ActivatedRoute) {
+  constructor() {
     // ✅ Restore session on refresh (dev: uses x-user-email header)
+    // isLoggedIn is a GETTER -> use WITHOUT ()
     if (this.auth.isLoggedIn) {
       this.auth.loadMe().subscribe({ error: () => { } });
     }

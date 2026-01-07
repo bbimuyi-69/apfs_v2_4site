@@ -1,19 +1,17 @@
-<aside class="rail">
-  <nav class="nav">
-    <a routerLink="/dashboard-v2" routerLinkActive="active">🧭 Overview</a>
-    <a routerLink="/forecast" routerLinkActive="active">📄 Forecast</a>
-    <a routerLink="/users" routerLinkActive="active">👥 Users</a>
-    <a routerLink="/about" routerLinkActive="active">📊 Analytics</a>
-    <a routerLink="/contact" routerLinkActive="active">⚙️ Admin</a>
-    <!-- Documentation -->
-    <div class="nav-section">
+<a class="nav-link" routerLink="/dashboard-v2" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">🧭
+  Overview</a>
+<a class="nav-link" routerLink="/forecast" routerLinkActive="active">📄 Forecast</a>
+<a class="nav-link" routerLink="/users" routerLinkActive="active">👥 Users</a>
+<a class="nav-link" routerLink="/about" routerLinkActive="active">📊 Analytics</a>
+<a class="nav-link" routerLink="/contact" routerLinkActive="active">⚙️ Admin</a>
 
+<a *ngIf="showNewRequest" class="nav-link nav-cta" routerLink="/forecast/new" routerLinkActive="active">
+  ➕ New Request
+</a>
 
-      <a class="nav-item" [href]="documentationLink.href" target="_blank" rel="noopener">
-        <span class="nav-label">📘 {{ documentationLink.label }}</span>
-      </a>
-    </div>
-
-  </nav>
-  <div class="accent"></div>
-</aside>
+<!-- Documentation -->
+<div class="nav-section">
+  <a class="nav-link nav-doc" [href]="documentationLink.href" target="_blank" rel="noopener noreferrer">
+    📘 {{ documentationLink.label }}
+  </a>
+</div>

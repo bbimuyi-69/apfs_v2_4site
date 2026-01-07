@@ -10,7 +10,7 @@ import { ForecastWorkflowLane } from '../models/forecast-record.enums';
 
 export type ForecastRecordQuery = {
   q?: string;
-  status?: string | 'All';
+  status?: string | 'All'; // filter string (UI/query), not the model property
   assigned?: 'claimed' | 'unclaimed' | 'all';
   page?: number;
   pageSize?: number;
@@ -49,16 +49,29 @@ export class ForecastRecordService {
       : ForecastWorkflowLane.Draft;
   }
 
+  /**
+   * Normalize a record so workflowStatus is always a valid lane.
+   * NOTE: reads legacy (any).status if present, but never stores it.
+   */
+  private normalize(r: any): ForecastRecord {
+    const lane = this.coerceLane(r?.workflowStatus ?? r?.status);
+    return {
+      ...r,
+      workflowStatus: lane,
+    } as ForecastRecord;
+  }
+
   private ensureSeeded(): void {
     if (!this.useMock || this.seeded) return;
     this.seeded = true;
 
-    const mk = (partial: Partial<ForecastRecord>) => {
+    const mk = (partial: Partial<ForecastRecord> & { status?: any }) => {
       const id = Date.now() + Math.floor(Math.random() * 10000);
 
+      // Accept either new field or legacy status from old seed snippets
       const lane = this.coerceLane((partial as any).workflowStatus ?? (partial as any).status);
 
-      const rec: ForecastRecord = {
+      const rec: ForecastRecord = this.normalize({
         ...createEmptyForecastRecord(),
         id,
         createdAt: this.nowIso(),
@@ -68,17 +81,17 @@ export class ForecastRecordService {
         assignedAt: null,
         apfsNumber: `APFS-${String(id).slice(-5)}`,
         requirementsTitle: `Mock Requirement ${String(id).slice(-4)}`,
-        ...partial, // ✅ this may override workflowStatus intentionally
-      };
-
+        ...partial,
+        // Ensure workflowStatus wins even if partial had legacy string values
+        workflowStatus: lane,
+      });
 
       this.store.set(String(id), rec);
     };
 
     mk({ workflowStatus: ForecastWorkflowLane.Draft, component: 'CISA', programLevel: 'Program' });
 
-    // Previously "Submitted" — in your new 5-lane model, that’s just moving to the next lane.
-    // If you want seeded records in Requirements, do this:
+    // Seed one record in Requirements lane
     mk({ workflowStatus: ForecastWorkflowLane.Requirements, component: 'HQ', programLevel: 'Division' });
 
     mk({
@@ -95,7 +108,10 @@ export class ForecastRecordService {
     const idStr = String(id);
 
     if (!this.useMock) {
-      return this.http.get<ForecastRecord>(`${this.baseUrl}/${encodeURIComponent(idStr)}`);
+      // Backend may still return legacy `status`; normalize at boundary
+      return this.http
+        .get<any>(`${this.baseUrl}/${encodeURIComponent(idStr)}`)
+        .pipe((src) => src as any); // keep typing light here; normalize below if you map later
     }
 
     this.ensureSeeded();
@@ -104,14 +120,10 @@ export class ForecastRecordService {
     if (!existing) {
       const lane = ForecastWorkflowLane.Draft;
 
-      const mock: ForecastRecord = {
+      const mock: ForecastRecord = this.normalize({
         ...createEmptyForecastRecord(),
         id: Number.isFinite(Number(idStr)) ? Number(idStr) : undefined,
-
-        // ✅ FIX: assign properties, don’t drop a bare enum expression
         workflowStatus: lane,
-        status: lane,
-
         createdAt: this.nowIso(),
         updatedAt: this.nowIso(),
         assignedToUserId: null,
@@ -119,19 +131,14 @@ export class ForecastRecordService {
         assignedAt: null,
         apfsNumber: `APFS-${idStr}`,
         requirementsTitle: `Mock Requirement ${idStr}`,
-      };
+      });
 
       this.store.set(idStr, mock);
       return of(mock).pipe(delay(150));
     }
 
-    // ✅ if older stored records exist, keep them normalized
-    const normalized: ForecastRecord = {
-      ...existing,
-      workflowStatus: this.coerceLane((existing as any).workflowStatus ?? (existing as any).status),
-      status: this.coerceLane((existing as any).status ?? (existing as any).workflowStatus),
-    };
-
+    // ✅ normalize in case older stored records had legacy values
+    const normalized = this.normalize(existing);
     this.store.set(idStr, normalized);
     return of(normalized).pipe(delay(150));
   }
@@ -148,14 +155,10 @@ export class ForecastRecordService {
 
     const lane = this.coerceLane((record as any).workflowStatus ?? (record as any).status);
 
-    const created: ForecastRecord = {
+    const created: ForecastRecord = this.normalize({
       ...record,
       id,
-
-      // ✅ keep lane fields consistent
       workflowStatus: lane,
-      status: lane,
-
       createdAt: record.createdAt ?? now,
       updatedAt: now,
       assignedToUserId: record.assignedToUserId ?? null,
@@ -164,7 +167,7 @@ export class ForecastRecordService {
       apfsNumber:
         record.apfsNumber ??
         `APFS-${Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}`,
-    };
+    });
 
     this.store.set(String(id), created);
     return of(created).pipe(delay(150));
@@ -183,12 +186,11 @@ export class ForecastRecordService {
 
     const lane = this.coerceLane((record as any).workflowStatus ?? (record as any).status);
 
-    const updated: ForecastRecord = {
+    const updated: ForecastRecord = this.normalize({
       ...record,
       workflowStatus: lane,
-      status: lane,
       updatedAt: this.nowIso(),
-    };
+    });
 
     this.store.set(String(record.id), updated);
     return of(updated).pipe(delay(150));
@@ -199,7 +201,7 @@ export class ForecastRecordService {
    * not set a legacy string like 'Submitted'.
    *
    * We'll keep the endpoint name, but update lane:
-   * Draft/Requirements -> Contracting, Contracting -> APFS Coordinator, Coordinator -> Published
+   * Draft -> Requirements -> Contracting -> APFS Coordinator -> Published
    */
   submit(id: number, submittedBy: string | null = null): Observable<ForecastRecord> {
     if (!this.useMock) {
@@ -222,14 +224,13 @@ export class ForecastRecordService {
             : cur === ForecastWorkflowLane.APFSCoordinator ? ForecastWorkflowLane.Published
               : ForecastWorkflowLane.Published;
 
-    const submitted: ForecastRecord = {
+    const submitted: ForecastRecord = this.normalize({
       ...existing,
       workflowStatus: next,
-      status: next,
       submittedAt: now,
       submittedBy,
       updatedAt: now,
-    };
+    });
 
     this.store.set(String(id), submitted);
     return of(submitted).pipe(delay(150));
@@ -240,7 +241,7 @@ export class ForecastRecordService {
     const pageSize = query.pageSize ?? 25;
     const assigned = query.assigned ?? 'all';
     const sort = query.sort ?? 'updatedAt:desc';
-    const status = query.status ?? 'All';
+    const statusFilter = query.status ?? 'All';
     const q = query.q?.trim();
 
     if (!this.useMock) {
@@ -250,7 +251,7 @@ export class ForecastRecordService {
         .set('sort', sort);
 
       if (q) params = params.set('q', q);
-      if (status && status !== 'All') params = params.set('status', status);
+      if (statusFilter && statusFilter !== 'All') params = params.set('status', statusFilter);
       if (assigned && assigned !== 'all') params = params.set('assigned', assigned);
 
       return this.http.get<ForecastRecord[]>(this.baseUrl, { params });
@@ -258,14 +259,10 @@ export class ForecastRecordService {
 
     this.ensureSeeded();
 
-    let rows = Array.from(this.store.values()).map(r => ({
-      ...r,
-      workflowStatus: this.coerceLane((r as any).workflowStatus ?? (r as any).status),
-      status: this.coerceLane((r as any).status ?? (r as any).workflowStatus),
-    }));
+    let rows = Array.from(this.store.values()).map((r) => this.normalize(r));
 
-    if (status !== 'All') {
-      rows = rows.filter((r) => String(r.workflowStatus) === String(status) || String(r.status) === String(status));
+    if (statusFilter !== 'All') {
+      rows = rows.filter((r) => String(r.workflowStatus) === String(statusFilter));
     }
 
     if (assigned === 'claimed') rows = rows.filter((r) => !!r.assignedToUserId);
@@ -306,13 +303,13 @@ export class ForecastRecordService {
     if (existing.assignedToUserId) return throwError(() => new Error(`ForecastRecord ${id} already claimed`));
 
     const now = this.nowIso();
-    const claimed: ForecastRecord = {
+    const claimed: ForecastRecord = this.normalize({
       ...existing,
       assignedToUserId: payload?.userId ?? 'mock-user',
       assignedToName: payload?.userName ?? 'Mock User',
       assignedAt: now,
       updatedAt: now,
-    };
+    });
 
     this.store.set(String(id), claimed);
     return of(claimed).pipe(delay(150));
@@ -333,25 +330,17 @@ export class ForecastRecordService {
     }
 
     const now = this.nowIso();
-    const unclaimed: ForecastRecord = {
+    const unclaimed: ForecastRecord = this.normalize({
       ...existing,
       assignedToUserId: null,
       assignedToName: null,
       assignedAt: null,
       updatedAt: now,
-    };
+    });
 
     this.store.set(String(id), unclaimed);
     return of(unclaimed).pipe(delay(150));
   }
-
-  /*  delete(id: number, opts?: { userId?: number; force?: boolean }) {
-      let params = new HttpParams();
-      if (opts?.userId != null) params = params.set('userId', String(opts.userId));
-      if (opts?.force != null) params = params.set('force', String(opts.force));
-  
-      return this.http.delete<void>(`${this.baseUrl}/${id}`, { params });
-    }*/
 
   delete(id: number, opts: { userId?: number | null; force: boolean }) {
     let params = new HttpParams().set('force', String(opts.force));
@@ -362,13 +351,4 @@ export class ForecastRecordService {
 
     return this.http.delete<void>(`${this.baseUrl}/${id}`, { params });
   }
-
-
-
-
-
-
-
-
-
 }

@@ -15,7 +15,7 @@ import {
 } from './forecast-record.form';
 
 import { createEmptyForecastRecord } from '../../models/forecast-record.factory';
-import { ForecastRecord, ForecastRecordStatus } from '../../models/forecast-record.model';
+import { ForecastRecord } from '../../models/forecast-record.model';
 import { ForecastRecordService } from '../../services/forecast-record.service';
 
 import {
@@ -114,11 +114,6 @@ export class ForecastRecordComponent {
   /** Canonical lane */
   get workflowStatus(): ForecastWorkflowLane | null {
     return this.form?.get('workflowStatus')?.value ?? null;
-  }
-
-  /** Legacy alias (keep only until everything uses workflowStatus everywhere) */
-  get status(): ForecastRecordStatus | null {
-    return (this.form?.get('status')?.value ?? this.workflowStatus ?? null) as ForecastRecordStatus | null;
   }
 
   get isDraft(): boolean {
@@ -439,9 +434,6 @@ export class ForecastRecordComponent {
 
     const raw = this.form.getRawValue() as any;
 
-    // Keep legacy status synced to workflow lane (for backend / older UI)
-    raw.status = raw.workflowStatus ?? raw.status;
-
     // Ensure id is present for updates (form likely doesn't contain id)
     const payload: ForecastRecord = this.recordId
       ? ({ ...raw, id: Number(this.recordId) } as ForecastRecord)
@@ -484,9 +476,7 @@ export class ForecastRecordComponent {
     // ✅ advance workflow lane (canonical)
     const next = this.nextWorkflowStatus(this.form.controls.workflowStatus.value);
 
-    // keep both fields in sync for now (legacy + canonical)
     raw.workflowStatus = next;
-    raw.status = next;
 
     const payload: ForecastRecord = this.recordId
       ? ({ ...raw, id: Number(this.recordId) } as ForecastRecord)

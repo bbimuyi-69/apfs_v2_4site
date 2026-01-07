@@ -15,7 +15,11 @@
       <div class="title">{{ r.requirementsTitle || '—' }}</div>
       <div>{{ r.component || '—' }}</div>
       <div>{{ r.programLevel || '—' }}</div>
-      <div><span [class]="pillClass(r.status)">{{ r.status }}</span></div>
+      <div>
+        <span [class]="pillClass(r.workflowStatus)">
+          {{ r.workflowStatus }}
+        </span>
+      </div>
       <div>{{ assignedLabel(r) }}</div>
       <div class="mono">{{ updatedLabel(r) }}</div>
     </div>

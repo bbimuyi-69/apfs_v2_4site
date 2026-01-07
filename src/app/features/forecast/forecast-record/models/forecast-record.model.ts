@@ -1,20 +1,8 @@
 import { ForecastStatus, ForecastWorkflowLane } from './forecast-record.enums';
 
-/**
- * Keep this ONLY if older code still references `status`.
- * Make it an alias of the workflow lane (not the business status).
- */
-export type ForecastRecordStatus = ForecastWorkflowLane;
-
 export interface ForecastRecord {
     /** Workflow / persistence */
     id?: number; // Node JSON DB id (Date.now())
-
-    /**
-     * Legacy alias (optional).
-     * Prefer `workflowStatus` going forward.
-     */
-    status: ForecastRecordStatus;
 
     /** Workflow ownership (lane) */
     workflowStatus: ForecastWorkflowLane;

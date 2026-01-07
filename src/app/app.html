@@ -1,13 +1,10 @@
 <div class="app-layout">
-
   <!-- Header / Nav -->
   <header class="apfs-header">
     <div class="apfs-header-inner">
-
-      <div class="brand">
+      <div class="apfs-brand">
         <img src="/assets/images/4site.jpg" class="apfs__logo" alt="4Site" />
         <div class="brand-text">
-
           <div class="brand-sub">Acquisition Planning Forecast System</div>
         </div>
       </div>
@@ -23,9 +20,12 @@
           <li><a routerLink="/about" routerLinkActive="active">About</a></li>
           <li><a routerLink="/contact" routerLinkActive="active">Contact Us</a></li>
 
+          <li *ngIf="auth.isLoggedIn">
+            <a routerLink="/dashboard-v2" routerLinkActive="active">Dashboard</a>
+          </li>
+
           <!-- Government Users -->
           <li class="dropdown" [class.active]="dropdowns.government">
-            <ul class="dropdown-menu" *ngIf="dropdowns.government" (click)="$event.stopPropagation()"></ul>
             <button type="button" class="dropdown-toggle" (click)="toggleDropdown('government', $event)"
               [attr.aria-expanded]="dropdowns.government">
               🏛️ Government Users
@@ -60,13 +60,18 @@
         <img src="/assets/images/icn-us-flag-21px.png" class="flag__logo" alt="US Flag" />
         Official website of the Department of Homeland Security
       </div>
-
     </div>
   </header>
 
   <!-- Main Content -->
   <main class="apfs-content">
-    <app-header [pageTitle]="title"></app-header>
+    <!-- Full-width band wrapper; app-header stays aligned to 1200 -->
+    <div class="full-width-band app-header-band">
+      <div class="inner-1200">
+        <app-header [pageTitle]="title"></app-header>
+      </div>
+    </div>
+
     <router-outlet></router-outlet>
 
     <!-- OPTIONAL: Move into Welcome page later if you don’t want global -->
@@ -76,8 +81,7 @@
         Public Law 100-656, the Business Opportunity Development Reform Act of 1988, amended the Small Business Act to
         emphasize acquisition planning. The law requires agencies to compile and make projections of contracting
         opportunities that small businesses (including small, disadvantaged businesses 8(a), women-owned, HUBZone,
-        veteran-owned, and service-disabled veteran-owned) may perform.
-        For more details, review the 'About' link above.
+        veteran-owned, and service-disabled veteran-owned) may perform. For more details, review the 'About' link above.
       </p>
 
       <h2>Potential Subcontracting Opportunities</h2>
@@ -96,5 +100,4 @@
     <a href="#">FOIA</a> |
     <a href="#">Privacy Policy</a>
   </footer>
-
 </div>

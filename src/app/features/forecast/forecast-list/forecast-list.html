@@ -7,7 +7,10 @@
         <select (change)="onStatusChange($event)">
             <option value="All">All statuses</option>
             <option value="Draft">Draft</option>
-            <option value="Submitted">Submitted</option>
+            <option value="Requirements">Requirements</option>
+            <option value="Contracting">Contracting</option>
+            <option value="APFS Coordinator">APFS Coordinator</option>
+            <option value="Published">Published</option>
         </select>
 
         <select (change)="onAssignedChange($event)">
@@ -16,10 +19,8 @@
             <option value="claimed">Claimed</option>
         </select>
 
-
         <button type="button" (click)="refresh()">Refresh</button>
     </div>
-
 
     <!-- Loading -->
     <div *ngIf="state.status === 'loading'" class="loading">
@@ -44,7 +45,7 @@
                 <div class="apfs">{{ r.apfsNumber }}</div>
                 <div class="title">{{ r.requirementsTitle }}</div>
                 <div class="meta">
-                    <span class="pill">{{ r.status }}</span>
+                    <span class="pill">{{ r.workflowStatus }}</span>
                     <span class="pill" *ngIf="r.assignedToName">{{ r.assignedToName }}</span>
                     <span class="pill muted" *ngIf="!r.assignedToName">Unclaimed</span>
                 </div>

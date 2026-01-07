@@ -1,46 +1,76 @@
 .rail {
-  width: var(--rail-w);
-  background: var(--surface);
-  border-right: 1px solid var(--border);
+  width: 260px;
+  background: #f8fafc;
+  border-right: 1px solid #e5e7eb;
   display: flex;
   flex-direction: column;
-  position: sticky;
-  top: var(--topbar-h);
-  height: calc(100vh - var(--topbar-h));
 }
 
 .nav {
-  padding: var(--s-5) var(--s-4);
+  padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.nav a {
-  text-decoration: none;
-  color: var(--text);
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid transparent;
-}
-
-.nav a:hover {
-  background: rgba(11, 90, 134, .05);
-}
-
-.nav a.active {
-  border-color: rgba(11, 90, 134, .25);
-  color: var(--brand-blue);
-}
-
-.accent {
-  margin-top: auto;
-  height: 4px;
-  background: var(--brand-red);
-}
-
-.nav-item {
+/* Unified link styling (kills purple/underline/visited defaults) */
+.nav-link {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 10px;
+
+  padding: 10px 12px;
+  border-radius: 12px;
+
+  color: #0f172a;
+  text-decoration: none;
+
+  line-height: 1.1;
+  font-weight: 600;
+  user-select: none;
+}
+
+.nav-link:visited {
+  color: #0f172a;
+}
+
+.nav-link:hover {
+  background: #eef2ff;
+}
+
+.nav-link.active {
+  background: #ffffff;
+  border: 1px solid #c7d2fe;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+}
+
+/* Section divider spacing */
+.nav-section {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Slightly different emphasis for doc link (optional) */
+.nav-doc {
+  font-weight: 600;
+  opacity: 0.95;
+}
+
+/* “New Request” should not look like a browser link */
+.nav-cta {
+  margin-top: 6px;
+  background: #ecfeff;
+  border: 1px solid #a5f3fc;
+}
+
+.nav-cta:hover {
+  background: #cffafe;
+}
+
+/* Optional: if you have the accent bar */
+.accent {
+  height: 6px;
+  background: linear-gradient(90deg, #2563eb, #22c55e);
+  margin-top: auto;
 }

@@ -6,15 +6,12 @@ import {
     Validators,
 } from '@angular/forms';
 
-import { ForecastRecord, ForecastRecordStatus } from '../../models/forecast-record.model';
+import { ForecastRecord } from '../../models/forecast-record.model';
 import { ForecastWorkflowLane } from '../../models/forecast-record.enums';
 
 export type ForecastRecordFormGroup = FormGroup<{
     /** System / workflow */
     apfsNumber: FormControl<string | null>;
-
-    /** Legacy alias (keep disabled) */
-    status: FormControl<ForecastRecordStatus>;
 
     /** ✅ Real workflow lane (keep disabled) */
     workflowStatus: FormControl<ForecastWorkflowLane>;
@@ -92,21 +89,15 @@ export type UserProfileLike = {
 };
 
 export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordFormGroup {
-    // ✅ Canonical lane value. Prefer workflowStatus; fall back to legacy status.
+    // ✅ Canonical lane value. Prefer workflowStatus; fall back to legacy (record as any).status.
     const lane: ForecastWorkflowLane =
-        (record.workflowStatus ??
-            (record.status as any) ??
+        ((record as any).workflowStatus ??
+            (record as any).status ??
             ForecastWorkflowLane.Draft) as ForecastWorkflowLane;
 
     const form = new FormGroup({
         /** System generated */
         apfsNumber: new FormControl({ value: record.apfsNumber, disabled: true }),
-
-        /** Legacy alias - keep disabled */
-        status: new FormControl(
-            { value: (record.status ?? lane) as any, disabled: true },
-            { nonNullable: true }
-        ),
 
         /** ✅ Real workflow lane - keep disabled */
         workflowStatus: new FormControl(
@@ -213,7 +204,6 @@ export function applyForecastRecordRolePermissions(
 
     // System-managed fields always disabled
     hardDisable(form.controls.apfsNumber);
-    hardDisable(form.controls.status);
     hardDisable(form.controls.workflowStatus);
 
     // Requirements section
