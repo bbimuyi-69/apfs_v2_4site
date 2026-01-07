@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, inject } from '@angular/core';
-import { ReactiveFormsModule } from '@angular/forms';
+import { ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { combineLatest, of, EMPTY } from 'rxjs';
 import { catchError, switchMap, timeout } from 'rxjs/operators';
@@ -31,6 +31,7 @@ import {
   APFS_YES_NO_UNKNOWN,
   US_STATES_WITH_NA,
   OptionItem,
+  APFS_STRATEGIC_SOURCING_VEHICLES,
 } from '../../models/forecast-record.lookups';
 
 import { AuthService } from '../../../../../auth/auth.service';
@@ -74,6 +75,7 @@ export class ForecastRecordComponent {
   readonly contractTypes = APFS_CONTRACT_TYPES;
   readonly yesNoUnknown = APFS_YES_NO_UNKNOWN;
   readonly typeOfAwardOptions = APFS_TYPE_OF_AWARD;
+  readonly strategicSourcingVehicleOptions = APFS_STRATEGIC_SOURCING_VEHICLES;
 
   readonly competitiveOptions = APFS_COMPETITIVE;
   readonly contractStatusOptions = APFS_CONTRACT_STATUS;
@@ -89,10 +91,7 @@ export class ForecastRecordComponent {
   form: ForecastRecordFormGroup | null = null;
   recordId: string | null = null;
 
-  /**
-   * ✅ API record reference
-   * Keep separate from form state.
-   */
+  /** ✅ API record reference */
   record: ForecastRecord | null = null;
 
   isEditMode = false;
@@ -102,7 +101,10 @@ export class ForecastRecordComponent {
   /** Cached per-load; safe to re-read anytime */
   private userProfile: UserProfileLike | null = null;
 
-  /** Record Actions rail permissions (drives left rail buttons) */
+  /** Submit-driven validation UI */
+  submitted = false;
+
+  /** Record Actions rail permissions */
   rail: RailPermissions = {
     canReassign: false,
     canSave: false,
@@ -123,16 +125,14 @@ export class ForecastRecordComponent {
     return this.workflowStatus === ForecastWorkflowLane.Published;
   }
 
-  /** Additional Getters for role based field access */
+  /** Role label for UI */
   get roleLabel(): string {
     return this.userProfile?.role ?? 'Unknown';
   }
 
-  /** Show or hide the record rail based on status */
+  /** Hide rail for /forecast/new */
   get showRecordRail(): boolean {
-    // If this is /forecast/new (no recordId yet), hide the rail.
     if (!this.recordId) return false;
-
     const railStatus = this.normalizeRailStatus(this.workflowStatus);
     return railStatus !== 'Unknown';
   }
@@ -143,7 +143,6 @@ export class ForecastRecordComponent {
     if (role === 'Requirements') return r === 'requirements';
     if (role === 'APFS Coordinator') return r === 'apfs coordinator' || r.includes('coordinator');
 
-    // Contracting lane can be labeled either way in auth
     return r === 'contracting' || r === 'contracting office';
   }
 
@@ -156,24 +155,17 @@ export class ForecastRecordComponent {
   get canEditContractingSection(): boolean {
     return this.isEditMode && this.hasEditRightsFor('Contracting Office');
   }
-
-  // If you keep value classification shared:
   get canEditClassificationSection(): boolean {
     return this.isEditMode && (this.canEditCoordinatorSection || this.canEditContractingSection);
   }
-  /** End Role Based field enablement getters */
 
-  // --- Rail convenience getters for HTML ---
+  // --- Rail convenience getters ---
   get canReassign(): boolean { return this.rail.canReassign; }
   get canSave(): boolean { return this.rail.canSave; }
   get canUnassign(): boolean { return this.rail.canUnassign; }
   get canApproveSend(): boolean { return this.rail.canApproveSend; }
 
-  /**
-   * ✅ Delete enablement based on API record assignment + current user
-   * - Unassigned => allow delete
-   * - Assigned => only assignee can delete
-   */
+  /** Delete enablement based on API record assignment + current user */
   get canDelete(): boolean {
     if (!this.recordId) return false;
     if (this.isLoading) return false;
@@ -182,16 +174,114 @@ export class ForecastRecordComponent {
     const assignedToUserId =
       this.record.assignedToUserId != null ? Number(this.record.assignedToUserId) : null;
 
-    if (assignedToUserId == null) return true; // unassigned => can delete
+    if (assignedToUserId == null) return true;
 
     const me = this.currentUserId;
     return me != null && assignedToUserId === me;
   }
 
+  // -----------------------------
+  // ✅ Validation UI helpers
+  // -----------------------------
+  isInvalid(controlName: keyof ForecastRecordFormGroup['controls'] | string): boolean {
+    if (!this.form) return false;
+    const c = this.form.get(controlName as string);
+    if (!c) return false;
+    return c.invalid && (this.submitted || c.touched || c.dirty);
+  }
+
+  showError(controlName: keyof ForecastRecordFormGroup['controls'] | string, errorKey: string): boolean {
+    if (!this.form) return false;
+    const c = this.form.get(controlName as string);
+    if (!c) return false;
+    return this.isInvalid(controlName) && !!c.getError(errorKey);
+  }
+
+  private focusFirstInvalid(): void {
+    queueMicrotask(() => {
+      const el =
+        document.querySelector<HTMLElement>('.is-invalid input, .is-invalid select, .is-invalid textarea') ??
+        document.querySelector<HTMLElement>('input.ng-invalid, select.ng-invalid, textarea.ng-invalid');
+
+      el?.focus();
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }
+
   /**
-   * Normalize whatever "status" values exist today into the workflow statuses you listed.
-   * This protects you while the backend/UI are evolving.
+   * Role-required fields for SUBMIT (the "red highlights" set).
+   * Requirements fields are already required in the form; this also enforces
+   * fields that are not required yet (Coordinator/Contracting + programLevel).
    */
+  private getRoleRequiredControls(): Array<keyof ForecastRecordFormGroup['controls']> {
+    const role = this.normalizeRailRole();
+    const status = this.normalizeRailStatus(this.workflowStatus);
+
+    // New record: Draft submit by Requirements should validate Requirements requirements.
+    const effectiveLane: RailStatus =
+      status === 'Draft' && role === 'Requirements' ? 'Requirements' : status;
+
+    if (role === 'Requirements' && (effectiveLane === 'Requirements' || effectiveLane === 'Draft')) {
+      return [
+        'component',
+        'primaryContactFirstName',
+        'primaryContactLastName',
+        'primaryContactEmail',
+        'requirementsTitle',
+        'requirement',
+        'programLevel', // not required in form currently; enforced here for submit
+      ];
+    }
+
+    if (role === 'Contracting' && effectiveLane === 'Contracting') {
+      return [
+        'contractType',
+        'strategicSourcingVehicleUsed',
+        'strategicSourcingVehicle',
+        'typeOfAward',
+        'competitive',
+        'contractStatus',
+      ];
+    }
+
+    if (role === 'APFS Coordinator' && effectiveLane === 'APFS Coordinator') {
+      return [
+        'smallBusinessSetAside',
+        'smallBusinessProgram',
+        'dollarRange',
+        'naicsCode',
+      ];
+    }
+
+    return [];
+  }
+
+  /**
+   * Add Validators.required to the role-required set right before submit.
+   * (Disabled controls are excluded from validation automatically.)
+   */
+  private applyRoleRequiredValidators(): void {
+    if (!this.form) return;
+
+    const required = new Set(this.getRoleRequiredControls());
+
+    (Object.keys(this.form.controls) as Array<keyof ForecastRecordFormGroup['controls']>).forEach((key) => {
+      const ctrl = this.form!.controls[key];
+
+      if (required.has(key)) {
+        const current = ctrl.validator ? [ctrl.validator] : [];
+        ctrl.setValidators([...current, Validators.required]);
+      }
+
+      ctrl.updateValueAndValidity({ emitEvent: false });
+    });
+
+    this.form.updateValueAndValidity({ emitEvent: false });
+  }
+
+  // -----------------------------
+  // Rails / perms stuff (unchanged)
+  // -----------------------------
   private normalizeRailStatus(raw: unknown): RailStatus {
     const s = String(raw ?? '').trim();
     if (!s) return 'Unknown';
@@ -216,22 +306,15 @@ export class ForecastRecordComponent {
     const roleRaw = (this.userProfile?.role ?? '').trim().toLowerCase();
     if (!roleRaw) return 'Viewer';
 
-    // map your current labels
     if (roleRaw === 'requirements') return 'Requirements';
     if (roleRaw === 'contracting office' || roleRaw === 'contracting') return 'Contracting';
     if (roleRaw === 'apfs coordinator' || roleRaw.includes('coordinator')) return 'APFS Coordinator';
 
-    // optional: if you have admin later
     if (roleRaw === 'admin' || roleRaw.includes('admin')) return 'Admin';
 
     return 'Viewer';
   }
 
-  /**
-   * Until assignment exists in your model, we infer "assignedToMe" as:
-   * - user is in edit mode AND their role matches the owning lane (status).
-   * Later, replace this with record.assignedToUserId === user.id
-   */
   private computeAssignedToMe(status: RailStatus, role: string): boolean {
     const roleNorm = role.trim().toLowerCase();
 
@@ -241,7 +324,6 @@ export class ForecastRecordComponent {
     if (status === 'Contracting') return roleNorm === 'contracting office' || roleNorm === 'contracting';
     if (status === 'APFS Coordinator') return roleNorm === 'apfs coordinator';
 
-    // For Draft, treat as "mine" in edit mode
     if (status === 'Draft') return true;
 
     return false;
@@ -273,8 +355,6 @@ export class ForecastRecordComponent {
       (status === 'Requirements' || status === 'Contracting' || status === 'APFS Coordinator') &&
       (assignedToMe || isCoordinator || isAdmin);
 
-    // "Approve & Send" means "complete my lane and route forward"
-    // ✅ Allow Requirements role to submit from Draft as well (new records start as Draft)
     const canApproveSend =
       status !== 'Published' &&
       this.isEditMode &&
@@ -286,7 +366,6 @@ export class ForecastRecordComponent {
         isAdmin
       );
 
-    // Only allow delete early in lifecycle
     const canDelete =
       status !== 'Published' &&
       (status === 'Draft') &&
@@ -295,46 +374,26 @@ export class ForecastRecordComponent {
     this.rail = { canReassign, canSave, canUnassign, canApproveSend, canDelete };
   }
 
-  /**
-   * Applies:
-   * 1) View/Edit mode
-   * 2) Role-based restrictions (re-applied after enabling, so it always wins)
-   */
   private applyAccessState(): void {
     if (!this.form) return;
 
-    console.log('[Access] mode=', this.isEditMode, 'role=', this.userProfile?.role);
-
     if (this.isEditMode) {
-      // Enable everything first, then re-disable the restricted fields by role.
       this.form.enable({ emitEvent: false });
-      console.log('[Access] after enable: contractType disabled?', this.form.controls.contractType.disabled);
       applyForecastRecordRolePermissions(this.form, this.userProfile);
-      console.log('[Access] after perms: contractType disabled?', this.form.controls.contractType.disabled);
     } else {
-      // View mode: hard disable entire form.
       this.form.disable({ emitEvent: false });
     }
 
-    // Update rail flags any time access state changes
     this.computeRailPermissions();
   }
 
-  /** Forces UI refresh (needed in zoneless / OnPush-ish setups) */
   private flushView(): void {
     this.cdr.markForCheck();
     this.cdr.detectChanges();
   }
 
-  /**
-   * Keep AuthService quirks isolated to the component layer.
-   * We produce a clean UserProfileLike object for the form layer.
-   */
   private extractUserProfileFromAuth(): UserProfileLike | null {
     const u: any = (this.auth as any).user ?? (this.auth as any).session?.user ?? null;
-
-    console.log('[AuthProbe] user=', u, 'session=', (this.auth as any).session);
-
     if (!u) return null;
 
     return {
@@ -352,13 +411,13 @@ export class ForecastRecordComponent {
   }
 
   ngOnInit(): void {
-    // Cache user profile early (re-read later if you support switching)
     this.userProfile = this.extractUserProfileFromAuth();
 
-    // Render a form shell immediately
+    // initial shell
     this.form = buildForecastRecordForm(createEmptyForecastRecord());
+    this.submitted = false;
     this.applyAccessState();
-    this.hydratePrimaryContactFromProfile(); // ✅ autofill (and recompute rail)
+    this.hydratePrimaryContactFromProfile();
     this.isLoading = true;
     this.flushView();
 
@@ -371,22 +430,20 @@ export class ForecastRecordComponent {
 
           this.loadError = null;
 
-          console.log('[ForecastRecord] route id=', idParam, 'mode=', mode);
-
           // /forecast/new
           if (!idParam || idParam === 'new') {
             this.recordId = null;
-            this.record = null; // ✅ clear API record reference
+            this.record = null;
             this.isEditMode = true;
 
             this.isLoading = false;
 
             this.form = buildForecastRecordForm(createEmptyForecastRecord());
+            this.submitted = false;
             this.applyAccessState();
-            this.hydratePrimaryContactFromProfile(); // ✅ autofill (and recompute rail)
+            this.hydratePrimaryContactFromProfile();
             this.flushView();
 
-            // ✅ IMPORTANT: don't emit null into subscribe (it rebuilds & can wipe)
             return EMPTY;
           }
 
@@ -396,8 +453,6 @@ export class ForecastRecordComponent {
 
           this.isLoading = true;
           this.flushView();
-
-          console.log('[ForecastRecord] GET by id:', idParam);
 
           return this.service.getById(idParam).pipe(
             timeout(8000),
@@ -411,30 +466,25 @@ export class ForecastRecordComponent {
         })
       )
       .subscribe((record) => {
-        console.log('[ForecastRecord] got record:', record);
-
-        // ✅ store API record reference (even if null)
         this.record = record;
 
-        // Re-read profile in case auth was late to populate
         this.userProfile = this.extractUserProfileFromAuth();
 
         this.form = buildForecastRecordForm(record ?? createEmptyForecastRecord());
+        this.submitted = false;
         this.applyAccessState();
-        this.hydratePrimaryContactFromProfile(); // ✅ autofill (won’t overwrite loaded record)
+        this.hydratePrimaryContactFromProfile();
         this.isLoading = false;
         this.flushView();
       });
   }
 
   onSaveDraft(): void {
-    this.logInvalidControls();
     if (!this.form) return;
     if (!this.canSave) return;
 
     const raw = this.form.getRawValue() as any;
 
-    // Ensure id is present for updates (form likely doesn't contain id)
     const payload: ForecastRecord = this.recordId
       ? ({ ...raw, id: Number(this.recordId) } as ForecastRecord)
       : (raw as ForecastRecord);
@@ -468,14 +518,23 @@ export class ForecastRecordComponent {
     if (!this.form) return;
     if (!this.canApproveSend) return;
 
+    this.submitted = true;
+
+    // ✅ Role-required enforcement happens here
+    this.applyRoleRequiredValidators();
+
     this.form.markAllAsTouched();
-    if (this.form.invalid) return;
+
+    if (this.form.invalid) {
+      this.logInvalidControls();
+      this.focusFirstInvalid();
+      return;
+    }
 
     const raw = this.form.getRawValue() as any;
 
-    // ✅ advance workflow lane (canonical)
+    // advance lane
     const next = this.nextWorkflowStatus(this.form.controls.workflowStatus.value);
-
     raw.workflowStatus = next;
 
     const payload: ForecastRecord = this.recordId
@@ -502,7 +561,6 @@ export class ForecastRecordComponent {
     const assignedToUserId =
       this.record.assignedToUserId != null ? Number(this.record.assignedToUserId) : null;
 
-    // If assigned to someone else, block (UI rule)
     if (assignedToUserId != null && currentUserId != null && assignedToUserId !== currentUserId) {
       alert('This record is assigned to another user. Only the assignee can delete it.');
       return;
@@ -552,7 +610,7 @@ export class ForecastRecordComponent {
     this.router.navigate(['/forecast/new']);
   }
 
-  // ---- Rail button handlers (stubbed; wire as you like) ----
+  // ---- Rail button handlers ----
   onPrintableView(): void { window.print(); }
   onCsvDownload(): void { console.warn('CSV download not wired yet'); }
   onRecordHistory(): void { console.warn('Record history not wired yet'); }
@@ -580,7 +638,6 @@ export class ForecastRecordComponent {
     const last = c.primaryContactLastName?.value;
     const email = c.primaryContactEmail?.value;
 
-    // Only auto-fill if empty (prevents overwriting existing record values)
     if (!first && !last && !email) {
       this.form.patchValue(
         {
@@ -591,13 +648,6 @@ export class ForecastRecordComponent {
         { emitEvent: true }
       );
     }
-
-    console.log('[PrimaryContact] after patch:', {
-      first: this.form.controls.primaryContactFirstName.value,
-      last: this.form.controls.primaryContactLastName.value,
-      email: this.form.controls.primaryContactEmail.value,
-      formValid: this.form.valid,
-    });
 
     this.computeRailPermissions();
   }

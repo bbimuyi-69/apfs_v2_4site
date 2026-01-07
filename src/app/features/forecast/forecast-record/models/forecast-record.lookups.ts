@@ -51,6 +51,19 @@ export const APFS_CONTRACT_TYPES: OptionItem[] = [
     { value: 'BPA', label: 'BPA' },
 ];
 
+export const APFS_STRATEGIC_SOURCING_VEHICLES: OptionItem[] = [
+    { value: '', label: '----------' },
+    { value: 'GSA_SCHEDULE', label: 'GSA Schedule' },
+    { value: 'GWAC', label: 'Government-Wide Acquisition Contract (GWAC)' },
+    { value: 'IDIQ', label: 'IDIQ' },
+    { value: 'BPA', label: 'BPA' },
+    { value: 'SEWP', label: 'NASA SEWP' },
+    { value: 'ALLIANT', label: 'GSA Alliant' },
+    { value: 'OASIS', label: 'GSA OASIS' },
+    { value: 'OTHER', label: 'Other' },
+];
+
+
 export const APFS_TYPE_OF_AWARD: OptionItem[] = [
     { value: '', label: '----------' },
     { value: 'NEW_AWARD', label: 'New Award' },

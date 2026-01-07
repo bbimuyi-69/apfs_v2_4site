@@ -1,12 +1,9 @@
 <div class="apfs-page">
     <div class="apfs-shell" *ngIf="form; else noForm" [class.no-rail]="!showRecordRail">
 
-
         <!-- LEFT RAIL: Record Actions -->
         <aside class="record-rail" aria-label="Record actions" *ngIf="showRecordRail">
 
-
-            <!-- Utilities -->
             <div class="rail-card">
                 <button type="button" class="rail-btn" (click)="onPrintableView()">
                     Printable View <span class="rail-icon" aria-hidden="true">🖨️</span>
@@ -31,9 +28,7 @@
 
             <h3 class="rail-title">Record Actions</h3>
 
-            <!-- Primary actions -->
             <div class="rail-card">
-                <!-- OPTION A: Save calls handler directly -->
                 <button type="button" class="rail-btn rail-btn-primary" (click)="onSaveDraft()"
                     [disabled]="!canSave || isLoading">
                     Save <span class="rail-icon" aria-hidden="true">💾</span>
@@ -53,54 +48,36 @@
                     [disabled]="!canDelete || isLoading">
                     Delete <span class="rail-icon" aria-hidden="true">✖</span>
                 </button>
-
-
-
-
-
-
             </div>
 
             <div class="rail-foot">
                 <span class="pill role">Role: {{ roleLabel }}</span>
-                <span *ngIf="!isEditMode" class="pill ro" title="Open with ?mode=edit to make changes">
-                    Read-only
-                </span>
-                <span *ngIf="isEditMode" class="pill ok" title="Edit mode enabled">
-                    Edit mode
-                </span>
+                <span *ngIf="!isEditMode" class="pill ro" title="Open with ?mode=edit to make changes">Read-only</span>
+                <span *ngIf="isEditMode" class="pill ok" title="Edit mode enabled">Edit mode</span>
             </div>
         </aside>
 
         <!-- MAIN FORM COLUMN -->
         <form class="apfs-form" [formGroup]="form">
 
-            <!-- Optional status / loading -->
             <div *ngIf="isLoading" class="apfs-loading">Loading…</div>
 
             <div *ngIf="loadError" class="apfs-error">
                 {{ loadError }}
             </div>
 
-            <!-- =========================
-       System / Header Section
-       ========================= -->
+            <!-- Record Info -->
             <section class="sec">
                 <div class="sec-h">
                     <div class="sec-title">
-                        Record Info
-                        <span class="sec-sub">System managed</span>
+                        Record Info <span class="sec-sub">System managed</span>
                     </div>
 
                     <div class="sec-meta">
                         <span class="pill role">Role: {{ roleLabel }}</span>
-
-                        <span *ngIf="!isEditMode" class="pill ro" title="Open with ?mode=edit to make changes">
-                            Read-only
-                        </span>
-                        <span *ngIf="isEditMode" class="pill ok" title="Edit mode enabled">
-                            Edit mode
-                        </span>
+                        <span *ngIf="!isEditMode" class="pill ro"
+                            title="Open with ?mode=edit to make changes">Read-only</span>
+                        <span *ngIf="isEditMode" class="pill ok" title="Edit mode enabled">Edit mode</span>
                     </div>
                 </div>
 
@@ -112,124 +89,97 @@
                         <div class="hint">This is assigned by the APFS Application.</div>
                     </div>
 
-                    <div class="field">
-                        <label>Component</label>
+                    <div class="field" [class.is-invalid]="isInvalid('component')">
+                        <label>Component <span class="req">*</span></label>
                         <select formControlName="component">
                             <option value="" disabled>Select…</option>
                             <option value="CBP">CBP</option>
                         </select>
                         <div class="hint">Select the Component, Subcomponent and/or Division.</div>
+                        <div class="error" *ngIf="showError('component','required')">Component is required.</div>
                     </div>
                 </div>
             </section>
 
-
-            <!-- =========================
-     Requirements Section
-     ========================= -->
+            <!-- Requirements -->
             <section class="sec" [class.readonly]="isEditMode && !canEditRequirementsSection">
                 <div class="sec-h">
                     <div class="sec-title">
-                        Requirements
-                        <span class="sec-sub">Owned by Requirements</span>
+                        Requirements <span class="sec-sub">Owned by Requirements</span>
                     </div>
 
                     <div class="sec-meta">
                         <span *ngIf="!isEditMode" class="pill ro">Read-only</span>
-                        <span *ngIf="isEditMode && !canEditRequirementsSection" class="pill ro">
-                            Read-only
-                        </span>
-                        <span *ngIf="canEditRequirementsSection" class="pill ok">
-                            Editable
-                        </span>
+                        <span *ngIf="isEditMode && !canEditRequirementsSection" class="pill ro">Read-only</span>
+                        <span *ngIf="canEditRequirementsSection" class="pill ok">Editable</span>
                     </div>
                 </div>
 
-                <!-- Primary Contact -->
                 <div class="subsec">
                     <div class="subsec-title">Primary Contact</div>
 
                     <div class="grid-3">
-                        <div class="field">
-                            <label>
-                                First Name <span class="req">*</span>
-                            </label>
+                        <div class="field" [class.is-invalid]="isInvalid('primaryContactFirstName')">
+                            <label>First Name <span class="req">*</span></label>
                             <input type="text" formControlName="primaryContactFirstName" />
-                            <div class="error" *ngIf="form.controls.primaryContactFirstName.touched
-                 && form.controls.primaryContactFirstName.errors?.['required']">
-                                First name is required.
-                            </div>
+                            <div class="error" *ngIf="showError('primaryContactFirstName','required')">First name is
+                                required.</div>
                         </div>
 
-                        <div class="field">
-                            <label>
-                                Last Name <span class="req">*</span>
-                            </label>
+                        <div class="field" [class.is-invalid]="isInvalid('primaryContactLastName')">
+                            <label>Last Name <span class="req">*</span></label>
                             <input type="text" formControlName="primaryContactLastName" />
-                            <div class="error" *ngIf="form.controls.primaryContactLastName.touched
-                 && form.controls.primaryContactLastName.errors?.['required']">
-                                Last name is required.
-                            </div>
+                            <div class="error" *ngIf="showError('primaryContactLastName','required')">Last name is
+                                required.</div>
                         </div>
 
-                        <div class="field">
-                            <label>
-                                Email <span class="req">*</span>
-                            </label>
+                        <div class="field" [class.is-invalid]="isInvalid('primaryContactEmail')">
+                            <label>Email <span class="req">*</span></label>
                             <input type="email" formControlName="primaryContactEmail" />
-                            <div class="error" *ngIf="form.controls.primaryContactEmail.touched
-                 && form.controls.primaryContactEmail.errors">
-                                Valid email is required.
+                            <div class="error" *ngIf="showError('primaryContactEmail','required')">Email is required.
+                            </div>
+                            <div class="error" *ngIf="showError('primaryContactEmail','email')">Enter a valid email.
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Requirements -->
-                <div class="field">
-                    <label>Requirements Title</label>
+                <div class="field" [class.is-invalid]="isInvalid('requirementsTitle')">
+                    <label>Requirements Title <span class="req">*</span></label>
                     <input type="text" formControlName="requirementsTitle" />
-                    <div class="hint">
-                        Enter a brief title to the requirement which will be included in email to industry.
+                    <div class="hint">Enter a brief title to the requirement which will be included in email to
+                        industry.</div>
+                    <div class="error" *ngIf="showError('requirementsTitle','required')">Requirements title is required.
                     </div>
                 </div>
 
-                <div class="field">
-                    <label>Requirement</label>
+                <div class="field" [class.is-invalid]="isInvalid('requirement')">
+                    <label>Requirement <span class="req">*</span></label>
                     <textarea rows="6" formControlName="requirement"></textarea>
                     <div class="hint">
-                        Provide descriptive text detailing the requirements for the anticipated opportunity.
-                        Limit word count to 500.
+                        Provide descriptive text detailing the requirements for the anticipated opportunity. Limit word
+                        count to 500.
                     </div>
-                    <div class="error" *ngIf="form.controls.requirement.touched
-             && form.controls.requirement.errors?.['maxWords']">
-                        Requirement exceeds 500 words.
-                    </div>
+                    <div class="error" *ngIf="showError('requirement','required')">Requirement is required.</div>
+                    <div class="error" *ngIf="showError('requirement','maxWords')">Requirement exceeds 500 words.</div>
                 </div>
 
-                <div class="field">
-                    <label>Program level</label>
+                <div class="field" [class.is-invalid]="isInvalid('programLevel')">
+                    <label>Program level <span class="req">*</span></label>
                     <select formControlName="programLevel">
                         <option *ngFor="let o of programLevels; trackBy: trackByValue" [value]="o.value">
                             {{ o.label }}
                         </option>
                     </select>
-                    <div class="hint">
-                        A program level can be selected from the drop down menu if it applies.
-                    </div>
+                    <div class="hint">A program level can be selected from the drop down menu if it applies.</div>
+                    <div class="error" *ngIf="showError('programLevel','required')">Program level is required.</div>
                 </div>
             </section>
 
-
-            <!-- =========================
-       APFS Coordinator Section
-       ========================= -->
+            <!-- Coordinator -->
             <section class="sec" [class.readonly]="isEditMode && !canEditCoordinatorSection">
                 <div class="sec-h">
-                    <div class="sec-title">
-                        Small Business
-                        <span class="sec-sub">Owned by APFS Coordinator</span>
-                    </div>
+                    <div class="sec-title">Small Business <span class="sec-sub">Owned by APFS Coordinator</span></div>
 
                     <div class="sec-meta">
                         <span *ngIf="isEditMode && !canEditCoordinatorSection" class="pill ro">Read-only</span>
@@ -238,33 +188,33 @@
                 </div>
 
                 <div class="grid-2">
-                    <div class="field">
-                        <label>Small business set aside</label>
+                    <div class="field" [class.is-invalid]="isInvalid('smallBusinessSetAside')">
+                        <label>Small business set aside <span class="req">*</span></label>
                         <select formControlName="smallBusinessSetAside">
                             <option value="">N/A</option>
                         </select>
                         <div class="hint">This field is updated by the APFS Coordinator.</div>
+                        <div class="error" *ngIf="showError('smallBusinessSetAside','required')">This field is required.
+                        </div>
                     </div>
 
-                    <div class="field">
-                        <label>Small business program</label>
+                    <div class="field" [class.is-invalid]="isInvalid('smallBusinessProgram')">
+                        <label>Small business program <span class="req">*</span></label>
                         <select formControlName="smallBusinessProgram">
                             <option value="">----------</option>
                         </select>
                         <div class="hint">This field is updated by the APFS Coordinator.</div>
+                        <div class="error" *ngIf="showError('smallBusinessProgram','required')">This field is required.
+                        </div>
                     </div>
                 </div>
             </section>
 
-            <!-- =========================
-       Value Classification Section
-       ========================= -->
+            <!-- Value Classification -->
             <section class="sec" [class.readonly]="isEditMode && !canEditClassificationSection">
                 <div class="sec-h">
-                    <div class="sec-title">
-                        Value Classification
-                        <span class="sec-sub">Owned by APFS Coordinator / Contracting Office</span>
-                    </div>
+                    <div class="sec-title">Value Classification <span class="sec-sub">Owned by APFS Coordinator /
+                            Contracting Office</span></div>
 
                     <div class="sec-meta">
                         <span *ngIf="isEditMode && !canEditClassificationSection" class="pill ro">Read-only</span>
@@ -273,36 +223,32 @@
                 </div>
 
                 <div class="grid-2">
-                    <div class="field">
-                        <label>Dollar range</label>
+                    <div class="field" [class.is-invalid]="isInvalid('dollarRange')">
+                        <label>Dollar range <span class="req">*</span></label>
                         <select formControlName="dollarRange">
                             <option *ngFor="let o of dollarRanges; trackBy: trackByValue" [value]="o.value">
                                 {{ o.label }}
                             </option>
                         </select>
                         <div class="hint">Select the dollar range for the total estimated value.</div>
+                        <div class="error" *ngIf="showError('dollarRange','required')">Dollar range is required.</div>
                     </div>
 
-                    <div class="field">
-                        <label>NAICS Code</label>
+                    <div class="field" [class.is-invalid]="isInvalid('naicsCode')">
+                        <label>NAICS Code <span class="req">*</span></label>
                         <select formControlName="naicsCode">
                             <option value="">----------</option>
                         </select>
-                        <div class="hint">
-                            Enter a NAICS Code that pertains to the anticipated opportunity.
-                        </div>
+                        <div class="hint">Enter a NAICS Code that pertains to the anticipated opportunity.</div>
+                        <div class="error" *ngIf="showError('naicsCode','required')">NAICS Code is required.</div>
                     </div>
                 </div>
             </section>
 
-            <!-- =========================
-       Contracting Office Section
-       ========================= -->
+            <!-- Contracting -->
             <section class="sec" [class.readonly]="isEditMode && !canEditContractingSection">
                 <div class="sec-h">
-                    <div class="sec-title">
-                        Contracting Office
-                        <span class="sec-sub">Owned by Contracting Office</span>
+                    <div class="sec-title">Contracting Office <span class="sec-sub">Owned by Contracting Office</span>
                     </div>
 
                     <div class="sec-meta">
@@ -312,62 +258,77 @@
                 </div>
 
                 <div class="grid-2">
-                    <div class="field">
-                        <label>Contract type</label>
+                    <div class="field" [class.is-invalid]="isInvalid('contractType')">
+                        <label>Contract type <span class="req">*</span></label>
                         <select formControlName="contractType">
                             <option *ngFor="let o of contractTypes; trackBy: trackByValue" [value]="o.value">
                                 {{ o.label }}
                             </option>
                         </select>
                         <div class="hint">This field is updated by the Contracting Officer.</div>
+                        <div class="error" *ngIf="showError('contractType','required')">Contract type is required.</div>
                     </div>
 
-                    <div class="field">
-                        <label>Will a strategic sourcing vehicle be used?</label>
+                    <div class="field" [class.is-invalid]="isInvalid('strategicSourcingVehicleUsed')">
+                        <label>Will a strategic sourcing vehicle be used? <span class="req">*</span></label>
                         <select formControlName="strategicSourcingVehicleUsed">
                             <option *ngFor="let o of yesNoUnknown; trackBy: trackByValue" [value]="o.value">
                                 {{ o.label }}
                             </option>
                         </select>
                         <div class="hint">This field is updated by the Contracting Officer.</div>
+                        <div class="error" *ngIf="showError('strategicSourcingVehicleUsed','required')">This field is
+                            required.</div>
                     </div>
                 </div>
 
                 <div class="grid-2">
-                    <div class="field">
-                        <label>Strategic Sourcing Vehicle</label>
+                    <div class="field" [class.is-invalid]="isInvalid('strategicSourcingVehicle')">
+                        <label>Strategic Sourcing Vehicle <span class="req">*</span></label>
                         <select formControlName="strategicSourcingVehicle">
-                            <option value="">----------</option>
+                            <option *ngFor="let o of strategicSourcingVehicleOptions; trackBy: trackByValue"
+                                [value]="o.value">
+                                {{ o.label }}
+                            </option>
                         </select>
                         <div class="hint">This field is updated by the Contracting Officer.</div>
+                        <div class="error" *ngIf="showError('strategicSourcingVehicle','required')">This field is
+                            required.</div>
                     </div>
 
-                    <div class="field">
-                        <label>Type of Award</label>
+                    <div class="field" [class.is-invalid]="isInvalid('typeOfAward')">
+                        <label>Type of Award <span class="req">*</span></label>
                         <select formControlName="typeOfAward">
-                            <option value="">----------</option>
+                            <option *ngFor="let o of typeOfAwardOptions; trackBy: trackByValue" [value]="o.value">
+                                {{ o.label }}
+                            </option>
                         </select>
                         <div class="hint">This field is updated by the Contracting Officer.</div>
+                        <div class="error" *ngIf="showError('typeOfAward','required')">This field is required.</div>
                     </div>
                 </div>
 
                 <div class="grid-2">
-                    <div class="field">
-                        <label>Competitive</label>
+                    <div class="field" [class.is-invalid]="isInvalid('competitive')">
+                        <label>Competitive <span class="req">*</span></label>
                         <select formControlName="competitive">
-                            <option value="">----------</option>
+                            <option *ngFor="let o of competitiveOptions; trackBy: trackByValue" [value]="o.value">
+                                {{ o.label }}
+                            </option>
                         </select>
                         <div class="hint">Choose the status of the anticipated opportunity from the drop down.</div>
+                        <div class="error" *ngIf="showError('competitive','required')">This field is required.</div>
                     </div>
 
-                    <div class="field">
-                        <label>Contract status</label>
+                    <div class="field" [class.is-invalid]="isInvalid('contractStatus')">
+                        <label>Contract status <span class="req">*</span></label>
                         <select formControlName="contractStatus">
-                            <option value="">----------</option>
+                            <option *ngFor="let o of contractStatusOptions; trackBy: trackByValue" [value]="o.value">
+                                {{ o.label }}
+                            </option>
                         </select>
-                        <div class="hint">
-                            Identify if the contract is a new opportunity or a re-compete.
-                        </div>
+                        <div class="hint">Identify if the contract is a new opportunity or a re-compete.</div>
+                        <div class="error" *ngIf="showError('contractStatus','required')">This field is required.</div>
                     </div>
                 </div>
 
@@ -386,15 +347,11 @@
                 </div>
             </section>
 
-            <!-- =========================
-       TODO Will remove later
-       ========================= -->
+            <!-- TODO remove later -->
             <div class="hint">
                 canApproveSend={{canApproveSend}} | isLoading={{isLoading}} | formValid={{form?.valid}}
             </div>
 
-
-            <!-- Optional bottom buttons (can remove later) -->
             <div class="apfs-actions">
                 <button type="button" class="btn-primary" (click)="onSaveDraft()" [disabled]="!canSave || isLoading">
                     Save Draft
@@ -405,9 +362,7 @@
                     Submit
                 </button>
 
-                <button type="button" class="btn-ghost" (click)="onCancel()">
-                    Cancel
-                </button>
+                <button type="button" class="btn-ghost" (click)="onCancel()">Cancel</button>
             </div>
 
             <div class="hint" *ngIf="!isEditMode">
