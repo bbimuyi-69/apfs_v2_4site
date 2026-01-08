@@ -549,6 +549,9 @@ export class ForecastRecordComponent {
     });
   }
 
+
+
+
   onDelete(): void {
     if (!this.recordId) return;
     if (!this.record) return;
@@ -602,6 +605,82 @@ export class ForecastRecordComponent {
     return assigned === me;
   }
 
+  get hasAssignment(): boolean {
+    return !!this.record?.assignedToUserId;
+  }
+
+  get canReject(): boolean {
+    if (!this.isEditMode) return false;
+    if (this.isPublished) return false;
+
+    const status = this.normalizeRailStatus(this.workflowStatus);
+    const role = this.normalizeRailRole();
+    const isAdmin = role === 'Admin';
+
+    // must be in the owning lane
+    if (
+      (status === 'Requirements' && role !== 'Requirements') ||
+      (status === 'Contracting' && role !== 'Contracting') ||
+      (status === 'APFS Coordinator' && role !== 'APFS Coordinator')
+    ) {
+      if (!isAdmin) return false;
+    }
+
+    // must be assigned or elevated
+    if (!this.isAssignee && !isAdmin) return false;
+
+    return true;
+  }
+
+  onReject(): void {
+    if (!this.canReject) return;
+    if (!this.form || !this.recordId || !this.record) return;
+
+    const current = this.form.controls.workflowStatus.value;
+    const previous = this.previousWorkflowStatus(current);
+
+    if (!previous) return;
+
+    const ok = confirm(
+      `Reject this record and send it back to ${previous}?`
+    );
+    if (!ok) return;
+
+    this.isLoading = true;
+    this.flushView();
+
+    const raw = this.form.getRawValue() as any;
+
+    const payload: ForecastRecord = {
+      ...raw,
+      id: Number(this.recordId),
+      workflowStatus: previous,
+      // optional audit fields if you want later:
+      // rejectedAt: new Date().toISOString(),
+      // rejectedByUserId: this.currentUserId,
+    };
+
+    this.service.update(payload).subscribe({
+      next: (updated) => {
+        this.record = updated;
+        this.form = buildForecastRecordForm(updated);
+        this.submitted = false;
+        this.applyAccessState();
+        this.isLoading = false;
+        this.flushView();
+      },
+      error: (e) => {
+        console.error('Reject failed', e);
+        this.isLoading = false;
+        this.flushView();
+        alert('Reject failed.');
+      },
+    });
+  }
+
+
+
+
   onCancel(): void {
     this.router.navigate(['/dashboard-v2']);
   }
@@ -623,8 +702,53 @@ export class ForecastRecordComponent {
 
   onUnassign(): void {
     if (!this.canUnassign) return;
-    console.warn('Unassign not wired yet');
+    if (!this.recordId) return;
+    if (!this.record) return;
+
+    const id = Number(this.recordId);
+    if (!Number.isFinite(id)) return;
+
+    const meNum = this.currentUserId;          // number | null
+    const me = meNum != null ? String(meNum) : null;
+
+    const assigned = this.record.assignedToUserId != null
+      ? String(this.record.assignedToUserId)
+      : null;
+
+    // Force-unassign if assigned to someone else
+    const force = !!assigned && !!me && assigned !== me;
+
+    const ok = force
+      ? confirm(`This record is assigned to ${this.record.assignedToName ?? 'another user'}.\n\nUnassign it anyway?`)
+      : confirm('Unassign this record?');
+
+    if (!ok) return;
+
+    this.isLoading = true;
+    this.flushView();
+
+    this.service.unclaim(id, { userId: me, force }).subscribe({
+      next: (updated) => {
+        // ✅ keep API record reference in sync
+        this.record = updated;
+
+        // ✅ rebuild form so disabled/enabled + rail state refresh cleanly
+        this.form = buildForecastRecordForm(updated);
+        this.submitted = false; // reset submit UI after action
+        this.applyAccessState();
+        this.hydratePrimaryContactFromProfile(); // safe autofill (won't overwrite)
+        this.isLoading = false;
+        this.flushView();
+      },
+      error: (e: unknown) => {
+        console.error('Unassign failed', e);
+        this.isLoading = false;
+        this.flushView();
+        alert('Unassign failed. You may not have permission to unassign this record.');
+      },
+    });
   }
+
 
   private hydratePrimaryContactFromProfile(): void {
     if (!this.form) return;
@@ -659,4 +783,15 @@ export class ForecastRecordComponent {
     if (cur === ForecastWorkflowLane.APFSCoordinator) return ForecastWorkflowLane.Published;
     return ForecastWorkflowLane.Published;
   }
+
+  private previousWorkflowStatus(
+    cur: ForecastWorkflowLane | null
+  ): ForecastWorkflowLane | null {
+    if (!cur) return null;
+    if (cur === ForecastWorkflowLane.Requirements) return ForecastWorkflowLane.Draft;
+    if (cur === ForecastWorkflowLane.Contracting) return ForecastWorkflowLane.Requirements;
+    if (cur === ForecastWorkflowLane.APFSCoordinator) return ForecastWorkflowLane.Contracting;
+    return null;
+  }
+
 }

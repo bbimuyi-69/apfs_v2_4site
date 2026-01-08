@@ -37,10 +37,12 @@
         Open Record
       </button>
 
-      <!-- Only show when unclaimed -->
-      <button *ngIf="!r.assignedToUserId" type="button" class="btn-secondary" (click)="onClaim()" [disabled]="isBusy()">
-        {{ isBusy() ? 'Claiming…' : 'Claim Record' }}
+      <!-- Show when user is allowed to claim (in-lane), even if already assigned -->
+      <button *ngIf="canClaim()" type="button" class="btn btn--primary" (click)="onClaim()" [disabled]="isBusy()"
+        [title]="isAssignedToMe ? 'Already assigned to you' : ''">
+        {{ isBusy() ? 'Claiming…' : (isAssigned ? 'Claim (Take Over)' : 'Claim Record') }}
       </button>
+
     </div>
   </div>
 </aside>

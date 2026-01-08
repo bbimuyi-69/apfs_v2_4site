@@ -35,9 +35,17 @@
                 </button>
 
                 <button type="button" class="rail-btn rail-btn-warn" (click)="onUnassign()"
-                    [disabled]="!canUnassign || isLoading">
+                    [disabled]="!canUnassign || !hasAssignment || isLoading"
+                    [title]="!hasAssignment ? 'Record is not assigned' : ''">
                     Unassign <span class="rail-icon" aria-hidden="true">↩️</span>
                 </button>
+                <button type="button" class="rail-btn rail-btn-danger" (click)="onReject()"
+                    [disabled]="!canReject || isLoading" title="Reject and send back to previous step">
+                    Reject &amp; Send Back
+                    <span class="rail-icon" aria-hidden="true">⤺</span>
+                </button>
+
+
 
                 <button type="button" class="rail-btn rail-btn-accent" (click)="onSubmit()"
                     [disabled]="!canApproveSend || isLoading">

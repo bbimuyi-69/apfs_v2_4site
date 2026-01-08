@@ -290,9 +290,10 @@ export class ForecastRecordService {
 
   claim(
     id: number,
-    payload?: { userId?: string | null; userName?: string | null }
+    payload?: { userId?: string | null; userName?: string | null; force?: boolean }
   ): Observable<ForecastRecord> {
     if (!this.useMock) {
+      // backend can read payload.force (takeover support)
       return this.http.post<ForecastRecord>(`${this.baseUrl}/${id}/claim`, payload ?? {});
     }
 
@@ -300,12 +301,24 @@ export class ForecastRecordService {
 
     const existing = this.store.get(String(id));
     if (!existing) return throwError(() => new Error(`ForecastRecord ${id} not found`));
-    if (existing.assignedToUserId) return throwError(() => new Error(`ForecastRecord ${id} already claimed`));
+
+    const me = payload?.userId ?? null;
+    const assigned = existing.assignedToUserId ?? null;
+
+    // If already assigned to me, treat as success (idempotent)
+    if (assigned && me && String(assigned) === String(me)) {
+      return of(existing).pipe(delay(150));
+    }
+
+    // If assigned to someone else and not forcing, block
+    if (assigned && (!payload?.force)) {
+      return throwError(() => new Error(`ForecastRecord ${id} already claimed`));
+    }
 
     const now = this.nowIso();
     const claimed: ForecastRecord = this.normalize({
       ...existing,
-      assignedToUserId: payload?.userId ?? 'mock-user',
+      assignedToUserId: me ?? 'mock-user',
       assignedToName: payload?.userName ?? 'Mock User',
       assignedAt: now,
       updatedAt: now,
@@ -314,6 +327,7 @@ export class ForecastRecordService {
     this.store.set(String(id), claimed);
     return of(claimed).pipe(delay(150));
   }
+
 
   unclaim(id: number, payload?: { userId?: string | null; force?: boolean }): Observable<ForecastRecord> {
     if (!this.useMock) {
