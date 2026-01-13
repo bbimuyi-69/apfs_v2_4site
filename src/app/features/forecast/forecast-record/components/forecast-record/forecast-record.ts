@@ -83,6 +83,25 @@ export class ForecastRecordComponent {
   readonly fiscalYears = APFS_FISCAL_YEARS;
   readonly stateOptions = US_STATES_WITH_NA;
 
+  // ✅ New: Office dropdown options (simple v1)
+  readonly requirementsOfficeOptions: OptionItem[] = [
+    { value: 'Program Office', label: 'Program Office' },
+    { value: 'Requirements Division', label: 'Requirements Division' },
+    { value: 'Mission Support', label: 'Mission Support' },
+  ];
+
+  readonly contractingOfficeOptions: OptionItem[] = [
+    { value: 'Procurement Office', label: 'Procurement Office' },
+    { value: 'Contracting Division', label: 'Contracting Division' },
+    { value: 'Acquisition Directorate', label: 'Acquisition Directorate' },
+  ];
+
+  readonly coordinatorOfficeOptions: OptionItem[] = [
+    { value: 'APFS PMO', label: 'APFS PMO' },
+    { value: 'Enterprise Governance', label: 'Enterprise Governance' },
+    { value: 'APFS Coordination Cell', label: 'APFS Coordination Cell' },
+  ];
+
   trackByValue(_: number, item: OptionItem) {
     return item.value;
   }
@@ -223,7 +242,7 @@ export class ForecastRecordComponent {
 
     if (role === 'Requirements' && (effectiveLane === 'Requirements' || effectiveLane === 'Draft')) {
       return [
-        'component',
+        // ✅ component removed from required list (it is locked from auth)
         'primaryContactFirstName',
         'primaryContactLastName',
         'primaryContactEmail',
@@ -384,6 +403,9 @@ export class ForecastRecordComponent {
       this.form.disable({ emitEvent: false });
     }
 
+    // ✅ Always lock component from auth after permissions toggles
+    this.lockComponentFromAuth();
+
     this.computeRailPermissions();
   }
 
@@ -410,12 +432,41 @@ export class ForecastRecordComponent {
     };
   }
 
+  // ✅ New: always set + disable component from auth
+  private lockComponentFromAuth(): void {
+    if (!this.form) return;
+
+    const ctrl = this.form.get('component');
+    if (!ctrl) return;
+
+    const comp = (this.userProfile?.component ?? null) as any;
+
+    ctrl.setValue(comp, { emitEvent: false });
+    ctrl.disable({ emitEvent: false });
+  }
+
+  // ✅ New: optional seed (does not overwrite)
+  private hydrateOfficeFromProfile(): void {
+    if (!this.form) return;
+
+    const office = this.userProfile?.office ?? null;
+    if (!office) return;
+
+    const req = this.form.get('requirementsOffice');
+    if (req && !req.value) req.setValue(office, { emitEvent: false });
+  }
+
   ngOnInit(): void {
     this.userProfile = this.extractUserProfileFromAuth();
 
     // initial shell
     this.form = buildForecastRecordForm(createEmptyForecastRecord());
     this.submitted = false;
+
+    // ✅ lock component + seed office before perms
+    this.lockComponentFromAuth();
+    this.hydrateOfficeFromProfile();
+
     this.applyAccessState();
     this.hydratePrimaryContactFromProfile();
     this.isLoading = true;
@@ -440,6 +491,11 @@ export class ForecastRecordComponent {
 
             this.form = buildForecastRecordForm(createEmptyForecastRecord());
             this.submitted = false;
+
+            // ✅ lock component + seed office for new records
+            this.lockComponentFromAuth();
+            this.hydrateOfficeFromProfile();
+
             this.applyAccessState();
             this.hydratePrimaryContactFromProfile();
             this.flushView();
@@ -472,6 +528,11 @@ export class ForecastRecordComponent {
 
         this.form = buildForecastRecordForm(record ?? createEmptyForecastRecord());
         this.submitted = false;
+
+        // ✅ lock component + seed office after record load
+        this.lockComponentFromAuth();
+        this.hydrateOfficeFromProfile();
+
         this.applyAccessState();
         this.hydratePrimaryContactFromProfile();
         this.isLoading = false;
@@ -548,10 +609,6 @@ export class ForecastRecordComponent {
       error: (e: unknown) => console.error('Route forward failed', e),
     });
   }
-
-
-
-
 
   onDelete(): void {
     if (!this.recordId) return;
@@ -645,10 +702,6 @@ export class ForecastRecordComponent {
     const ok = confirm(`Reject this record and send it back to ${previous}?`);
     if (!ok) return;
 
-    // ✅ DO NOT update the record here anymore.
-    // ✅ Go to the comment screen to collect required comment,
-    // then the comment screen calls POST /reject (atomic: record + history).
-
     this.router.navigate(['/forecast', this.recordId, 'reject'], {
       queryParams: {
         to: previous,
@@ -656,12 +709,7 @@ export class ForecastRecordComponent {
         returnTo: 'record',
       },
     });
-
   }
-
-
-
-
 
   onCancel(): void {
     this.router.navigate(['/dashboard-v2']);
@@ -717,6 +765,11 @@ export class ForecastRecordComponent {
         // ✅ rebuild form so disabled/enabled + rail state refresh cleanly
         this.form = buildForecastRecordForm(updated);
         this.submitted = false; // reset submit UI after action
+
+        // ✅ lock component + seed office after rebuild
+        this.lockComponentFromAuth();
+        this.hydrateOfficeFromProfile();
+
         this.applyAccessState();
         this.hydratePrimaryContactFromProfile(); // safe autofill (won't overwrite)
         this.isLoading = false;
@@ -730,7 +783,6 @@ export class ForecastRecordComponent {
       },
     });
   }
-
 
   private hydratePrimaryContactFromProfile(): void {
     if (!this.form) return;
@@ -775,5 +827,4 @@ export class ForecastRecordComponent {
     if (cur === ForecastWorkflowLane.APFSCoordinator) return ForecastWorkflowLane.Contracting;
     return null;
   }
-
 }

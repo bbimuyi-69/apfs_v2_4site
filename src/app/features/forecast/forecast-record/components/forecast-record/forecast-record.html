@@ -4,6 +4,8 @@
         <!-- LEFT RAIL: Record Actions -->
         <aside class="record-rail" aria-label="Record actions" *ngIf="showRecordRail">
 
+            <h3 class="rail-title">Record Actions</h3>
+
             <div class="rail-card">
                 <button type="button" class="rail-btn" (click)="onPrintableView()">
                     Printable View <span class="rail-icon" aria-hidden="true">🖨️</span>
@@ -26,8 +28,6 @@
                 </button>
             </div>
 
-            <h3 class="rail-title">Record Actions</h3>
-
             <div class="rail-card">
                 <button type="button" class="rail-btn rail-btn-primary" (click)="onSaveDraft()"
                     [disabled]="!canSave || isLoading">
@@ -39,13 +39,11 @@
                     [title]="!hasAssignment ? 'Record is not assigned' : ''">
                     Unassign <span class="rail-icon" aria-hidden="true">↩️</span>
                 </button>
+
                 <button type="button" class="rail-btn rail-btn-danger" (click)="onReject()"
                     [disabled]="!canReject || isLoading" title="Reject and send back to previous step">
-                    Reject &amp; Send Back
-                    <span class="rail-icon" aria-hidden="true">⤺</span>
+                    Reject &amp; Send Back <span class="rail-icon" aria-hidden="true">⤺</span>
                 </button>
-
-
 
                 <button type="button" class="rail-btn rail-btn-accent" (click)="onSubmit()"
                     [disabled]="!canApproveSend || isLoading">
@@ -67,7 +65,6 @@
 
         <!-- MAIN FORM COLUMN -->
         <form class="apfs-form" [formGroup]="form">
-
             <div *ngIf="isLoading" class="apfs-loading">Loading…</div>
 
             <div *ngIf="loadError" class="apfs-error">
@@ -97,15 +94,15 @@
                         <div class="hint">This is assigned by the APFS Application.</div>
                     </div>
 
-                    <div class="field" [class.is-invalid]="isInvalid('component')">
-                        <label>Component <span class="req">*</span></label>
+                    <!-- ✅ Component is auth-driven + disabled in TS -->
+                    <div class="field">
+                        <label>Component</label>
                         <select formControlName="component">
                             <option value="" disabled>Select…</option>
                             <option value="CBP">CBP</option>
                             <option value="HQ">HQ</option>
                         </select>
-                        <div class="hint">Select the Component, Subcomponent and/or Division.</div>
-                        <div class="error" *ngIf="showError('component','required')">Component is required.</div>
+                        <div class="hint">Set from your user profile (read-only).</div>
                     </div>
                 </div>
             </section>
@@ -124,34 +121,84 @@
                     </div>
                 </div>
 
+                <!-- Primary Contact -->
                 <div class="subsec">
-                    <div class="subsec-title">Primary Contact</div>
+                    <div class="hint">Primary contact information for this requirement.</div>
 
                     <div class="grid-3">
                         <div class="field" [class.is-invalid]="isInvalid('primaryContactFirstName')">
                             <label>First Name <span class="req">*</span></label>
                             <input type="text" formControlName="primaryContactFirstName" />
-                            <div class="error" *ngIf="showError('primaryContactFirstName','required')">First name is
-                                required.</div>
+                            <div class="error" *ngIf="showError('primaryContactFirstName','required')">
+                                First name is required.
+                            </div>
                         </div>
 
                         <div class="field" [class.is-invalid]="isInvalid('primaryContactLastName')">
                             <label>Last Name <span class="req">*</span></label>
                             <input type="text" formControlName="primaryContactLastName" />
-                            <div class="error" *ngIf="showError('primaryContactLastName','required')">Last name is
-                                required.</div>
+                            <div class="error" *ngIf="showError('primaryContactLastName','required')">
+                                Last name is required.
+                            </div>
                         </div>
 
                         <div class="field" [class.is-invalid]="isInvalid('primaryContactEmail')">
                             <label>Email <span class="req">*</span></label>
                             <input type="email" formControlName="primaryContactEmail" />
-                            <div class="error" *ngIf="showError('primaryContactEmail','required')">Email is required.
+                            <div class="error" *ngIf="showError('primaryContactEmail','required')">
+                                Email is required.
                             </div>
-                            <div class="error" *ngIf="showError('primaryContactEmail','email')">Enter a valid email.
+                            <div class="error" *ngIf="showError('primaryContactEmail','email')">
+                                Enter a valid email.
                             </div>
                         </div>
                     </div>
                 </div>
+
+
+                <!-- ✅ Offices (Requirements can edit ALL 3) -->
+                <!-- Offices -->
+                <div class="subsec">
+                    <div class="hint">
+                        Select the office associated with each workflow lane.
+                    </div>
+
+                    <div class="grid-3">
+                        <div class="field">
+                            <label>Requirements Office</label>
+                            <select formControlName="requirementsOffice">
+                                <option value="">Select…</option>
+                                <option *ngFor="let o of requirementsOfficeOptions; trackBy: trackByValue"
+                                    [value]="o.value">
+                                    {{ o.label }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="field">
+                            <label>Contracting Office</label>
+                            <select formControlName="contractingOffice">
+                                <option value="">Select…</option>
+                                <option *ngFor="let o of contractingOfficeOptions; trackBy: trackByValue"
+                                    [value]="o.value">
+                                    {{ o.label }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="field">
+                            <label>APFS Coordinator Office</label>
+                            <select formControlName="coordinatorOffice">
+                                <option value="">Select…</option>
+                                <option *ngFor="let o of coordinatorOfficeOptions; trackBy: trackByValue"
+                                    [value]="o.value">
+                                    {{ o.label }}
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
 
                 <div class="field" [class.is-invalid]="isInvalid('requirementsTitle')">
                     <label>Requirements Title <span class="req">*</span></label>
@@ -188,7 +235,9 @@
             <!-- Coordinator -->
             <section class="sec" [class.readonly]="isEditMode && !canEditCoordinatorSection">
                 <div class="sec-h">
-                    <div class="sec-title">Small Business <span class="sec-sub">Owned by APFS Coordinator</span></div>
+                    <div class="sec-title">
+                        Small Business <span class="sec-sub">Owned by APFS Coordinator</span>
+                    </div>
 
                     <div class="sec-meta">
                         <span *ngIf="isEditMode && !canEditCoordinatorSection" class="pill ro">Read-only</span>
@@ -222,8 +271,10 @@
             <!-- Value Classification -->
             <section class="sec" [class.readonly]="isEditMode && !canEditClassificationSection">
                 <div class="sec-h">
-                    <div class="sec-title">Value Classification <span class="sec-sub">Owned by APFS Coordinator /
-                            Contracting Office</span></div>
+                    <div class="sec-title">
+                        Value Classification
+                        <span class="sec-sub">Owned by APFS Coordinator / Contracting Office</span>
+                    </div>
 
                     <div class="sec-meta">
                         <span *ngIf="isEditMode && !canEditClassificationSection" class="pill ro">Read-only</span>
@@ -257,7 +308,8 @@
             <!-- Contracting -->
             <section class="sec" [class.readonly]="isEditMode && !canEditContractingSection">
                 <div class="sec-h">
-                    <div class="sec-title">Contracting Office <span class="sec-sub">Owned by Contracting Office</span>
+                    <div class="sec-title">
+                        Contracting Office <span class="sec-sub">Owned by Contracting Office</span>
                     </div>
 
                     <div class="sec-meta">
@@ -377,7 +429,6 @@
             <div class="hint" *ngIf="!isEditMode">
                 Viewing mode. Open with <span class="mono">?mode=edit</span> to edit.
             </div>
-
         </form>
     </div>
 

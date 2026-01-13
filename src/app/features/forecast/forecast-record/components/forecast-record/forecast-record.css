@@ -132,6 +132,8 @@
 /* ===================================
    Sections
 =================================== */
+
+
 .sec {
     border: 1px solid #e6e8eb;
     border-radius: 12px;
@@ -176,6 +178,51 @@
     gap: 6px;
     flex-wrap: wrap;
 }
+
+/* --- Offices subsection tightening --- */
+.subsec-offices .subsec-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.subsec-offices .subsec-title {
+    margin: 0;
+}
+
+.subsec-offices .subsec-help {
+    font-size: 12px;
+    color: var(--muted);
+    margin: 0;
+    white-space: nowrap;
+}
+
+.grid-compact {
+    gap: 12px;
+    /* tighter than your normal grid-3 */
+}
+
+/* Reduce label + control vertical stack a bit */
+.subsec-offices .field label {
+    margin-bottom: 6px;
+}
+
+/* Optional: slightly reduce select height if yours feels tall */
+.subsec-offices select {
+    min-height: 40px;
+}
+
+/* Give the next field (“Requirements Title”) breathing room */
+.subsec-offices+.field {
+    margin-top: 14px;
+}
+
+.subsec .hint {
+    margin-bottom: 10px;
+}
+
 
 /* ===================================
    Pills

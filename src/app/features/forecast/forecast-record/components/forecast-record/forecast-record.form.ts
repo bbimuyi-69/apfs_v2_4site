@@ -1,3 +1,13 @@
+// forecast-record.form.ts (drop-in replacement)
+//
+// ✅ Adds 3 new office dropdown controls:
+//    - requirementsOffice
+//    - contractingOffice
+//    - coordinatorOffice
+//
+// ✅ Locks component from being edited via permissions (your component will also hard-lock it from auth)
+// ✅ Keeps everything else as-is
+
 import {
     AbstractControl,
     FormControl,
@@ -18,6 +28,11 @@ export type ForecastRecordFormGroup = FormGroup<{
 
     /** Top section */
     component: FormControl<string | null>;
+
+    /** ✅ NEW: office dropdowns for the 3 roles (in requirements section UI for now) */
+    requirementsOffice: FormControl<string | null>;
+    contractingOffice: FormControl<string | null>;
+    coordinatorOffice: FormControl<string | null>;
 
     requirementsTitle: FormControl<string>;
     requirement: FormControl<string>;
@@ -109,6 +124,11 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
         component: new FormControl(record.component, {
             validators: [Validators.required],
         }),
+
+        /** ✅ NEW: offices (not required yet) */
+        requirementsOffice: new FormControl((record as any).requirementsOffice ?? null),
+        contractingOffice: new FormControl((record as any).contractingOffice ?? null),
+        coordinatorOffice: new FormControl((record as any).coordinatorOffice ?? null),
 
         requirementsTitle: new FormControl(record.requirementsTitle, {
             nonNullable: true,
@@ -206,8 +226,18 @@ export function applyForecastRecordRolePermissions(
     hardDisable(form.controls.apfsNumber);
     hardDisable(form.controls.workflowStatus);
 
+    // ✅ Component is system-set from auth; keep it disabled always here too.
+    // (Your component also hard-locks it after permissions apply.)
+    hardDisable(form.controls.component);
+
+    // ✅ NEW: offices
+    // For now: let each lane edit its own office selection.
+    // (You said you want them in the Requirements section UI, but role-based enablement still makes sense.)
+    setEnabled(form.controls.requirementsOffice, isRequirements);
+    setEnabled(form.controls.contractingOffice, isRequirements);
+    setEnabled(form.controls.coordinatorOffice, isRequirements);
+
     // Requirements section
-    setEnabled(form.controls.component, isRequirements);
     setEnabled(form.controls.requirementsTitle, isRequirements);
     setEnabled(form.controls.requirement, isRequirements);
     setEnabled(form.controls.programLevel, isRequirements);
@@ -265,6 +295,11 @@ export function applyForecastRecordRolePermissions(
  */
 function lockDownByDefault(form: ForecastRecordFormGroup) {
     const keysToDisable: Array<keyof ForecastRecordFormGroup['controls']> = [
+        // ✅ NEW: offices default disabled until perms apply
+        'requirementsOffice',
+        'contractingOffice',
+        'coordinatorOffice',
+
         'smallBusinessSetAside',
         'smallBusinessProgram',
         'dollarRange',
