@@ -7,6 +7,8 @@ import { environment } from 'src/environments/environment';
 import { ForecastRecord } from '../models/forecast-record.model';
 import { createEmptyForecastRecord } from '../models/forecast-record.factory';
 import { ForecastWorkflowLane } from '../models/forecast-record.enums';
+import { AuthService } from 'src/app/auth/auth.service'; // adjust path
+
 
 export type ForecastRecordQuery = {
   q?: string;
@@ -52,6 +54,8 @@ export type RejectResponse = {
 @Injectable({ providedIn: 'root' })
 export class ForecastRecordService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
+
 
   private readonly useMock = environment.useMockApi;
 
@@ -67,6 +71,13 @@ export class ForecastRecordService {
   private nowIso(): string {
     return new Date().toISOString();
   }
+
+  private userHeaders(): { [k: string]: string } | undefined {
+    const me = this.auth.user;  // <-- your AuthService getter
+    const userId = me?.id;
+    return userId ? { 'x-user-id': String(userId) } : undefined;
+  }
+
 
   /**
    * Coerce anything (string/unknown) into a known workflow lane enum.
@@ -180,7 +191,11 @@ export class ForecastRecordService {
 
   create(record: ForecastRecord): Observable<ForecastRecord> {
     if (!this.useMock) {
-      return this.http.post<ForecastRecord>(this.baseUrl, record).pipe(map((r) => this.normalize(r)));
+
+      return this.http.post<ForecastRecord>(this.baseUrl, record, {
+        headers: this.userHeaders(),
+      }).pipe(map((r) => this.normalize(r)));
+
     }
 
     this.ensureSeeded();
@@ -214,9 +229,10 @@ export class ForecastRecordService {
     }
 
     if (!this.useMock) {
-      return this.http
-        .put<ForecastRecord>(`${this.baseUrl}/${record.id}`, record)
-        .pipe(map((r) => this.normalize(r)));
+      return this.http.put<ForecastRecord>(`${this.baseUrl}/${record.id}`, record, {
+        headers: this.userHeaders(),
+      }).pipe(map((r) => this.normalize(r)));
+
     }
 
     this.ensureSeeded();
@@ -239,7 +255,10 @@ export class ForecastRecordService {
    */
   submit(id: number, submittedBy: string | null = null): Observable<ForecastRecord> {
     if (!this.useMock) {
-      return this.http.post<ForecastRecord>(`${this.baseUrl}/${id}/submit`, { submittedBy }).pipe(map((r) => this.normalize(r)));
+      return this.http.post<ForecastRecord>(`${this.baseUrl}/${id}/submit`, { submittedBy }, {
+        headers: this.userHeaders(),
+      }).pipe(map((r) => this.normalize(r)));
+
     }
 
     this.ensureSeeded();
@@ -278,6 +297,9 @@ export class ForecastRecordService {
     const statusFilter = query.status ?? 'All';
     const q = query.q?.trim();
 
+    // ===============================
+    // REAL BACKEND PATH (NON-MOCK)
+    // ===============================
     if (!this.useMock) {
       let params = new HttpParams()
         .set('page', String(page))
@@ -288,11 +310,30 @@ export class ForecastRecordService {
       if (statusFilter && statusFilter !== 'All') params = params.set('status', statusFilter);
       if (assigned && assigned !== 'all') params = params.set('assigned', assigned);
 
-      return this.http.get<ForecastRecord[]>(this.baseUrl, { params }).pipe(
-        map((rows) => (rows ?? []).map((r) => this.normalize(r)))
+      console.log('[ForecastRecordService] auth.currentUser =', this.auth.user);
+
+
+      // 👇👇👇 HEADER BLOCK TO PASS USER CONTEXT 👇👇👇
+      const me = this.auth.user;
+      const userId = me?.id;
+
+      const headers = userId
+        ? { 'x-user-id': String(userId) }
+        : undefined;
+
+      // 👆👆👆 END HEADER BLOCK 👆👆👆
+
+      return this.http.get<any>(this.baseUrl, { params, headers }).pipe(
+        map((resp) => {
+          const rows = Array.isArray(resp) ? resp : resp?.rows ?? [];
+          return rows.map((r: any) => this.normalize(r));
+        })
       );
     }
 
+    // ===============================
+    // MOCK PATH (UNCHANGED)
+    // ===============================
     this.ensureSeeded();
 
     let rows = Array.from(this.store.values()).map((r) => this.normalize(r));
@@ -324,13 +365,17 @@ export class ForecastRecordService {
     return of(rows).pipe(delay(150));
   }
 
+
   claim(
     id: number,
     payload?: { userId?: string | null; userName?: string | null; force?: boolean }
   ): Observable<ForecastRecord> {
     if (!this.useMock) {
       // backend can read payload.force (takeover support)
-      return this.http.post<ForecastRecord>(`${this.baseUrl}/${id}/claim`, payload ?? {}).pipe(map((r) => this.normalize(r)));
+      return this.http.post<ForecastRecord>(`${this.baseUrl}/${id}/claim`, payload ?? {}, {
+        headers: this.userHeaders(),
+      }).pipe(map((r) => this.normalize(r)));
+
     }
 
     this.ensureSeeded();
@@ -366,7 +411,10 @@ export class ForecastRecordService {
 
   unclaim(id: number, payload?: { userId?: string | null; force?: boolean }): Observable<ForecastRecord> {
     if (!this.useMock) {
-      return this.http.post<ForecastRecord>(`${this.baseUrl}/${id}/unclaim`, payload ?? {}).pipe(map((r) => this.normalize(r)));
+      return this.http.post<ForecastRecord>(`${this.baseUrl}/${id}/claim`, payload ?? {}, {
+        headers: this.userHeaders(),
+      }).pipe(map((r) => this.normalize(r)));
+
     }
 
     this.ensureSeeded();
@@ -402,10 +450,27 @@ export class ForecastRecordService {
 
   /** POST /forecast-records/:id/reject (atomic: move lane + create history row) */
   reject(id: number, payload: RejectPayload): Observable<RejectResponse> {
+    // ===============================
+    // REAL BACKEND PATH (NON-MOCK)
+    // ===============================
     if (!this.useMock) {
-      return this.http.post<RejectResponse>(`${this.baseUrl}/${id}/reject`, payload);
+      return this.http
+        .post<any>(`${this.baseUrl}/${id}/reject`, payload ?? {}, {
+          headers: this.userHeaders(),
+        })
+        .pipe(
+          map((resp) => {
+            const record = this.normalize(resp?.record ?? resp);
+            const historyRow = resp?.historyRow ?? resp?.history ?? resp?.history_entry ?? null;
+
+            return { record, historyRow } as RejectResponse;
+          })
+        );
     }
 
+    // ===============================
+    // MOCK PATH (UNCHANGED)
+    // ===============================
     this.ensureSeeded();
 
     const existing = this.store.get(String(id));
@@ -437,7 +502,7 @@ export class ForecastRecordService {
     this.historyStore ??= new Map<number, RecordHistoryRow[]>();
     const rows = this.historyStore.get(id) ?? [];
 
-    rows.forEach(r => (r.latest = 0));
+    rows.forEach((r) => (r.latest = 0));
 
     const historyRow: RecordHistoryRow = {
       id: Date.now(),
@@ -458,6 +523,7 @@ export class ForecastRecordService {
 
     return of({ record: updated, historyRow }).pipe(delay(150));
   }
+
 
   /** GET /forecast-records/:id/history */
   getHistory(id: number): Observable<RecordHistoryRow[]> {
@@ -496,6 +562,10 @@ export class ForecastRecordService {
       params = params.set('userId', String(opts.userId));
     }
 
-    return this.http.delete<void>(`${this.baseUrl}/${id}`, { params });
+    return this.http.delete<void>(`${this.baseUrl}/${id}`, {
+      params,
+      headers: this.userHeaders(),
+    });
   }
+
 }

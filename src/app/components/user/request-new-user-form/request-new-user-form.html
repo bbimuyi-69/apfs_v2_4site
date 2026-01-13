@@ -42,14 +42,13 @@
                     Enter a valid email address.
                 </span>
             </div>
-
         </div>
 
         <!-- Employee Type -->
         <div class="form-row">
             <label for="employeeType">Employee Type</label>
             <select id="employeeType" formControlName="employeeType">
-                <option value="" disabled selected>Select…</option>
+                <option value="" disabled>Select…</option>
                 <option *ngFor="let t of employeeTypes" [value]="t">{{ t }}</option>
             </select>
             <div class="field-error" *ngIf="showError('employeeType')">
@@ -61,7 +60,7 @@
         <div class="form-row">
             <label for="component">Component</label>
             <select id="component" formControlName="component">
-                <option value="" disabled selected>Select…</option>
+                <option value="" disabled>Select…</option>
                 <option *ngFor="let c of components" [value]="c">{{ c }}</option>
             </select>
             <div class="field-error" *ngIf="showError('component')">
@@ -69,33 +68,61 @@
             </div>
         </div>
 
-        <!-- Office -->
-        <div class="form-row">
-            <label for="office">Office</label>
-            <select id="office" formControlName="office" [disabled]="!requestNewUserForm.get('component')?.value">
-                <option value="" disabled selected>Select…</option>
-                <option *ngIf="officeOptions.length === 0" value="" disabled>
-                    Select a Component first…
-                </option>
-                <option *ngFor="let o of officeOptions" [value]="o">{{ o }}</option>
-            </select>
-            <div class="field-error" *ngIf="showError('office')">
-                Office is required.
-            </div>
-        </div>
-
         <!-- Role -->
         <div class="form-row">
             <label for="role">APFS Functional Role</label>
             <select id="role" formControlName="role" [disabled]="!requestNewUserForm.get('employeeType')?.value">
-                <option value="" disabled selected>Select…</option>
-                <option *ngIf="roleOptions.length === 0" value="" disabled>
+                <option value="" disabled>Select…</option>
+
+                <option *ngIf="!requestNewUserForm.get('employeeType')?.value" value="" disabled>
                     Select an Employee Type first…
                 </option>
+
+                <option *ngIf="requestNewUserForm.get('employeeType')?.value && roleOptions.length === 0" value=""
+                    disabled>
+                    No roles available for this Employee Type…
+                </option>
+
                 <option *ngFor="let r of roleOptions" [value]="r">{{ r }}</option>
             </select>
             <div class="field-error" *ngIf="showError('role')">
                 Role is required.
+            </div>
+        </div>
+
+        <!-- Office (Component + Role dependent) -->
+        <div class="form-row">
+            <label for="office">Office</label>
+            <select id="office" formControlName="office" [disabled]="
+          !requestNewUserForm.get('component')?.value ||
+          !requestNewUserForm.get('role')?.value
+        ">
+                <option value="" disabled>Select…</option>
+
+                <option *ngIf="!requestNewUserForm.get('component')?.value" value="" disabled>
+                    Select a Component first…
+                </option>
+
+                <option *ngIf="
+            requestNewUserForm.get('component')?.value &&
+            !requestNewUserForm.get('role')?.value
+          " value="" disabled>
+                    Select a Role first…
+                </option>
+
+                <option *ngIf="
+            requestNewUserForm.get('component')?.value &&
+            requestNewUserForm.get('role')?.value &&
+            officeOptions.length === 0
+          " value="" disabled>
+                    No offices available for this Component / Role…
+                </option>
+
+                <option *ngFor="let o of officeOptions" [value]="o">{{ o }}</option>
+            </select>
+
+            <div class="field-error" *ngIf="showError('office')">
+                Office is required.
             </div>
         </div>
 

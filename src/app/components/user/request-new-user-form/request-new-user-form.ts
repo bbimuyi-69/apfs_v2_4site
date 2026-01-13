@@ -23,8 +23,8 @@ export class RequestNewUserForm implements OnInit {
 
   employeeTypes: string[] = [];
   components: string[] = [];
-  officeOptions: string[] = [];
   roleOptions: string[] = [];
+  officeOptions: string[] = [];
 
   constructor(
     private fb: FormBuilder,
@@ -35,34 +35,66 @@ export class RequestNewUserForm implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    // 1) Build the form (ONLY controls go here)
     this.requestNewUserForm = this.fb.group({
-      id: [''], // optional
+      id: [''],
 
       title: ['', Validators.required],
       firstName: ['', Validators.required],
       lastName: ['', Validators.required],
-
       email: ['', [Validators.required, Validators.email]],
 
       employeeType: ['', Validators.required],
       component: ['', Validators.required],
-      office: ['', Validators.required],
       role: ['', Validators.required],
+      office: ['', Validators.required],
 
       isActive: [false]
     });
 
-    // 2) Load base dropdown lists
-    this.dropdowns.getEmployeeTypes().subscribe(list => (this.employeeTypes = list));
-    this.dropdowns.getComponents().subscribe(list => (this.components = list));
+    // Base lists
+    this.dropdowns.getEmployeeTypes().subscribe((list: string[]) => (this.employeeTypes = list));
+    this.dropdowns.getComponents().subscribe((list: string[]) => (this.components = list));
 
-    // 3) Wire dependent dropdowns
+    // Helpers
+    const clearRole = () => {
+      this.roleOptions = [];
+      this.requestNewUserForm.get('role')!.setValue('');
+    };
 
-    // employeeType -> roleOptions
-    this.requestNewUserForm.get('employeeType')!.valueChanges.subscribe((val: string) => {
-      this.dropdowns.getRolesForEmployeeType(val).subscribe(roles => {
-        this.roleOptions = roles;
+    const clearOffice = () => {
+      this.officeOptions = [];
+      this.requestNewUserForm.get('office')!.setValue('');
+    };
+
+    const reloadOfficesIfReady = () => {
+      const component = String(this.requestNewUserForm.get('component')!.value || '').trim();
+      const role = String(this.requestNewUserForm.get('role')!.value || '').trim();
+      if (!component || !role) {
+        clearOffice();
+        return;
+      }
+
+      this.dropdowns.getOfficesForComponentRole(component, role).subscribe((offices: string[]) => {
+        this.officeOptions = offices ?? [];
+
+        // If current office no longer valid, clear it
+        const currentOffice = this.requestNewUserForm.get('office')!.value;
+        if (!this.officeOptions.includes(currentOffice)) {
+          this.requestNewUserForm.get('office')!.setValue('');
+        }
+      });
+    };
+
+    // 1) employeeType -> roles (and reset downstream)
+    this.requestNewUserForm.get('employeeType')!.valueChanges.subscribe((employeeType: string) => {
+      clearRole();
+      clearOffice();
+
+      const et = String(employeeType || '').trim();
+      if (!et) return;
+
+      this.dropdowns.getRolesForEmployeeType(et).subscribe((roles: string[]) => {
+        this.roleOptions = roles ?? [];
 
         const currentRole = this.requestNewUserForm.get('role')!.value;
         if (!this.roleOptions.includes(currentRole)) {
@@ -71,27 +103,25 @@ export class RequestNewUserForm implements OnInit {
       });
     });
 
-    // component -> officeOptions
-    this.requestNewUserForm.get('component')!.valueChanges.subscribe((val: string) => {
-      this.dropdowns.getOfficesForComponent(val).subscribe(offices => {
-        this.officeOptions = offices;
-
-        const currentOffice = this.requestNewUserForm.get('office')!.value;
-        if (!this.officeOptions.includes(currentOffice)) {
-          this.requestNewUserForm.get('office')!.setValue('');
-        }
-      });
+    // 2) component changes -> clear office then reload offices if role already chosen
+    this.requestNewUserForm.get('component')!.valueChanges.subscribe((_component: string) => {
+      clearOffice();
+      reloadOfficesIfReady();
     });
 
-    // 4) Optional: existing call
+    // 3) role changes -> clear office then reload offices if component already chosen
+    this.requestNewUserForm.get('role')!.valueChanges.subscribe((_role: string) => {
+      clearOffice();
+      reloadOfficesIfReady();
+    });
+
+    // Existing call (optional)
     this.userService.getUsers().subscribe({
       next: (data: User[]) => {
         this.users = data;
         this.cdr.detectChanges();
       },
-      error: (error) => {
-        console.error('Error fetching users:', error);
-      }
+      error: (error) => console.error('Error fetching users:', error)
     });
   }
 
@@ -125,8 +155,8 @@ export class RequestNewUserForm implements OnInit {
       email: (formValue.email ?? '').trim(),
       employeeType: formValue.employeeType,
       component: formValue.component,
-      office: formValue.office,
       role: formValue.role,
+      office: formValue.office,
       isActive: formValue.isActive
     };
 
@@ -137,8 +167,11 @@ export class RequestNewUserForm implements OnInit {
         this.submissionSuccess = true;
         this.submissionError = '';
         this.requestNewUserForm.reset({ isActive: false });
-        this.officeOptions = [];
+
+        // reset dependent dropdown state
         this.roleOptions = [];
+        this.officeOptions = [];
+
         this.cdr.detectChanges();
       },
       error: (error) => {
