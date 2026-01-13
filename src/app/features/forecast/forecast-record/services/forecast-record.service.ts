@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, of, throwError, delay } from 'rxjs';
+import { Observable, of, throwError, delay, map } from 'rxjs';
 
 import { environment } from 'src/environments/environment';
 
@@ -17,6 +17,38 @@ export type ForecastRecordQuery = {
   sort?: 'updatedAt:desc' | 'updatedAt:asc' | 'createdAt:desc' | 'createdAt:asc';
 };
 
+// =========================
+// ✅ Reject + History types
+// =========================
+export type RecordHistoryRow = {
+  id: number;
+  time: string; // ISO string
+  user_display: string;
+  user_comment: string;
+  assignment_display?: string | null;
+  latest?: 0 | 1;
+  assignment_id?: string | null;
+  forecast_id: number;
+  new_state_id?: number | null;
+  previous_state_id?: number | null;
+  user_id?: string | null;
+};
+
+export type RejectPayload = {
+  comment: string;
+  userId?: string | null;
+  userDisplay?: string | null;
+
+  // optional (future): if you want to send back assigned to someone
+  toUserId?: string | null;
+  toDisplay?: string | null;
+};
+
+export type RejectResponse = {
+  record: ForecastRecord;
+  historyRow: RecordHistoryRow;
+};
+
 @Injectable({ providedIn: 'root' })
 export class ForecastRecordService {
   private readonly http = inject(HttpClient);
@@ -28,6 +60,9 @@ export class ForecastRecordService {
 
   private readonly store = new Map<string, ForecastRecord>();
   private seeded = false;
+
+  // mock-only history store
+  private historyStore?: Map<number, RecordHistoryRow[]>;
 
   private nowIso(): string {
     return new Date().toISOString();
@@ -111,7 +146,7 @@ export class ForecastRecordService {
       // Backend may still return legacy `status`; normalize at boundary
       return this.http
         .get<any>(`${this.baseUrl}/${encodeURIComponent(idStr)}`)
-        .pipe((src) => src as any); // keep typing light here; normalize below if you map later
+        .pipe(map((r) => this.normalize(r)));
     }
 
     this.ensureSeeded();
@@ -145,7 +180,7 @@ export class ForecastRecordService {
 
   create(record: ForecastRecord): Observable<ForecastRecord> {
     if (!this.useMock) {
-      return this.http.post<ForecastRecord>(this.baseUrl, record);
+      return this.http.post<ForecastRecord>(this.baseUrl, record).pipe(map((r) => this.normalize(r)));
     }
 
     this.ensureSeeded();
@@ -179,7 +214,9 @@ export class ForecastRecordService {
     }
 
     if (!this.useMock) {
-      return this.http.put<ForecastRecord>(`${this.baseUrl}/${record.id}`, record);
+      return this.http
+        .put<ForecastRecord>(`${this.baseUrl}/${record.id}`, record)
+        .pipe(map((r) => this.normalize(r)));
     }
 
     this.ensureSeeded();
@@ -199,13 +236,10 @@ export class ForecastRecordService {
   /**
    * In your new 5-lane world, "submit" should usually mean: move to the next lane,
    * not set a legacy string like 'Submitted'.
-   *
-   * We'll keep the endpoint name, but update lane:
-   * Draft -> Requirements -> Contracting -> APFS Coordinator -> Published
    */
   submit(id: number, submittedBy: string | null = null): Observable<ForecastRecord> {
     if (!this.useMock) {
-      return this.http.post<ForecastRecord>(`${this.baseUrl}/${id}/submit`, { submittedBy });
+      return this.http.post<ForecastRecord>(`${this.baseUrl}/${id}/submit`, { submittedBy }).pipe(map((r) => this.normalize(r)));
     }
 
     this.ensureSeeded();
@@ -254,7 +288,9 @@ export class ForecastRecordService {
       if (statusFilter && statusFilter !== 'All') params = params.set('status', statusFilter);
       if (assigned && assigned !== 'all') params = params.set('assigned', assigned);
 
-      return this.http.get<ForecastRecord[]>(this.baseUrl, { params });
+      return this.http.get<ForecastRecord[]>(this.baseUrl, { params }).pipe(
+        map((rows) => (rows ?? []).map((r) => this.normalize(r)))
+      );
     }
 
     this.ensureSeeded();
@@ -294,7 +330,7 @@ export class ForecastRecordService {
   ): Observable<ForecastRecord> {
     if (!this.useMock) {
       // backend can read payload.force (takeover support)
-      return this.http.post<ForecastRecord>(`${this.baseUrl}/${id}/claim`, payload ?? {});
+      return this.http.post<ForecastRecord>(`${this.baseUrl}/${id}/claim`, payload ?? {}).pipe(map((r) => this.normalize(r)));
     }
 
     this.ensureSeeded();
@@ -328,10 +364,9 @@ export class ForecastRecordService {
     return of(claimed).pipe(delay(150));
   }
 
-
   unclaim(id: number, payload?: { userId?: string | null; force?: boolean }): Observable<ForecastRecord> {
     if (!this.useMock) {
-      return this.http.post<ForecastRecord>(`${this.baseUrl}/${id}/unclaim`, payload ?? {});
+      return this.http.post<ForecastRecord>(`${this.baseUrl}/${id}/unclaim`, payload ?? {}).pipe(map((r) => this.normalize(r)));
     }
 
     this.ensureSeeded();
@@ -339,7 +374,12 @@ export class ForecastRecordService {
     const existing = this.store.get(String(id));
     if (!existing) return throwError(() => new Error(`ForecastRecord ${id} not found`));
 
-    if (existing.assignedToUserId && payload?.userId && existing.assignedToUserId !== payload.userId && !payload.force) {
+    if (
+      existing.assignedToUserId &&
+      payload?.userId &&
+      existing.assignedToUserId !== payload.userId &&
+      !payload.force
+    ) {
       return throwError(() => new Error('Only the assignee can unclaim this record'));
     }
 
@@ -354,6 +394,99 @@ export class ForecastRecordService {
 
     this.store.set(String(id), unclaimed);
     return of(unclaimed).pipe(delay(150));
+  }
+
+  // =========================
+  // ✅ REJECT + HISTORY
+  // =========================
+
+  /** POST /forecast-records/:id/reject (atomic: move lane + create history row) */
+  reject(id: number, payload: RejectPayload): Observable<RejectResponse> {
+    if (!this.useMock) {
+      return this.http.post<RejectResponse>(`${this.baseUrl}/${id}/reject`, payload);
+    }
+
+    this.ensureSeeded();
+
+    const existing = this.store.get(String(id));
+    if (!existing) return throwError(() => new Error(`ForecastRecord ${id} not found`));
+
+    const comment = String(payload?.comment ?? '').trim();
+    if (!comment) return throwError(() => new Error('Reject comment is required'));
+
+    const now = this.nowIso();
+
+    const cur = this.coerceLane((existing as any).workflowStatus ?? (existing as any).status);
+    const prev = this.previousLane(cur);
+    if (!prev) return throwError(() => new Error(`Cannot reject from lane ${cur}`));
+
+    // Record update: move back + unassign (you can tweak later)
+    const updated: ForecastRecord = this.normalize({
+      ...existing,
+      workflowStatus: prev,
+      status: prev, // legacy compatibility if any UI still reads status
+      assignedToUserId: null,
+      assignedToName: null,
+      assignedAt: null,
+      updatedAt: now,
+    });
+
+    this.store.set(String(id), updated);
+
+    // History row
+    this.historyStore ??= new Map<number, RecordHistoryRow[]>();
+    const rows = this.historyStore.get(id) ?? [];
+
+    rows.forEach(r => (r.latest = 0));
+
+    const historyRow: RecordHistoryRow = {
+      id: Date.now(),
+      time: now,
+      user_display: payload.userDisplay ?? 'Unknown',
+      user_comment: comment,
+      assignment_display: null,
+      latest: 1,
+      assignment_id: null,
+      forecast_id: id,
+      new_state_id: this.laneToId(prev),
+      previous_state_id: this.laneToId(cur),
+      user_id: payload.userId ?? null,
+    };
+
+    rows.unshift(historyRow);
+    this.historyStore.set(id, rows);
+
+    return of({ record: updated, historyRow }).pipe(delay(150));
+  }
+
+  /** GET /forecast-records/:id/history */
+  getHistory(id: number): Observable<RecordHistoryRow[]> {
+    if (!this.useMock) {
+      return this.http.get<RecordHistoryRow[]>(`${this.baseUrl}/${id}/history`);
+    }
+
+    this.ensureSeeded();
+    this.historyStore ??= new Map<number, RecordHistoryRow[]>();
+    return of(this.historyStore.get(id) ?? []).pipe(delay(120));
+  }
+
+  private previousLane(cur: ForecastWorkflowLane): ForecastWorkflowLane | null {
+    if (cur === ForecastWorkflowLane.Published) return ForecastWorkflowLane.APFSCoordinator;
+    if (cur === ForecastWorkflowLane.APFSCoordinator) return ForecastWorkflowLane.Contracting;
+    if (cur === ForecastWorkflowLane.Contracting) return ForecastWorkflowLane.Requirements;
+    if (cur === ForecastWorkflowLane.Requirements) return ForecastWorkflowLane.Draft;
+    return null; // Draft -> no previous
+  }
+
+  private laneToId(lane: ForecastWorkflowLane): number {
+    // matches your sample: new_state_id / previous_state_id
+    // Draft=0, Requirements=1, Contracting=2, Coordinator=3, Published=4
+    if (lane === ForecastWorkflowLane.Draft) return 0;
+    if (lane === ForecastWorkflowLane.Requirements) return 1;
+    if (lane === ForecastWorkflowLane.Contracting) return 2;
+    if (lane === ForecastWorkflowLane.APFSCoordinator) return 3;
+    if (lane === ForecastWorkflowLane.Published) return 4;
+    return 0;
   }
 
   delete(id: number, opts: { userId?: number | null; force: boolean }) {

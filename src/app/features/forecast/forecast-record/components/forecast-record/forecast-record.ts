@@ -552,6 +552,7 @@ export class ForecastRecordComponent {
 
 
 
+
   onDelete(): void {
     if (!this.recordId) return;
     if (!this.record) return;
@@ -634,49 +635,30 @@ export class ForecastRecordComponent {
 
   onReject(): void {
     if (!this.canReject) return;
-    if (!this.form || !this.recordId || !this.record) return;
+    if (!this.form || !this.recordId) return;
 
     const current = this.form.controls.workflowStatus.value;
     const previous = this.previousWorkflowStatus(current);
 
     if (!previous) return;
 
-    const ok = confirm(
-      `Reject this record and send it back to ${previous}?`
-    );
+    const ok = confirm(`Reject this record and send it back to ${previous}?`);
     if (!ok) return;
 
-    this.isLoading = true;
-    this.flushView();
+    // ✅ DO NOT update the record here anymore.
+    // ✅ Go to the comment screen to collect required comment,
+    // then the comment screen calls POST /reject (atomic: record + history).
 
-    const raw = this.form.getRawValue() as any;
-
-    const payload: ForecastRecord = {
-      ...raw,
-      id: Number(this.recordId),
-      workflowStatus: previous,
-      // optional audit fields if you want later:
-      // rejectedAt: new Date().toISOString(),
-      // rejectedByUserId: this.currentUserId,
-    };
-
-    this.service.update(payload).subscribe({
-      next: (updated) => {
-        this.record = updated;
-        this.form = buildForecastRecordForm(updated);
-        this.submitted = false;
-        this.applyAccessState();
-        this.isLoading = false;
-        this.flushView();
-      },
-      error: (e) => {
-        console.error('Reject failed', e);
-        this.isLoading = false;
-        this.flushView();
-        alert('Reject failed.');
+    this.router.navigate(['/forecast', this.recordId, 'reject'], {
+      queryParams: {
+        to: previous,
+        from: current,
+        returnTo: 'record',
       },
     });
+
   }
+
 
 
 

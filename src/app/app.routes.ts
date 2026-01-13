@@ -8,13 +8,13 @@ import { Rob } from './components/common/rob/rob';
 import { Request } from './components/accounts/request/request';
 import { RequestNewUserForm } from './components/user/request-new-user-form/request-new-user-form';
 import { UserLogin } from './auth/user-login/user-login';
-import { Dashboard } from './components/dashboard_oldwillarchive/dashboard';
 import { DashboardV2Page } from './features/dashboard-v2/dashboard-v2.page';
 import { authGuard } from './auth/auth-guard';
 
-// ✅ Forecast components
+// Forecast
 import { ForecastListComponent } from './features/forecast/forecast-list/forecast-list';
 import { ForecastRecordComponent } from './features/forecast/forecast-record/components/forecast-record/forecast-record';
+import { RejectCommentComponent } from './features/forecast/forecast-record/components/reject-comment/reject-comment';
 
 export const routes: Routes = [
     { path: '', redirectTo: 'welcome', pathMatch: 'full', data: { title: 'Welcome' } },
@@ -28,8 +28,6 @@ export const routes: Routes = [
     { path: 'request-new-user', component: RequestNewUserForm, data: { title: 'Request New User' } },
     { path: 'user-login', component: UserLogin, data: { title: 'User Login' } },
 
-
-
     {
         path: 'dashboard-v2',
         component: DashboardV2Page,
@@ -41,7 +39,6 @@ export const routes: Routes = [
     // Forecast routes
     // =========================
 
-    // Create new forecast record (keep above /forecast and /forecast/:id)
     {
         path: 'forecast/new',
         component: ForecastRecordComponent,
@@ -49,7 +46,13 @@ export const routes: Routes = [
         data: { title: 'New Forecast Record' },
     },
 
-    // Edit/view existing forecast record
+    {
+        path: 'forecast/:id/reject',
+        component: RejectCommentComponent,
+        canActivate: [authGuard],
+        data: { title: 'Reject Comment' },
+    },
+
     {
         path: 'forecast/:id',
         component: ForecastRecordComponent,
@@ -57,7 +60,6 @@ export const routes: Routes = [
         data: { title: 'Forecast Record' },
     },
 
-    // Forecast dashboard (simple list for now)
     {
         path: 'forecast',
         component: ForecastListComponent,
@@ -65,6 +67,5 @@ export const routes: Routes = [
         data: { title: 'Forecast Dashboard' },
     },
 
-    // Fallback
     { path: '**', redirectTo: 'welcome' },
 ];

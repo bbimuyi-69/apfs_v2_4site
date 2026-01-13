@@ -3,3 +3,6 @@ User Comps
 Keeping it brief right now, will either keep simple and call API or expand model
 
 2)Hide New Request from only users with role": "Requirements"
+3)Add AFPS Number
+4)Create History on each transaction
+5)Filter by component , office
