@@ -81,9 +81,7 @@ export class ForwardCommentComponent {
 
     this.service.advance(this.recordId, payload).subscribe({
       next: () => {
-        this.router.navigate(['/forecast', this.recordId], {
-          queryParams: { mode: 'edit' },
-        });
+        this.router.navigate(['/dashboard-v2']);
       },
       error: (e: any) => {
         console.error('[ForwardComment] advance failed', e);
@@ -94,5 +92,6 @@ export class ForwardCommentComponent {
         this.submitting = false;
       },
     });
+
   }
 }

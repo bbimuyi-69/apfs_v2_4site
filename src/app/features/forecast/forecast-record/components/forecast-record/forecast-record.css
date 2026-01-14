@@ -130,9 +130,290 @@
 }
 
 /* ===================================
+   rail: record history drawer
+
+/* ===================================
+
+
    Sections
 =================================== */
 
+/* ===== History Drawer (right panel) with slide-out ===== */
+
+.history-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .25);
+    z-index: 900;
+
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 220ms ease;
+}
+
+.history-backdrop.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.history-drawer {
+    position: fixed;
+    top: 80px;
+    /* keep your current position */
+    right: 24px;
+    width: 420px;
+    max-width: calc(100vw - 48px);
+    max-height: calc(100vh - 120px);
+    overflow: auto;
+
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, .12);
+    border-radius: 12px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, .18);
+
+    z-index: 950;
+    padding: 14px;
+
+    /* closed state */
+    opacity: 0;
+    transform: translateX(24px);
+    pointer-events: none;
+
+    transition: transform 260ms ease, opacity 260ms ease;
+}
+
+.history-drawer.open {
+    /* open state */
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+}
+
+/* ===== History Drawer:*/
+
+/* ===================================
+   Record History Drawer (overlay + slide-out)
+=================================== */
+
+.history-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.22);
+    z-index: 900;
+
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 220ms ease;
+}
+
+.history-backdrop.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Drawer panel */
+.history-drawer {
+    position: fixed;
+    top: 80px;
+    /* align under topbar */
+    right: 24px;
+    width: 380px;
+    /* slightly narrower */
+    max-width: calc(100vw - 48px);
+    max-height: calc(100vh - 120px);
+    overflow: auto;
+
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 14px;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.14);
+    z-index: 950;
+
+    padding: 12px;
+
+    /* closed state */
+    opacity: 0;
+    transform: translateX(24px);
+    pointer-events: none;
+    transition: transform 260ms ease, opacity 260ms ease;
+}
+
+.history-drawer.open {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+}
+
+/* Header */
+.history-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.history-title {
+    letter-spacing: -0.01em;
+}
+
+
+.history-close {
+    width: 30px;
+    height: 30px;
+    border: 1px solid rgba(0, 0, 0, 0.14);
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.history-close:hover {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+/* Body */
+.history-body {
+    padding-top: 4px;
+}
+
+.history-empty {
+    padding: 10px 6px;
+    color: rgba(0, 0, 0, 0.58);
+    font-size: 12.5px;
+}
+
+/* Items */
+.history-item {
+    padding: 10px 10px;
+    margin-bottom: 8px;
+
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 12px;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
+}
+
+.history-item:last-child {
+    margin-bottom: 0;
+}
+
+/* Latest highlight: soft */
+.history-item.latest {
+    border-color: rgba(76, 175, 80, 0.22);
+    background: rgba(76, 175, 80, 0.035);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+}
+
+/* Top row */
+.history-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.history-titleline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.history-title {
+    font-weight: 850;
+    font-size: 14px;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Badge */
+.history-badge {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    border: 1px solid rgba(76, 175, 80, 0.30);
+    background: rgba(76, 175, 80, 0.10);
+    color: rgba(0, 0, 0, 0.70);
+}
+
+/* Timestamp */
+.history-when {
+    font-size: 11.5px;
+    color: rgba(0, 0, 0, 0.50);
+    white-space: nowrap;
+}
+
+/* Meta */
+.history-meta {
+    margin-top: 6px;
+    font-size: 11.5px;
+    color: rgba(0, 0, 0, 0.58);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.history-actor {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 11.5px;
+    color: rgba(0, 0, 0, 0.62);
+}
+
+.history-dot {
+    opacity: 0.55;
+}
+
+.history-assign {
+    color: rgba(0, 0, 0, 0.60);
+}
+
+/* Comment */
+.history-comment {
+    margin-top: 6px;
+    font-size: 12.5px;
+    color: rgba(0, 0, 0, 0.78);
+    line-height: 1.35;
+    white-space: pre-wrap;
+
+    padding-left: 10px;
+    border-left: 2px solid rgba(0, 0, 0, 0.08);
+}
+
+/* Mobile */
+@media (max-width: 900px) {
+    .history-drawer {
+        top: 0;
+        right: 0;
+        width: min(92vw, 420px);
+        height: 100vh;
+        max-height: 100vh;
+        border-radius: 0;
+
+        transform: translateX(100%);
+        /* closed */
+    }
+
+    .history-drawer.open {
+        transform: translateX(0);
+    }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+
+    .history-backdrop,
+    .history-drawer {
+        transition: none;
+    }
+}
+
+/* ===== End History Drawer*/
 
 .sec {
     border: 1px solid #e6e8eb;

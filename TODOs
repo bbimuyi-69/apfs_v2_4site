@@ -3,10 +3,15 @@ User Comps
 Keeping it brief right now, will either keep simple and call API or expand model
 
 2)Hide New Request from only users with role": "Requirements"
-3)Add AFPS Number
-4)Create History on each transaction
-5)Filter by component , office
-6)Differntiate beweetn submit and approve and send
+3)*DONE Add AFPS Number
+4)*DONE Create History on each transaction
+5)Filter records by office
+6)*DONE Differntiate beweetn submit and approve and send - DELETED Submit
 7) ***Done Maybe remove component
-8) Assisn to office
-9) Adding a comment in approving
+8) Assign to office
+9) *DONE Adding a comment in approving
+10) Deal with delete on records and history
+11) *Verify Should not send foward is form is invalid
+12) On assignment can assign to individual as well
+13) Need to add claim button on rails
+13) Cant unclaim or claim after someone else elaims

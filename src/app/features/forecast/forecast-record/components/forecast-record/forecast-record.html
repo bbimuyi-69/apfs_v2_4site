@@ -1,11 +1,14 @@
+<!-- #region Forecast Record Page Shell -->
 <div class="apfs-page">
-    <div class="apfs-shell" *ngIf="form; else noForm" [class.no-rail]="!showRecordRail">
+    <div class="apfs-shell" *ngIf="form; else noForm" [class.no-rail]="!showRecordRail"
+        [class.has-history]="historyOpen">
 
-        <!-- LEFT RAIL: Record Actions -->
+        <!-- #region Left Rail: Record Actions -->
         <aside class="record-rail" aria-label="Record actions" *ngIf="showRecordRail">
 
             <h3 class="rail-title">Record Actions</h3>
 
+            <!-- #region Rail Card: Utilities -->
             <div class="rail-card">
                 <button type="button" class="rail-btn" (click)="onPrintableView()">
                     Printable View <span class="rail-icon" aria-hidden="true">🖨️</span>
@@ -27,7 +30,9 @@
                     Reassign Record
                 </button>
             </div>
+            <!-- #endregion Rail Card: Utilities -->
 
+            <!-- #region Rail Card: Primary Actions -->
             <div class="rail-card">
                 <button type="button" class="rail-btn rail-btn-primary" (click)="onSaveDraft()"
                     [disabled]="!canSave || isLoading">
@@ -45,9 +50,10 @@
                     Reject &amp; Send Back <span class="rail-icon" aria-hidden="true">⤺</span>
                 </button>
 
-                <button type="button" class="rail-btn rail-btn-accent" (click)="onSubmit()"
-                    [disabled]="!canApproveSend || isLoading">
-                    Approve &amp; Send <span class="rail-icon" aria-hidden="true">✈️</span>
+                <button type="button" class="rail-btn rail-btn-accent"
+                    (click)="onTransition(ForecastWorkflowLane.Requirements)" [disabled]="isApproveSendDisabled">
+                    Approve &amp; Send
+                    <span class="rail-icon" aria-hidden="true">✈️</span>
                 </button>
 
                 <button type="button" class="rail-btn rail-btn-danger" (click)="onDelete()"
@@ -55,23 +61,29 @@
                     Delete <span class="rail-icon" aria-hidden="true">✖</span>
                 </button>
             </div>
+            <!-- #endregion Rail Card: Primary Actions -->
 
+            <!-- #region Rail Footer -->
             <div class="rail-foot">
                 <span class="pill role">Role: {{ roleLabel }}</span>
                 <span *ngIf="!isEditMode" class="pill ro" title="Open with ?mode=edit to make changes">Read-only</span>
                 <span *ngIf="isEditMode" class="pill ok" title="Edit mode enabled">Edit mode</span>
             </div>
+            <!-- #endregion Rail Footer -->
         </aside>
+        <!-- #endregion Left Rail: Record Actions -->
 
-        <!-- MAIN FORM COLUMN -->
+        <!-- #region Main Form Column -->
         <form class="apfs-form" [formGroup]="form">
+            <!-- #region Loading / Error -->
             <div *ngIf="isLoading" class="apfs-loading">Loading…</div>
 
             <div *ngIf="loadError" class="apfs-error">
                 {{ loadError }}
             </div>
+            <!-- #endregion Loading / Error -->
 
-            <!-- Record Info -->
+            <!-- #region Record Info (System Managed) -->
             <section class="sec">
                 <div class="sec-h">
                     <div class="sec-title">
@@ -106,8 +118,9 @@
                     </div>
                 </div>
             </section>
+            <!-- #endregion Record Info (System Managed) -->
 
-            <!-- Requirements -->
+            <!-- #region Requirements (Owned by Requirements) -->
             <section class="sec" [class.readonly]="isEditMode && !canEditRequirementsSection">
                 <div class="sec-h">
                     <div class="sec-title">
@@ -121,7 +134,7 @@
                     </div>
                 </div>
 
-                <!-- Primary Contact -->
+                <!-- #region Primary Contact -->
                 <div class="subsec">
                     <div class="hint">Primary contact information for this requirement.</div>
 
@@ -154,22 +167,21 @@
                         </div>
                     </div>
                 </div>
+                <!-- #endregion Primary Contact -->
 
-
-                <!-- ✅ Offices (Requirements can edit ALL 3) -->
-                <!-- Offices -->
+                <!-- #region Offices (All 3 required) -->
                 <div class="subsec">
                     <div class="hint">
                         Select the office associated with each workflow lane.
                     </div>
 
+                    <!-- Debug (optional) -->
                     <div class="hint mono" style="font-size:12px;">
                         value={{ form?.get('requirementsOffice')?.value }}
                         invalid={{ form?.get('requirementsOffice')?.invalid }}
                         disabled={{ form?.get('requirementsOffice')?.disabled }}
                         errors={{ form?.get('requirementsOffice')?.errors | json }}
                     </div>
-
 
                     <div class="grid-3">
                         <div class="field" [class.is-invalid]="isInvalid('requirementsOffice')">
@@ -186,7 +198,6 @@
                             </div>
                         </div>
 
-
                         <div class="field" [class.is-invalid]="isInvalid('contractingOffice')">
                             <label>Contracting Office <span class="req">*</span></label>
                             <select formControlName="contractingOffice">
@@ -201,7 +212,6 @@
                             </div>
                         </div>
 
-
                         <div class="field" [class.is-invalid]="isInvalid('coordinatorOffice')">
                             <label>APFS Coordinator Office <span class="req">*</span></label>
                             <select formControlName="coordinatorOffice">
@@ -215,17 +225,18 @@
                                 APFS Coordinator office is required.
                             </div>
                         </div>
-
                     </div>
                 </div>
+                <!-- #endregion Offices (All 3 required) -->
 
-
+                <!-- #region Requirements Fields -->
                 <div class="field" [class.is-invalid]="isInvalid('requirementsTitle')">
                     <label>Requirements Title <span class="req">*</span></label>
                     <input type="text" formControlName="requirementsTitle" />
                     <div class="hint">Enter a brief title to the requirement which will be included in email to
                         industry.</div>
-                    <div class="error" *ngIf="showError('requirementsTitle','required')">Requirements title is required.
+                    <div class="error" *ngIf="showError('requirementsTitle','required')">
+                        Requirements title is required.
                     </div>
                 </div>
 
@@ -250,9 +261,11 @@
                     <div class="hint">A program level can be selected from the drop down menu if it applies.</div>
                     <div class="error" *ngIf="showError('programLevel','required')">Program level is required.</div>
                 </div>
+                <!-- #endregion Requirements Fields -->
             </section>
+            <!-- #endregion Requirements (Owned by Requirements) -->
 
-            <!-- Coordinator -->
+            <!-- #region Small Business (Owned by APFS Coordinator) -->
             <section class="sec" [class.readonly]="isEditMode && !canEditCoordinatorSection">
                 <div class="sec-h">
                     <div class="sec-title">
@@ -287,8 +300,9 @@
                     </div>
                 </div>
             </section>
+            <!-- #endregion Small Business (Owned by APFS Coordinator) -->
 
-            <!-- Value Classification -->
+            <!-- #region Value Classification (Coordinator / Contracting) -->
             <section class="sec" [class.readonly]="isEditMode && !canEditClassificationSection">
                 <div class="sec-h">
                     <div class="sec-title">
@@ -317,15 +331,18 @@
                     <div class="field" [class.is-invalid]="isInvalid('naicsCode')">
                         <label>NAICS Code <span class="req">*</span></label>
                         <select formControlName="naicsCode">
-                            <option value="">----------</option>
+                            <option *ngFor="let o of naicsCodes; trackBy: trackByValue" [value]="o.value">
+                                {{ o.label }}
+                            </option>
                         </select>
                         <div class="hint">Enter a NAICS Code that pertains to the anticipated opportunity.</div>
                         <div class="error" *ngIf="showError('naicsCode','required')">NAICS Code is required.</div>
                     </div>
                 </div>
             </section>
+            <!-- #endregion Value Classification (Coordinator / Contracting) -->
 
-            <!-- Contracting -->
+            <!-- #region Contracting Office (Owned by Contracting Office) -->
             <section class="sec" [class.readonly]="isEditMode && !canEditContractingSection">
                 <div class="sec-h">
                     <div class="sec-title">
@@ -338,6 +355,7 @@
                     </div>
                 </div>
 
+                <!-- #region Contracting Selects -->
                 <div class="grid-2">
                     <div class="field" [class.is-invalid]="isInvalid('contractType')">
                         <label>Contract type <span class="req">*</span></label>
@@ -412,7 +430,9 @@
                         <div class="error" *ngIf="showError('contractStatus','required')">This field is required.</div>
                     </div>
                 </div>
+                <!-- #endregion Contracting Selects -->
 
+                <!-- #region Contracting Text Inputs -->
                 <div class="grid-2">
                     <div class="field">
                         <label>Incumbent</label>
@@ -426,22 +446,21 @@
                         <div class="hint">Notate the Contract Number.</div>
                     </div>
                 </div>
+                <!-- #endregion Contracting Text Inputs -->
             </section>
+            <!-- #endregion Contracting Office (Owned by Contracting Office) -->
 
-            <!-- TODO remove later -->
-            <div class="hint">
-                canApproveSend={{canApproveSend}} | isLoading={{isLoading}} | formValid={{form?.valid}}
-            </div>
-
+            <!-- #region Bottom Actions -->
             <div class="apfs-actions">
                 <button type="button" class="btn-primary" (click)="onSaveDraft()" [disabled]="!canSave || isLoading">
                     Save Draft
                 </button>
 
-                <button type="button" class="btn-secondary" (click)="onSubmit()"
-                    [disabled]="!canApproveSend || isLoading">
-                    Submit
-                </button>
+                <!--
+        <button type="button" class="btn-secondary" (click)="onSubmit()" [disabled]="!canApproveSend || isLoading">
+          Submit
+        </button>
+        -->
 
                 <button type="button" class="btn-ghost" (click)="onCancel()">Cancel</button>
             </div>
@@ -449,10 +468,72 @@
             <div class="hint" *ngIf="!isEditMode">
                 Viewing mode. Open with <span class="mono">?mode=edit</span> to edit.
             </div>
+            <!-- #endregion Bottom Actions -->
         </form>
+        <!-- #endregion Main Form Column -->
+
+        <!-- #region History Drawer Host (WIP) -->
+        <!-- #region History Drawer (overlay) -->
+        <div class="history-backdrop" [class.open]="historyOpen" (click)="closeHistory()"></div>
+
+        <aside class="history-drawer" [class.open]="historyOpen" (click)="$event.stopPropagation()">
+            <div class="history-head">
+                <h3 class="history-title">Record History</h3>
+                <button type="button" class="history-close" (click)="closeHistory()"
+                    aria-label="Close history">✖</button>
+            </div>
+
+            <div class="history-body">
+                <div *ngIf="historyItems.length === 0" class="history-empty">
+                    No history yet.
+                </div>
+
+                <div *ngFor="let h of historyItems" class="history-item" [class.latest]="h.isLatest">
+                    <div class="history-top">
+                        <div class="history-titleline">
+                            <span class="history-title">{{ h.title }}</span>
+                            <span *ngIf="h.isLatest" class="history-badge">Latest</span>
+                        </div>
+
+                        <div class="history-when">{{ h.at }}</div>
+                    </div>
+
+                    <div class="history-meta">
+                        <span class="history-actor">{{ h.actor }}</span>
+
+                        <span *ngIf="h.assignment" class="history-dot">•</span>
+                        <span *ngIf="h.assignment" class="history-assign">Assigned: {{ h.assignment }}</span>
+                    </div>
+
+                    <div *ngIf="h.comment" class="history-comment">
+                        “{{ h.comment }}”
+                    </div>
+                </div>
+            </div>
+
+
+        </aside>
+
+        <!-- #endregion History Drawer (overlay) -->
+
+        <!-- #endregion History Drawer Host (WIP) -->
+
     </div>
 
+    <!-- #region Debug Panel (optional) -->
+    <div class="hint mono" style="font-size:12px;">
+        <li>form?.get('contractsOffice')?.value={{ form?.get('contractsOffice')?.value }}</li>
+        <li>form?.get('contractsOffice')?.invalid={{ form?.get('contractsOffice')?.invalid }}</li>
+        <li>form?.get('contractsOffice')?.disabled={{ form?.get('contractsOffice')?.disabled }}</li>
+        <li>form?.get('contractsOffice')?.errors={{ form?.get('contractsOffice')?.errors | json }}</li>
+        <li> canApproveSend={{canApproveSend}} | isLoading={{isLoading}} | formValid={{form?.valid}}</li>
+    </div>
+    <!-- #endregion Debug Panel (optional) -->
+
+    <!-- #region No Form Template -->
     <ng-template #noForm>
         <div class="apfs-loading">Loading…</div>
     </ng-template>
+    <!-- #endregion No Form Template -->
 </div>
+<!-- #endregion Forecast Record Page Shell -->

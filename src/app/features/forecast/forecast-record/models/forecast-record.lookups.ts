@@ -98,6 +98,21 @@ export const APFS_FISCAL_YEARS = (() => {
     return [{ value: '', label: '----------' }, ...years.map(y => ({ value: String(y), label: `FY ${y}` }))];
 })();
 
+//NAICS Codes truncated for brevity
+export const APFS_NAICS_CODES: OptionItem[] = [
+    { value: '', label: 'Select…' },
+    { value: '111110', label: '111110 — Soybean Farming' },
+    { value: '111120', label: '111120 — Oilseed (except Soybean) Farming' },
+    { value: '111130', label: '111130 — Dry Pea and Bean Farming' },
+    { value: '111140', label: '111140 — Wheat Farming' },
+    { value: '111150', label: '111150 — Corn Farming' },
+    { value: '111160', label: '111160 — Rice Farming' },
+    { value: '111191', label: '111191 — Oilseed and Grain Combination Farming' },
+    { value: '111199', label: '111199 — All Other Grain Farming' },
+    { value: '111211', label: '111211 — Potato Farming' },
+];
+
+
 export const US_STATES_WITH_NA: OptionItem[] = [
     { value: '', label: '----------' },
     { value: 'NA', label: 'Not Applicable' },

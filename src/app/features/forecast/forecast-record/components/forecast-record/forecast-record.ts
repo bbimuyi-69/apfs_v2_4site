@@ -1,3 +1,4 @@
+//#region Imports
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { ReactiveFormsModule, Validators } from '@angular/forms';
@@ -12,6 +13,7 @@ import {
   ForecastRecordFormGroup,
   applyForecastRecordRolePermissions,
   UserProfileLike,
+  isCommentRequired,
 } from './forecast-record.form';
 
 import { createEmptyForecastRecord } from '../../models/forecast-record.factory';
@@ -32,10 +34,28 @@ import {
   US_STATES_WITH_NA,
   OptionItem,
   APFS_STRATEGIC_SOURCING_VEHICLES,
+  APFS_NAICS_CODES,
 } from '../../models/forecast-record.lookups';
 
 import { AuthService } from '../../../../../auth/auth.service';
+//#endregion
 
+//#region Record History View Model
+type RecordHistoryItemVM = {
+  id: number | string;
+  at: string;                 // formatted timestamp
+  atIso?: string;             // original ISO (optional)
+  title: string;              // “Draft → Requirements”
+  actor: string;              // “HQ_Req@hq.dhs.gov”
+  comment?: string;           // user_comment
+  assignment?: string;        // assignment_display
+  isLatest?: boolean;         // latest === 1
+};
+
+//#endregion
+
+
+//#region Types
 type RailStatus =
   | 'Draft'
   | 'Requirements'
@@ -51,6 +71,7 @@ interface RailPermissions {
   canApproveSend: boolean;
   canDelete: boolean;
 }
+//#endregion
 
 @Component({
   selector: 'app-forecast-record',
@@ -60,18 +81,23 @@ interface RailPermissions {
   styleUrls: ['./forecast-record.css'],
 })
 export class ForecastRecordComponent {
+  //#region DI / Constants
+  readonly ForecastWorkflowLane = ForecastWorkflowLane;
+
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly service = inject(ForecastRecordService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly auth = inject(AuthService);
+  //#endregion
 
-  // Lookups
+  //#region Lookups
   readonly programLevels = APFS_PROGRAM_LEVELS;
   readonly smallBusinessSetAsideOptions = APFS_SMALL_BUSINESS_SET_ASIDE;
   readonly smallBusinessProgramOptions = APFS_SMALL_BUSINESS_PROGRAM;
 
   readonly dollarRanges = APFS_DOLLAR_RANGES;
+  readonly naicsCodes = APFS_NAICS_CODES;
   readonly contractTypes = APFS_CONTRACT_TYPES;
   readonly yesNoUnknown = APFS_YES_NO_UNKNOWN;
   readonly typeOfAwardOptions = APFS_TYPE_OF_AWARD;
@@ -105,8 +131,9 @@ export class ForecastRecordComponent {
   trackByValue(_: number, item: OptionItem) {
     return item.value;
   }
+  //#endregion
 
-  // State
+  //#region State
   form: ForecastRecordFormGroup | null = null;
   recordId: string | null = null;
 
@@ -131,7 +158,107 @@ export class ForecastRecordComponent {
     canApproveSend: false,
     canDelete: false,
   };
+  //#endregion
 
+  //#region History Drawer State
+  historyOpen = false;
+
+  //#region History Drawer: View Model
+
+  //#region History Drawer: Client-only helpers
+  private stateName(stateId: any): string {
+    const n = Number(stateId);
+    if (n === 0) return 'Draft';
+    if (n === 1) return 'Requirements';
+    if (n === 2) return 'Contracting';
+    if (n === 3) return 'APFS Coordinator';
+    if (n === 4) return 'Published';
+    return stateId == null ? '—' : String(stateId);
+  }
+
+  private formatWhen(iso: any): string {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    // compact but readable
+    return d.toLocaleString(undefined, {
+      month: 'short',
+      day: '2-digit',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  }
+
+  //#endregion
+
+
+
+  get historyItems(): RecordHistoryItemVM[] {
+    const anyRecord: any = this.record as any;
+
+    const raw: any[] =
+      anyRecord?.history ??
+      anyRecord?.recordHistory ??
+      anyRecord?.auditTrail ??
+      [];
+
+    if (!Array.isArray(raw) || raw.length === 0) return [];
+
+    return raw.map((h) => {
+      const iso = h.time ?? h.timestamp ?? h.createdAt ?? h.at ?? h.date ?? null;
+
+      const from = h.previous_state_id ?? h.from ?? null;
+      const to = h.new_state_id ?? h.to ?? null;
+
+      const actor =
+        h.user_display ??
+        h.byName ??
+        h.by ??
+        h.userName ??
+        h.actor ??
+        'Unknown';
+
+      const comment =
+        (h.user_comment ?? h.comment ?? h.detail ?? h.notes ?? '')?.toString().trim() || undefined;
+
+      const assignment =
+        (h.assignment_display ?? h.assignedToName ?? '')?.toString().trim() || undefined;
+
+      const isLatest = Number(h.latest) === 1;
+
+      const hasTransition = from != null && to != null;
+
+      const title =
+        h.title ??
+        h.action ??
+        h.event ??
+        (comment === 'Created'
+          ? 'Created'
+          : hasTransition
+            ? `${this.stateName(from)} → ${this.stateName(to)}`
+            : 'Updated');
+
+      return {
+        id: h.id ?? `${iso}-${actor}`,
+        at: this.formatWhen(iso),
+        atIso: iso ?? undefined,
+        title: String(title),
+        actor: String(actor),
+        comment,
+        assignment,
+        isLatest,
+      };
+    });
+  }
+
+
+
+  //#endregion
+
+  //#endregion
+
+
+  //#region Derived Getters (lane, role, sections, rail)
   /** Canonical lane */
   get workflowStatus(): ForecastWorkflowLane | null {
     return this.form?.get('workflowStatus')?.value ?? null;
@@ -140,6 +267,7 @@ export class ForecastRecordComponent {
   get isDraft(): boolean {
     return this.workflowStatus === ForecastWorkflowLane.Draft;
   }
+
   get isPublished(): boolean {
     return this.workflowStatus === ForecastWorkflowLane.Published;
   }
@@ -198,10 +326,9 @@ export class ForecastRecordComponent {
     const me = this.currentUserId;
     return me != null && assignedToUserId === me;
   }
+  //#endregion
 
-  // -----------------------------
-  // ✅ Validation UI helpers
-  // -----------------------------
+  //#region Validation UI Helpers
   isInvalid(controlName: keyof ForecastRecordFormGroup['controls'] | string): boolean {
     if (!this.form) return false;
     const c = this.form.get(controlName as string);
@@ -227,16 +354,30 @@ export class ForecastRecordComponent {
     });
   }
 
-  /**
-   * Role-required fields for SUBMIT (the "red highlights" set).
-   * Requirements fields are already required in the form; this also enforces
-   * fields that are not required yet (Coordinator/Contracting + programLevel).
-   */
+  get isApproveSendDisabled(): boolean {
+    if (!this.form) return true;
+    if (!this.canApproveSend) return true;
+
+    const required = new Set(this.getRoleRequiredControls());
+
+    for (const key of required) {
+      const ctrl = this.form.controls[key];
+      if (!ctrl) continue;
+      if (ctrl.disabled) continue;
+
+      const value = ctrl.value;
+      if (value == null || (typeof value === 'string' && !value.trim())) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   private getRoleRequiredControls(): Array<keyof ForecastRecordFormGroup['controls']> {
     const role = this.normalizeRailRole();
     const status = this.normalizeRailStatus(this.workflowStatus);
 
-    // New record: Draft submit by Requirements should validate Requirements requirements.
     const effectiveLane: RailStatus =
       status === 'Draft' && role === 'Requirements' ? 'Requirements' : status;
 
@@ -250,6 +391,10 @@ export class ForecastRecordComponent {
         'requirementsOffice',
         'contractingOffice',
         'coordinatorOffice',
+
+        // Value Classification now required
+        'dollarRange',
+        'naicsCode',
 
         'requirementsTitle',
         'requirement',
@@ -265,6 +410,10 @@ export class ForecastRecordComponent {
         'typeOfAward',
         'competitive',
         'contractStatus',
+
+        // Value Classification now required
+        'dollarRange',
+        'naicsCode',
       ];
     }
 
@@ -280,10 +429,6 @@ export class ForecastRecordComponent {
     return [];
   }
 
-  /**
-   * Add Validators.required to the role-required set right before submit.
-   * (Disabled controls are excluded from validation automatically.)
-   */
   private applyRoleRequiredValidators(): void {
     if (!this.form) return;
 
@@ -302,10 +447,9 @@ export class ForecastRecordComponent {
 
     this.form.updateValueAndValidity({ emitEvent: false });
   }
+  //#endregion
 
-  // -----------------------------
-  // Rails / perms stuff (unchanged)
-  // -----------------------------
+  //#region Rail / Permissions / Normalization
   private normalizeRailStatus(raw: unknown): RailStatus {
     const s = String(raw ?? '').trim();
     if (!s) return 'Unknown';
@@ -413,12 +557,20 @@ export class ForecastRecordComponent {
 
     this.computeRailPermissions();
   }
+  //#endregion
 
+  //#region View / UI Refresh Utilities
   private flushView(): void {
     this.cdr.markForCheck();
     this.cdr.detectChanges();
   }
 
+  private focusAfterAction(): void {
+    // placeholder utility if you want to focus a known element after actions
+  }
+  //#endregion
+
+  //#region User Profile + Hydration
   private extractUserProfileFromAuth(): UserProfileLike | null {
     const u: any = (this.auth as any).user ?? (this.auth as any).session?.user ?? null;
     if (!u) return null;
@@ -461,6 +613,34 @@ export class ForecastRecordComponent {
     if (req && !req.value) req.setValue(office, { emitEvent: false });
   }
 
+  private hydratePrimaryContactFromProfile(): void {
+    if (!this.form) return;
+
+    const u = this.userProfile;
+    if (!u) return;
+
+    const c = this.form.controls as any;
+
+    const first = c.primaryContactFirstName?.value;
+    const last = c.primaryContactLastName?.value;
+    const email = c.primaryContactEmail?.value;
+
+    if (!first && !last && !email) {
+      this.form.patchValue(
+        {
+          primaryContactFirstName: u.firstName ?? '',
+          primaryContactLastName: u.lastName ?? '',
+          primaryContactEmail: u.email ?? '',
+        },
+        { emitEvent: true }
+      );
+    }
+
+    this.computeRailPermissions();
+  }
+  //#endregion
+
+  //#region Lifecycle
   ngOnInit(): void {
     this.userProfile = this.extractUserProfileFromAuth();
 
@@ -541,7 +721,9 @@ export class ForecastRecordComponent {
         this.flushView();
       });
   }
+  //#endregion
 
+  //#region Save / Submit
   onSaveDraft(): void {
     if (!this.form) return;
     if (!this.canSave) return;
@@ -568,7 +750,6 @@ export class ForecastRecordComponent {
     });
   }
 
-
   logInvalidControls(): void {
     if (!this.form) return;
 
@@ -585,7 +766,6 @@ export class ForecastRecordComponent {
     console.table(invalid);
     console.log('form errors', this.form.errors);
   }
-
 
   onSubmit(): void {
     if (!this.form) return;
@@ -622,9 +802,9 @@ export class ForecastRecordComponent {
       error: (e) => console.error('Create failed', e),
     });
   }
+  //#endregion
 
-
-
+  //#region Delete
   onDelete(): void {
     if (!this.recordId) return;
     if (!this.record) return;
@@ -660,7 +840,9 @@ export class ForecastRecordComponent {
       },
     });
   }
+  //#endregion
 
+  //#region Assignment / Claim State
   private get currentUserId(): number | null {
     const id = (this.auth as any)?.session?.user?.id ?? (this.auth as any)?.user?.id ?? null;
     return id != null ? Number(id) : null;
@@ -681,7 +863,9 @@ export class ForecastRecordComponent {
   get hasAssignment(): boolean {
     return !!this.record?.assignedToUserId;
   }
+  //#endregion
 
+  //#region Reject / Transition
   get canReject(): boolean {
     if (!this.isEditMode) return false;
     if (this.isPublished) return false;
@@ -705,6 +889,74 @@ export class ForecastRecordComponent {
     return true;
   }
 
+  onTransition(toLane: ForecastWorkflowLane) {
+    if (!this.form) return;
+    if (!this.recordId) return;
+
+    const fromLane = this.form.controls.workflowStatus.value;
+
+    console.log('toLane:', toLane, 'is enum?', toLane === ForecastWorkflowLane.Requirements);
+
+    // ✅ HARD exemption: Draft → Requirements (no comment, no forward screen)
+    if (fromLane === ForecastWorkflowLane.Draft && toLane === ForecastWorkflowLane.Requirements) {
+      this.performTransition(toLane);
+      return;
+    }
+
+    // everything else -> forward screen
+    this.router.navigate(['/forecast', this.recordId, 'forward'], {
+      queryParams: { from: fromLane, to: toLane, returnTo: 'record' },
+    });
+  }
+
+  private performTransition(toLane: ForecastWorkflowLane): void {
+    if (!this.form) return;
+    if (!this.recordId) return;
+
+    const id = Number(this.recordId);
+    if (!Number.isFinite(id)) return;
+
+    const fromLane = this.form.controls.workflowStatus.value;
+    if (!fromLane) return;
+
+    const comment = this.form.controls.transitionComment.value.trim();
+
+    this.isLoading = true;
+    this.flushView();
+
+    this.service
+      .transition(id, {
+        from: fromLane,
+        to: toLane,
+        comment: comment || null,
+      })
+      .subscribe({
+        next: (updated) => {
+          this.record = updated;
+
+          this.form = buildForecastRecordForm(updated);
+          this.submitted = false;
+
+          this.lockComponentFromAuth();
+          this.hydrateOfficeFromProfile();
+
+          this.applyAccessState();
+          this.hydratePrimaryContactFromProfile();
+
+          this.form.controls.transitionComment.setValue('', { emitEvent: false });
+
+          this.isLoading = false;
+          this.flushView();
+        },
+        error: (e: unknown) => {
+          console.error('Transition failed', e);
+          this.isLoading = false;
+          this.flushView();
+          alert('Transition failed. Please try again.');
+        },
+      });
+  }
+
   onReject(): void {
     if (!this.canReject) return;
     if (!this.form || !this.recordId) return;
@@ -725,7 +977,9 @@ export class ForecastRecordComponent {
       },
     });
   }
+  //#endregion
 
+  //#region Navigation / Rail Handlers
   onCancel(): void {
     this.router.navigate(['/dashboard-v2']);
   }
@@ -737,14 +991,23 @@ export class ForecastRecordComponent {
   // ---- Rail button handlers ----
   onPrintableView(): void { window.print(); }
   onCsvDownload(): void { console.warn('CSV download not wired yet'); }
-  onRecordHistory(): void { console.warn('Record history not wired yet'); }
+  onRecordHistory(): void {
+    this.historyOpen = true;
+  }
+  closeHistory(): void {
+    this.historyOpen = false;
+  }
+
+
   onChangeLog(): void { console.warn('Change log not wired yet'); }
 
   onReassign(): void {
     if (!this.canReassign) return;
     console.warn('Reassign not wired yet');
   }
+  //#endregion
 
+  //#region Unassign
   onUnassign(): void {
     if (!this.canUnassign) return;
     if (!this.recordId) return;
@@ -774,19 +1037,16 @@ export class ForecastRecordComponent {
 
     this.service.unclaim(id, { userId: me, force }).subscribe({
       next: (updated) => {
-        // ✅ keep API record reference in sync
         this.record = updated;
 
-        // ✅ rebuild form so disabled/enabled + rail state refresh cleanly
         this.form = buildForecastRecordForm(updated);
-        this.submitted = false; // reset submit UI after action
+        this.submitted = false;
 
-        // ✅ lock component + seed office after rebuild
         this.lockComponentFromAuth();
         this.hydrateOfficeFromProfile();
 
         this.applyAccessState();
-        this.hydratePrimaryContactFromProfile(); // safe autofill (won't overwrite)
+        this.hydratePrimaryContactFromProfile();
         this.isLoading = false;
         this.flushView();
       },
@@ -798,33 +1058,9 @@ export class ForecastRecordComponent {
       },
     });
   }
+  //#endregion
 
-  private hydratePrimaryContactFromProfile(): void {
-    if (!this.form) return;
-
-    const u = this.userProfile;
-    if (!u) return;
-
-    const c = this.form.controls as any;
-
-    const first = c.primaryContactFirstName?.value;
-    const last = c.primaryContactLastName?.value;
-    const email = c.primaryContactEmail?.value;
-
-    if (!first && !last && !email) {
-      this.form.patchValue(
-        {
-          primaryContactFirstName: u.firstName ?? '',
-          primaryContactLastName: u.lastName ?? '',
-          primaryContactEmail: u.email ?? '',
-        },
-        { emitEvent: true }
-      );
-    }
-
-    this.computeRailPermissions();
-  }
-
+  //#region Workflow Helpers
   private nextWorkflowStatus(cur: ForecastWorkflowLane | null): ForecastWorkflowLane {
     if (!cur || cur === ForecastWorkflowLane.Draft) return ForecastWorkflowLane.Requirements;
     if (cur === ForecastWorkflowLane.Requirements) return ForecastWorkflowLane.Contracting;
@@ -833,13 +1069,12 @@ export class ForecastRecordComponent {
     return ForecastWorkflowLane.Published;
   }
 
-  private previousWorkflowStatus(
-    cur: ForecastWorkflowLane | null
-  ): ForecastWorkflowLane | null {
+  private previousWorkflowStatus(cur: ForecastWorkflowLane | null): ForecastWorkflowLane | null {
     if (!cur) return null;
     if (cur === ForecastWorkflowLane.Requirements) return ForecastWorkflowLane.Draft;
     if (cur === ForecastWorkflowLane.Contracting) return ForecastWorkflowLane.Requirements;
     if (cur === ForecastWorkflowLane.APFSCoordinator) return ForecastWorkflowLane.Contracting;
     return null;
   }
+  //#endregion
 }

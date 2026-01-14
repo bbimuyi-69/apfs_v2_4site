@@ -434,6 +434,15 @@ export class ForecastRecordService {
     );
   }
 
+  /** POST /forecast-records/:id/transition */
+
+
+  transition(id: number, body: { from: string; to: string; comment?: string | null }) {
+    return this.http.post<ForecastRecord>(`${this.baseUrl}/${id}/transition`, body);
+  }
+
+
+
 
   // =========================
   // ✅ REJECT + HISTORY

@@ -1,11 +1,13 @@
 // forecast-record.form.ts (drop-in replacement)
 //
-// ✅ Adds 3 new office dropdown controls:
+// ✅ Adds 3 office dropdown controls:
 //    - requirementsOffice
 //    - contractingOffice
 //    - coordinatorOffice
 //
-// ✅ Locks component from being edited via permissions (your component will also hard-lock it from auth)
+// ✅ Adds transitionComment control (UI-only action field) to support onTransition validation
+//
+// ✅ Locks component from being edited via permissions (component will also hard-lock from auth)
 // ✅ Keeps everything else as-is
 
 import {
@@ -19,6 +21,17 @@ import {
 import { ForecastRecord } from '../../models/forecast-record.model';
 import { ForecastWorkflowLane } from '../../models/forecast-record.enums';
 
+/** --- Comment required rule: all transitions except Draft → Requirements --- */
+type Transition = { from: ForecastWorkflowLane; to: ForecastWorkflowLane };
+
+const COMMENT_NOT_REQUIRED: Transition[] = [
+    { from: ForecastWorkflowLane.Draft, to: ForecastWorkflowLane.Requirements },
+];
+
+export function isCommentRequired(from: ForecastWorkflowLane, to: ForecastWorkflowLane): boolean {
+    return !COMMENT_NOT_REQUIRED.some(t => t.from === from && t.to === to);
+}
+
 export type ForecastRecordFormGroup = FormGroup<{
     /** System / workflow */
     apfsNumber: FormControl<string | null>;
@@ -29,10 +42,13 @@ export type ForecastRecordFormGroup = FormGroup<{
     /** Top section */
     component: FormControl<string | null>;
 
-    /** ✅ NEW: office dropdowns for the 3 roles (in requirements section UI for now) */
+    /** ✅ NEW: office dropdowns */
     requirementsOffice: FormControl<string | null>;
     contractingOffice: FormControl<string | null>;
     coordinatorOffice: FormControl<string | null>;
+
+    /** ✅ NEW: UI-only action field used when transitioning lanes */
+    transitionComment: FormControl<string>;
 
     requirementsTitle: FormControl<string>;
     requirement: FormControl<string>;
@@ -103,106 +119,124 @@ export type UserProfileLike = {
     isActive?: boolean;
 };
 
+type ForecastRecordWithOffices = ForecastRecord & {
+    requirementsOffice?: string | null;
+    contractingOffice?: string | null;
+    coordinatorOffice?: string | null;
+    workflowStatus?: ForecastWorkflowLane; // if your model already has it, great
+    status?: any; // legacy
+};
+
 export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordFormGroup {
-    // ✅ Canonical lane value. Prefer workflowStatus; fall back to legacy (record as any).status.
+    const r = record as ForecastRecordWithOffices;
+
+    // ✅ Canonical lane value. Prefer workflowStatus; fall back to legacy status.
     const lane: ForecastWorkflowLane =
-        ((record as any).workflowStatus ??
-            (record as any).status ??
+        (r.workflowStatus ??
+            (r.status as ForecastWorkflowLane) ??
             ForecastWorkflowLane.Draft) as ForecastWorkflowLane;
 
-    const form = new FormGroup({
-        /** System generated */
-        apfsNumber: new FormControl({ value: record.apfsNumber, disabled: true }),
+    const form = new FormGroup(
+        {
+            /** System generated */
+            apfsNumber: new FormControl({ value: record.apfsNumber ?? null, disabled: true }),
 
-        /** ✅ Real workflow lane - keep disabled */
-        workflowStatus: new FormControl(
-            { value: lane, disabled: true },
-            { nonNullable: true }
-        ),
+            /** ✅ Real workflow lane - keep disabled */
+            workflowStatus: new FormControl({ value: lane, disabled: true }, { nonNullable: true }),
 
-        /** Editable by requester (role toggled later) */
-        component: new FormControl(record.component, {
-            validators: [Validators.required],
-        }),
+            /** Editable by requester (role toggled later) */
+            component: new FormControl(record.component ?? null, {
+                validators: [Validators.required],
+            }),
 
-        /** ✅ NEW: offices (not required yet) */
-        requirementsOffice: new FormControl((record as any).requirementsOffice ?? null),
-        contractingOffice: new FormControl((record as any).contractingOffice ?? null),
-        coordinatorOffice: new FormControl((record as any).coordinatorOffice ?? null),
+            /** ✅ NEW: offices (not required yet) */
+            requirementsOffice: new FormControl(r.requirementsOffice ?? null),
+            contractingOffice: new FormControl(r.contractingOffice ?? null),
+            coordinatorOffice: new FormControl(r.coordinatorOffice ?? null),
 
-        requirementsTitle: new FormControl(record.requirementsTitle, {
-            nonNullable: true,
-            validators: [Validators.required, Validators.maxLength(200)],
-        }),
+            /** ✅ NEW: UI-only action field used during transitions */
+            transitionComment: new FormControl('', { nonNullable: true }),
 
-        requirement: new FormControl(record.requirement, {
-            nonNullable: true,
-            validators: [Validators.required, maxWords(500)],
-        }),
+            requirementsTitle: new FormControl(record.requirementsTitle ?? '', {
+                nonNullable: true,
+                validators: [Validators.required, Validators.maxLength(200)],
+            }),
 
-        programLevel: new FormControl(record.programLevel),
+            requirement: new FormControl(record.requirement ?? '', {
+                nonNullable: true,
+                validators: [Validators.required, maxWords(500)],
+            }),
 
-        /** APFS Coordinator updated fields (role toggled later) */
-        smallBusinessSetAside: new FormControl(record.smallBusinessSetAside),
-        smallBusinessProgram: new FormControl(record.smallBusinessProgram),
+            programLevel: new FormControl(record.programLevel ?? null),
 
-        /** Value classification (role toggled later) */
-        dollarRange: new FormControl(record.dollarRange),
-        naicsCode: new FormControl(record.naicsCode),
+            /** APFS Coordinator updated fields (role toggled later) */
+            smallBusinessSetAside: new FormControl(record.smallBusinessSetAside ?? null),
+            smallBusinessProgram: new FormControl(record.smallBusinessProgram ?? null),
 
-        /** Contracting Officer updated fields (role toggled later) */
-        contractType: new FormControl(record.contractType),
-        strategicSourcingVehicleUsed: new FormControl(record.strategicSourcingVehicleUsed),
-        strategicSourcingVehicle: new FormControl(record.strategicSourcingVehicle),
-        typeOfAward: new FormControl(record.typeOfAward),
+            /** Value classification (role toggled later) */
+            dollarRange: new FormControl(record.dollarRange ?? null),
+            naicsCode: new FormControl(record.naicsCode ?? null),
 
-        competitive: new FormControl(record.competitive),
-        contractStatus: new FormControl(record.contractStatus),
+            /** Contracting Officer updated fields (role toggled later) */
+            contractType: new FormControl(record.contractType ?? null),
+            strategicSourcingVehicleUsed: new FormControl(record.strategicSourcingVehicleUsed ?? null),
+            strategicSourcingVehicle: new FormControl(record.strategicSourcingVehicle ?? null),
+            typeOfAward: new FormControl(record.typeOfAward ?? null),
 
-        incumbent: new FormControl(record.incumbent),
-        contractNumber: new FormControl(record.contractNumber),
+            competitive: new FormControl(record.competitive ?? null),
+            contractStatus: new FormControl(record.contractStatus ?? null),
 
-        /** Dates (role toggled later) */
-        estimatedPopStart: new FormControl(record.estimatedPopStart),
-        estimatedPopEnd: new FormControl(record.estimatedPopEnd),
-        fiscalYear: new FormControl(record.fiscalYear),
+            incumbent: new FormControl(record.incumbent ?? null),
+            contractNumber: new FormControl(record.contractNumber ?? null),
 
-        anticipatedAwardDate: new FormControl(record.anticipatedAwardDate),
-        estimatedSolicitationReleaseDate: new FormControl(record.estimatedSolicitationReleaseDate),
+            /** Dates (role toggled later) */
+            estimatedPopStart: new FormControl(record.estimatedPopStart ?? null),
+            estimatedPopEnd: new FormControl(record.estimatedPopEnd ?? null),
+            fiscalYear: new FormControl(record.fiscalYear ?? null),
 
-        placeOfPerformanceCity: new FormControl(record.placeOfPerformanceCity),
-        placeOfPerformanceState: new FormControl(record.placeOfPerformanceState),
+            anticipatedAwardDate: new FormControl(record.anticipatedAwardDate ?? null),
+            estimatedSolicitationReleaseDate: new FormControl(record.estimatedSolicitationReleaseDate ?? null),
 
-        primaryContactFirstName: new FormControl(record.primaryContactFirstName, {
-            nonNullable: true,
-            validators: [Validators.required, Validators.maxLength(100)],
-        }),
-        primaryContactLastName: new FormControl(record.primaryContactLastName, {
-            nonNullable: true,
-            validators: [Validators.required, Validators.maxLength(100)],
-        }),
-        primaryContactPhone: new FormControl(record.primaryContactPhone),
-        primaryContactEmail: new FormControl(record.primaryContactEmail, {
-            nonNullable: true,
-            validators: [Validators.required, Validators.email, Validators.maxLength(254)],
-        }),
+            placeOfPerformanceCity: new FormControl(record.placeOfPerformanceCity ?? null),
+            placeOfPerformanceState: new FormControl(record.placeOfPerformanceState ?? null),
 
-        alternateContactFirstName: new FormControl(record.alternateContactFirstName),
-        alternateContactLastName: new FormControl(record.alternateContactLastName),
-        alternateContactPhone: new FormControl(record.alternateContactPhone),
-        alternateContactEmail: new FormControl(record.alternateContactEmail, {
-            validators: [Validators.email],
-        }),
+            primaryContactFirstName: new FormControl(record.primaryContactFirstName ?? '', {
+                nonNullable: true,
+                validators: [Validators.required, Validators.maxLength(100)],
+            }),
+            primaryContactLastName: new FormControl(record.primaryContactLastName ?? '', {
+                nonNullable: true,
+                validators: [Validators.required, Validators.maxLength(100)],
+            }),
+            primaryContactPhone: new FormControl(record.primaryContactPhone ?? null),
+            primaryContactEmail: new FormControl(record.primaryContactEmail ?? '', {
+                nonNullable: true,
+                validators: [Validators.required, Validators.email, Validators.maxLength(254)],
+            }),
 
-        /** Coordinator-updated (role toggled later) */
-        sbSpecialistFirstName: new FormControl(record.sbSpecialistFirstName),
-        sbSpecialistLastName: new FormControl(record.sbSpecialistLastName),
-        sbSpecialistPhone: new FormControl(record.sbSpecialistPhone),
-        sbSpecialistEmail: new FormControl(record.sbSpecialistEmail),
-    }) as ForecastRecordFormGroup;
+            alternateContactFirstName: new FormControl(record.alternateContactFirstName ?? null),
+            alternateContactLastName: new FormControl(record.alternateContactLastName ?? null),
+            alternateContactPhone: new FormControl(record.alternateContactPhone ?? null),
+            alternateContactEmail: new FormControl(record.alternateContactEmail ?? null, {
+                validators: [Validators.email],
+            }),
+
+            /** Coordinator-updated (role toggled later) */
+            sbSpecialistFirstName: new FormControl(record.sbSpecialistFirstName ?? null),
+            sbSpecialistLastName: new FormControl(record.sbSpecialistLastName ?? null),
+            sbSpecialistPhone: new FormControl(record.sbSpecialistPhone ?? null),
+            sbSpecialistEmail: new FormControl(record.sbSpecialistEmail ?? null),
+        },
+        { updateOn: 'change' }
+    ) as ForecastRecordFormGroup;
 
     // Safe default: keep non-requestor sections locked until permissions are applied.
     lockDownByDefault(form);
+
+    // System-managed fields always disabled
+    hardDisable(form.controls.apfsNumber);
+    hardDisable(form.controls.workflowStatus);
+    hardDisable(form.controls.component);
 
     return form;
 }
@@ -210,13 +244,12 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
 /**
  * Apply role-based enablement.
  * Call this AFTER enabling the form in edit mode.
- * (Your component does: form.enable() then this, so this always wins.)
+ * This is where the role-based field enablement logic lives.
  */
 export function applyForecastRecordRolePermissions(
     form: ForecastRecordFormGroup,
     profile: UserProfileLike | null | undefined
 ): void {
-    console.log('[Perms] role=', profile?.role);
     const role = (profile?.role ?? '').trim().toLowerCase();
     const isRequirements = role === 'requirements';
     const isContractingOffice = role === 'contracting office' || role === 'contracting';
@@ -225,28 +258,26 @@ export function applyForecastRecordRolePermissions(
     // ---- Offices edit window ----
     const lane = form.controls.workflowStatus.value;
     const officesEditableWindow =
-        lane === ForecastWorkflowLane.Draft ||
-        lane === ForecastWorkflowLane.Requirements;
+        lane === ForecastWorkflowLane.Draft || lane === ForecastWorkflowLane.Requirements;
 
     const canEditOffices = isRequirements && officesEditableWindow;
-
 
     // System-managed fields always disabled
     hardDisable(form.controls.apfsNumber);
     hardDisable(form.controls.workflowStatus);
 
     // ✅ Component is system-set from auth; keep it disabled always here too.
-    // (Your component also hard-locks it after permissions apply.)
     hardDisable(form.controls.component);
 
-    // ✅ NEW: offices
-    // For now: let each lane edit its own office selection.
-    // (You said you want them in the Requirements section UI, but role-based enablement still makes sense.)
-    // Offices — editable only in Draft/Requirements by Requirements role
+    // ✅ Offices — editable only in Draft/Requirements by Requirements role
     setEnabled(form.controls.requirementsOffice, canEditOffices);
     setEnabled(form.controls.contractingOffice, canEditOffices);
     setEnabled(form.controls.coordinatorOffice, canEditOffices);
 
+    // ✅ transitionComment is NOT role-based — it's action-based.
+    // Keep it enabled so the UI can use it when user clicks a transition button.
+    // (If you render it only inside an action panel, it’s fine to leave enabled always.)
+    setEnabled(form.controls.transitionComment, true);
 
     // Requirements section
     setEnabled(form.controls.requirementsTitle, isRequirements);
@@ -263,8 +294,8 @@ export function applyForecastRecordRolePermissions(
     setEnabled(form.controls.sbSpecialistEmail, isCoordinator);
 
     // Value classification (default: Coordinator + Contracting Office)
-    setEnabled(form.controls.dollarRange, isCoordinator || isContractingOffice);
-    setEnabled(form.controls.naicsCode, isCoordinator || isContractingOffice);
+    setEnabled(form.controls.dollarRange, isRequirements || isCoordinator || isContractingOffice);
+    setEnabled(form.controls.naicsCode, isRequirements || isCoordinator || isContractingOffice);
 
     // Contracting Office section
     setEnabled(form.controls.contractType, isContractingOffice);
@@ -306,10 +337,16 @@ export function applyForecastRecordRolePermissions(
  */
 function lockDownByDefault(form: ForecastRecordFormGroup) {
     const keysToDisable: Array<keyof ForecastRecordFormGroup['controls']> = [
-        // ✅ NEW: offices default disabled until perms apply
+        // ✅ offices default disabled until perms apply
         'requirementsOffice',
         'contractingOffice',
         'coordinatorOffice',
+
+        // leave transitionComment enabled by default? up to you.
+        // If you want it hidden/only used in actions panel but still editable:
+        // DON'T disable it here.
+        // If you want it disabled unless UI action panel opens, comment this in/out accordingly:
+        // 'transitionComment',
 
         'smallBusinessSetAside',
         'smallBusinessProgram',
