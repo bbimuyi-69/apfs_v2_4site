@@ -242,13 +242,18 @@ export class ForecastRecordComponent {
 
     if (role === 'Requirements' && (effectiveLane === 'Requirements' || effectiveLane === 'Draft')) {
       return [
-        // ✅ component removed from required list (it is locked from auth)
         'primaryContactFirstName',
         'primaryContactLastName',
         'primaryContactEmail',
+
+        // ✅ Offices now required
+        'requirementsOffice',
+        'contractingOffice',
+        'coordinatorOffice',
+
         'requirementsTitle',
         'requirement',
-        'programLevel', // not required in form currently; enforced here for submit
+        'programLevel',
       ];
     }
 
@@ -463,9 +468,8 @@ export class ForecastRecordComponent {
     this.form = buildForecastRecordForm(createEmptyForecastRecord());
     this.submitted = false;
 
-    // ✅ lock component + seed office before perms
+    // ✅ lock component from auth (read-only)
     this.lockComponentFromAuth();
-    this.hydrateOfficeFromProfile();
 
     this.applyAccessState();
     this.hydratePrimaryContactFromProfile();
@@ -492,9 +496,8 @@ export class ForecastRecordComponent {
             this.form = buildForecastRecordForm(createEmptyForecastRecord());
             this.submitted = false;
 
-            // ✅ lock component + seed office for new records
+            // ✅ lock component from auth
             this.lockComponentFromAuth();
-            this.hydrateOfficeFromProfile();
 
             this.applyAccessState();
             this.hydratePrimaryContactFromProfile();
@@ -529,9 +532,8 @@ export class ForecastRecordComponent {
         this.form = buildForecastRecordForm(record ?? createEmptyForecastRecord());
         this.submitted = false;
 
-        // ✅ lock component + seed office after record load
+        // ✅ lock component from auth
         this.lockComponentFromAuth();
-        this.hydrateOfficeFromProfile();
 
         this.applyAccessState();
         this.hydratePrimaryContactFromProfile();
@@ -546,17 +548,26 @@ export class ForecastRecordComponent {
 
     const raw = this.form.getRawValue() as any;
 
+    // Server owns these on CREATE (and update protects them anyway)
+    if (!this.recordId) {
+      delete raw.apfsNumber;
+      delete raw.component;
+    }
+
     const payload: ForecastRecord = this.recordId
       ? ({ ...raw, id: Number(this.recordId) } as ForecastRecord)
       : (raw as ForecastRecord);
 
-    const request$ = this.recordId ? this.service.update(payload) : this.service.create(payload);
+    const request$ = this.recordId
+      ? this.service.update(payload)
+      : this.service.create(payload);
 
     request$.subscribe({
       next: () => this.router.navigate(['/dashboard-v2']),
       error: (e: unknown) => console.error('Save failed', e),
     });
   }
+
 
   logInvalidControls(): void {
     if (!this.form) return;
@@ -575,15 +586,13 @@ export class ForecastRecordComponent {
     console.log('form errors', this.form.errors);
   }
 
+
   onSubmit(): void {
     if (!this.form) return;
     if (!this.canApproveSend) return;
 
     this.submitted = true;
-
-    // ✅ Role-required enforcement happens here
     this.applyRoleRequiredValidators();
-
     this.form.markAllAsTouched();
 
     if (this.form.invalid) {
@@ -592,23 +601,29 @@ export class ForecastRecordComponent {
       return;
     }
 
+    // existing record -> collect comment then advance
+    if (this.recordId) {
+      this.router.navigate(['/forecast', this.recordId, 'forward'], {
+        queryParams: { returnTo: 'record' },
+      });
+      return;
+    }
+
+    // new record: create first, then go to forward screen
     const raw = this.form.getRawValue() as any;
+    delete raw.apfsNumber;
 
-    // advance lane
-    const next = this.nextWorkflowStatus(this.form.controls.workflowStatus.value);
-    raw.workflowStatus = next;
-
-    const payload: ForecastRecord = this.recordId
-      ? ({ ...raw, id: Number(this.recordId) } as ForecastRecord)
-      : (raw as ForecastRecord);
-
-    const save$ = this.recordId ? this.service.update(payload) : this.service.create(payload);
-
-    save$.subscribe({
-      next: () => this.router.navigate(['/dashboard-v2']),
-      error: (e: unknown) => console.error('Route forward failed', e),
+    this.service.create(raw).subscribe({
+      next: (created) => {
+        this.router.navigate(['/forecast', created.id, 'forward'], {
+          queryParams: { returnTo: 'record' },
+        });
+      },
+      error: (e) => console.error('Create failed', e),
     });
   }
+
+
 
   onDelete(): void {
     if (!this.recordId) return;

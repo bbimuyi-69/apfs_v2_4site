@@ -1,0 +1,44 @@
+<div class="page">
+    <div class="wrap">
+        <h1 class="title">Record History Comment</h1>
+
+        <div class="card" *ngIf="recordId; else missing">
+            <div class="label">Forward Comment</div>
+
+            <textarea class="textarea" [class.is-invalid]="submitted && comment.invalid" [formControl]="comment"
+                placeholder="Comment for moving this record forward..." rows="10"></textarea>
+
+            <div class="help">
+                Required. Comment will be saved to the record history when you move the record forward.
+            </div>
+
+            <div class="err" *ngIf="submitted && comment.errors?.['required']">
+                Forward comment is required.
+            </div>
+            <div class="err" *ngIf="comment.errors?.['maxlength']">
+                Comment is too long.
+            </div>
+
+            <div class="api-err" *ngIf="error">{{ error }}</div>
+
+            <div class="actions">
+                <button type="button" class="btn primary" (click)="submitForward()" [disabled]="submitting">
+                    {{ submitting ? 'Sending…' : 'Approve & Send' }}
+                </button>
+
+                <button type="button" class="btn cancel" (click)="cancel()" [disabled]="submitting">
+                    Cancel
+                </button>
+            </div>
+        </div>
+
+        <ng-template #missing>
+            <div class="card">
+                <div class="api-err">{{ error || 'Missing record id.' }}</div>
+                <div class="actions">
+                    <button type="button" class="btn cancel" (click)="cancel()">Back</button>
+                </div>
+            </div>
+        </ng-template>
+    </div>
+</div>

@@ -163,9 +163,17 @@
                         Select the office associated with each workflow lane.
                     </div>
 
+                    <div class="hint mono" style="font-size:12px;">
+                        value={{ form?.get('requirementsOffice')?.value }}
+                        invalid={{ form?.get('requirementsOffice')?.invalid }}
+                        disabled={{ form?.get('requirementsOffice')?.disabled }}
+                        errors={{ form?.get('requirementsOffice')?.errors | json }}
+                    </div>
+
+
                     <div class="grid-3">
-                        <div class="field">
-                            <label>Requirements Office</label>
+                        <div class="field" [class.is-invalid]="isInvalid('requirementsOffice')">
+                            <label>Requirements Office <span class="req">*</span></label>
                             <select formControlName="requirementsOffice">
                                 <option value="">Select…</option>
                                 <option *ngFor="let o of requirementsOfficeOptions; trackBy: trackByValue"
@@ -173,10 +181,14 @@
                                     {{ o.label }}
                                 </option>
                             </select>
+                            <div class="error" *ngIf="showError('requirementsOffice','required')">
+                                Requirements office is required.
+                            </div>
                         </div>
 
-                        <div class="field">
-                            <label>Contracting Office</label>
+
+                        <div class="field" [class.is-invalid]="isInvalid('contractingOffice')">
+                            <label>Contracting Office <span class="req">*</span></label>
                             <select formControlName="contractingOffice">
                                 <option value="">Select…</option>
                                 <option *ngFor="let o of contractingOfficeOptions; trackBy: trackByValue"
@@ -184,10 +196,14 @@
                                     {{ o.label }}
                                 </option>
                             </select>
+                            <div class="error" *ngIf="showError('contractingOffice','required')">
+                                Contracting office is required.
+                            </div>
                         </div>
 
-                        <div class="field">
-                            <label>APFS Coordinator Office</label>
+
+                        <div class="field" [class.is-invalid]="isInvalid('coordinatorOffice')">
+                            <label>APFS Coordinator Office <span class="req">*</span></label>
                             <select formControlName="coordinatorOffice">
                                 <option value="">Select…</option>
                                 <option *ngFor="let o of coordinatorOfficeOptions; trackBy: trackByValue"
@@ -195,7 +211,11 @@
                                     {{ o.label }}
                                 </option>
                             </select>
+                            <div class="error" *ngIf="showError('coordinatorOffice','required')">
+                                APFS Coordinator office is required.
+                            </div>
                         </div>
+
                     </div>
                 </div>
 

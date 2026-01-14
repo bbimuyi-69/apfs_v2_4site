@@ -15,6 +15,9 @@ import { authGuard } from './auth/auth-guard';
 import { ForecastListComponent } from './features/forecast/forecast-list/forecast-list';
 import { ForecastRecordComponent } from './features/forecast/forecast-record/components/forecast-record/forecast-record';
 import { RejectCommentComponent } from './features/forecast/forecast-record/components/reject-comment/reject-comment';
+import { ForwardCommentComponent } from './features/forecast/forecast-record/components/forward-comment/forward-comment';
+
+
 
 export const routes: Routes = [
     { path: '', redirectTo: 'welcome', pathMatch: 'full', data: { title: 'Welcome' } },
@@ -51,6 +54,13 @@ export const routes: Routes = [
         component: RejectCommentComponent,
         canActivate: [authGuard],
         data: { title: 'Reject Comment' },
+    },
+
+    {
+        path: 'forecast/:id/forward',
+        component: ForwardCommentComponent,
+        canActivate: [authGuard],
+        data: { title: 'Forward Comment' },
     },
 
     {

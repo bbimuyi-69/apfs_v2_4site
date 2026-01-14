@@ -222,6 +222,15 @@ export function applyForecastRecordRolePermissions(
     const isContractingOffice = role === 'contracting office' || role === 'contracting';
     const isCoordinator = role === 'apfs coordinator';
 
+    // ---- Offices edit window ----
+    const lane = form.controls.workflowStatus.value;
+    const officesEditableWindow =
+        lane === ForecastWorkflowLane.Draft ||
+        lane === ForecastWorkflowLane.Requirements;
+
+    const canEditOffices = isRequirements && officesEditableWindow;
+
+
     // System-managed fields always disabled
     hardDisable(form.controls.apfsNumber);
     hardDisable(form.controls.workflowStatus);
@@ -233,9 +242,11 @@ export function applyForecastRecordRolePermissions(
     // ✅ NEW: offices
     // For now: let each lane edit its own office selection.
     // (You said you want them in the Requirements section UI, but role-based enablement still makes sense.)
-    setEnabled(form.controls.requirementsOffice, isRequirements);
-    setEnabled(form.controls.contractingOffice, isRequirements);
-    setEnabled(form.controls.coordinatorOffice, isRequirements);
+    // Offices — editable only in Draft/Requirements by Requirements role
+    setEnabled(form.controls.requirementsOffice, canEditOffices);
+    setEnabled(form.controls.contractingOffice, canEditOffices);
+    setEnabled(form.controls.coordinatorOffice, canEditOffices);
+
 
     // Requirements section
     setEnabled(form.controls.requirementsTitle, isRequirements);

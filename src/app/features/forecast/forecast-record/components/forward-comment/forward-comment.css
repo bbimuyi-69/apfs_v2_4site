@@ -1,0 +1,101 @@
+.page {
+    background: #ffffff;
+    min-height: 100vh;
+}
+
+.wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 22px 20px;
+}
+
+.title {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 14px 0 18px;
+}
+
+.card {
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
+    padding: 18px;
+    background: #fff;
+}
+
+.label {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #cfcfcf;
+    border-radius: 4px;
+    padding: 10px 12px;
+    font-size: 14px;
+    outline: none;
+}
+
+.textarea:focus {
+    border-color: #1f4f7a;
+    box-shadow: 0 0 0 3px rgba(31, 79, 122, 0.14);
+}
+
+.textarea.is-invalid {
+    border-color: #c62828;
+    box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.14);
+}
+
+.help {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #444;
+}
+
+.err {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #b00020;
+}
+
+.api-err {
+    margin-top: 12px;
+    font-size: 13px;
+    color: #b42318;
+    background: #fffbfa;
+    border: 1px solid #fecdca;
+    border-radius: 6px;
+    padding: 10px 12px;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.btn {
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.btn.primary {
+    background: #1f5fae;
+    color: #fff;
+}
+
+.btn.cancel {
+    background: #f3b321;
+    color: #111;
+}
+
+.btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
