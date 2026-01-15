@@ -50,11 +50,15 @@
                     Reject &amp; Send Back <span class="rail-icon" aria-hidden="true">⤺</span>
                 </button>
 
-                <button type="button" class="rail-btn rail-btn-accent"
-                    (click)="onTransition(ForecastWorkflowLane.Requirements)" [disabled]="isApproveSendDisabled">
+                <button type="button" class="rail-btn rail-btn-accent" (click)="onApproveAndSend()"
+                    [disabled]="isLoading || !canApproveSend">
                     Approve &amp; Send
                     <span class="rail-icon" aria-hidden="true">✈️</span>
                 </button>
+
+
+
+
 
                 <button type="button" class="rail-btn rail-btn-danger" (click)="onDelete()"
                     [disabled]="!canDelete || isLoading">
@@ -84,7 +88,7 @@
             <!-- #endregion Loading / Error -->
 
             <!-- #region Record Info (System Managed) -->
-            <section class="sec">
+            <section class="sec" id="sec-record-info">
                 <div class="sec-h">
                     <div class="sec-title">
                         Record Info <span class="sec-sub">System managed</span>
@@ -121,7 +125,7 @@
             <!-- #endregion Record Info (System Managed) -->
 
             <!-- #region Requirements (Owned by Requirements) -->
-            <section class="sec" [class.readonly]="isEditMode && !canEditRequirementsSection">
+            <section class="sec" id="sec-requirements" [class.readonly]="isEditMode && !canEditRequirementsSection">
                 <div class="sec-h">
                     <div class="sec-title">
                         Requirements <span class="sec-sub">Owned by Requirements</span>
@@ -266,7 +270,7 @@
             <!-- #endregion Requirements (Owned by Requirements) -->
 
             <!-- #region Small Business (Owned by APFS Coordinator) -->
-            <section class="sec" [class.readonly]="isEditMode && !canEditCoordinatorSection">
+            <section class="sec" id="sec-small-business" [class.readonly]="isEditMode && !canEditCoordinatorSection">
                 <div class="sec-h">
                     <div class="sec-title">
                         Small Business <span class="sec-sub">Owned by APFS Coordinator</span>
@@ -303,7 +307,8 @@
             <!-- #endregion Small Business (Owned by APFS Coordinator) -->
 
             <!-- #region Value Classification (Coordinator / Contracting) -->
-            <section class="sec" [class.readonly]="isEditMode && !canEditClassificationSection">
+            <section class="sec" id="sec-value-classification"
+                [class.readonly]="isEditMode && !canEditClassificationSection">
                 <div class="sec-h">
                     <div class="sec-title">
                         Value Classification
@@ -320,10 +325,12 @@
                     <div class="field" [class.is-invalid]="isInvalid('dollarRange')">
                         <label>Dollar range <span class="req">*</span></label>
                         <select formControlName="dollarRange">
+                            <option value="">Select…</option>
                             <option *ngFor="let o of dollarRanges; trackBy: trackByValue" [value]="o.value">
                                 {{ o.label }}
                             </option>
                         </select>
+
                         <div class="hint">Select the dollar range for the total estimated value.</div>
                         <div class="error" *ngIf="showError('dollarRange','required')">Dollar range is required.</div>
                     </div>
@@ -343,7 +350,7 @@
             <!-- #endregion Value Classification (Coordinator / Contracting) -->
 
             <!-- #region Contracting Office (Owned by Contracting Office) -->
-            <section class="sec" [class.readonly]="isEditMode && !canEditContractingSection">
+            <section class="sec" id="sec-contracting" [class.readonly]="isEditMode && !canEditContractingSection">
                 <div class="sec-h">
                     <div class="sec-title">
                         Contracting Office <span class="sec-sub">Owned by Contracting Office</span>
@@ -522,10 +529,15 @@
 
     <!-- #region Debug Panel (optional) -->
     <div class="hint mono" style="font-size:12px;">
-        <li>form?.get('contractsOffice')?.value={{ form?.get('contractsOffice')?.value }}</li>
-        <li>form?.get('contractsOffice')?.invalid={{ form?.get('contractsOffice')?.invalid }}</li>
-        <li>form?.get('contractsOffice')?.disabled={{ form?.get('contractsOffice')?.disabled }}</li>
-        <li>form?.get('contractsOffice')?.errors={{ form?.get('contractsOffice')?.errors | json }}</li>
+        <li>form?.get('requirementsOffice')?.value={{ form?.get('requirementsOffice')?.value }}</li>
+        <li>form?.get('requirementsOffice')?.invalid={{ form?.get('requirementsOffice')?.invalid }}</li>
+        <li>form?.get('requirementsOffice')?.disabled={{ form?.get('requirementsOffice')?.disabled }}</li>
+        <li>form?.get('requirementsOffice')?.errors={{ form?.get('requirementsOffice')?.errors | json }}</li>
+
+        <li>form?.get('contractingOffice')?.value={{ form?.get('contractingOffice')?.value }}</li>
+        <li>form?.get('contractingOffice')?.invalid={{ form?.get('contractingOffice')?.invalid }}</li>
+        <li>form?.get('contractingOffice')?.disabled={{ form?.get('contractingOffice')?.disabled }}</li>
+        <li>form?.get('contractingOffice')?.errors={{ form?.get('contractingOffice')?.errors | json }}</li>
         <li> canApproveSend={{canApproveSend}} | isLoading={{isLoading}} | formValid={{form?.valid}}</li>
     </div>
     <!-- #endregion Debug Panel (optional) -->

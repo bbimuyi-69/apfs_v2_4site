@@ -15,3 +15,15 @@ Keeping it brief right now, will either keep simple and call API or expand model
 12) On assignment can assign to individual as well
 13) Need to add claim button on rails
 13) Cant unclaim or claim after someone else elaims
+14) Make the approve button say where its going
+15)Publish records change from a P TO A F
+16) Need an unpublish button
+17) Fiscal year needs to change Oct and instead of agency use 7000 codes
+18) Only Admins can re-assign and cannot skip steps
+19) When I reject it also needs to go back to dashboard
+
+
+
+BUGS
+1)Approve only aster I submit once and fields reset and then I can send
+2)When I Delete its not deleting history

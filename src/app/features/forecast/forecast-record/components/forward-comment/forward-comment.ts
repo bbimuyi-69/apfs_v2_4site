@@ -1,10 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { ForecastRecordService } from '../../services/forecast-record.service';
-import { AuthService } from '../../../../../auth/auth.service';
 
 @Component({
   selector: 'app-forward-comment',
@@ -13,13 +12,17 @@ import { AuthService } from '../../../../../auth/auth.service';
   templateUrl: './forward-comment.html',
   styleUrls: ['./forward-comment.css'],
 })
-export class ForwardCommentComponent {
+export class ForwardCommentComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly service = inject(ForecastRecordService);
-  private readonly auth = inject(AuthService);
 
   recordId: number | null = null;
+
+  // read from query params: ?from=Draft&to=Requirements&returnTo=record
+  fromLane: string | null = null;
+  toLane: string | null = null;
+  returnTo: 'record' | 'dashboard' = 'record';
 
   submitting = false;
   submitted = false;
@@ -33,12 +36,24 @@ export class ForwardCommentComponent {
   });
 
   ngOnInit(): void {
+    // route param :id
     const idRaw = this.route.snapshot.paramMap.get('id');
     const id = idRaw ? Number(idRaw) : NaN;
     this.recordId = Number.isFinite(id) ? id : null;
 
     if (!this.recordId) {
       this.error = 'Missing or invalid record id.';
+      return;
+    }
+
+    // query params
+    const qp = this.route.snapshot.queryParamMap;
+    this.fromLane = qp.get('from');
+    this.toLane = qp.get('to');
+    this.returnTo = (qp.get('returnTo') as any) === 'dashboard' ? 'dashboard' : 'record';
+
+    if (!this.toLane) {
+      this.error = 'Missing destination status (to).';
     }
   }
 
@@ -47,15 +62,30 @@ export class ForwardCommentComponent {
   }
 
   cancel(): void {
-    if (this.recordId) {
-      this.router.navigate(['/forecast', this.recordId], { queryParams: { mode: 'edit' } });
-    } else {
+    if (!this.recordId) {
       this.router.navigate(['/dashboard-v2']);
+      return;
     }
+
+    // go back to wherever you came from
+    if (this.returnTo === 'dashboard') {
+      this.router.navigate(['/dashboard-v2']);
+      return;
+    }
+
+    this.router.navigate(['/forecast', this.recordId], { queryParams: { mode: 'edit' } });
   }
 
   submitForward(): void {
     if (!this.recordId) return;
+
+    console.group('[Forward Submit]');
+    console.log('recordId:', this.recordId);
+    console.log('fromLane:', this.fromLane);
+    console.log('toLane:', this.toLane);
+    console.log('comment:', this.comment.value);
+    console.log('form.valid:', this.form.valid);
+    console.groupEnd();
 
     this.submitted = true;
     this.error = null;
@@ -63,28 +93,33 @@ export class ForwardCommentComponent {
     this.form.markAllAsTouched();
     if (this.form.invalid) return;
 
-    // You don't *need* to send user info for /advance because server uses x-user-id,
-    // but grabbing it is fine if you want for UI later.
-    const user: any =
-      (this.auth as any).user ??
-      (this.auth as any).session?.user ??
-      null;
+    const to = this.toLane;
+    if (!to) {
+      this.error = 'Missing destination status (to).';
+      return;
+    }
 
     const payload = {
+      to,
       comment: this.comment.value.trim(),
-      // (optional) you can include these if you later choose to store them server-side
-      userId: user?.id != null ? String(user.id) : null,
-      userDisplay: user?.email ?? null,
     };
 
     this.submitting = true;
 
-    this.service.advance(this.recordId, payload).subscribe({
+    this.service.transition(this.recordId, payload).subscribe({
       next: () => {
-        this.router.navigate(['/dashboard-v2']);
+        const shouldGoDashboard =
+          this.returnTo === 'dashboard' ||
+          this.fromLane === 'Requirements' && this.toLane === 'Contracting';
+
+        if (shouldGoDashboard) {
+          this.router.navigate(['/dashboard-v2']);
+        } else {
+          this.router.navigate(['/forecast', this.recordId], { queryParams: { mode: 'edit' } });
+        }
       },
       error: (e: any) => {
-        console.error('[ForwardComment] advance failed', e);
+        console.error('[ForwardComment] transition failed', e);
         this.error = e?.error?.message ?? 'Forward failed. Please try again.';
         this.submitting = false;
       },
@@ -92,6 +127,5 @@ export class ForwardCommentComponent {
         this.submitting = false;
       },
     });
-
   }
 }

@@ -423,22 +423,17 @@ export class ForecastRecordService {
     return of(unclaimed).pipe(delay(150));
   }
 
-  // =========================
-  // ✅ ADVANCE (new happy path)
-  // =========================
-  advance(id: number, body: { comment?: string } = {}) {
-    return this.http.post<{ record: ForecastRecord; history: any }>(
-      `${this.baseUrl}/${id}/advance`,
-      body,
+
+
+  /** POST /forecast-records/:id/transition
+ * Server expects: { to, comment? }
+ */
+  transition(id: number, body: { to: string; comment?: string | null }) {
+    return this.http.post<ForecastRecord>(
+      `${this.baseUrl}/${id}/transition`,
+      { to: body.to, comment: body.comment ?? '' },
       { headers: this.userHeaders() }
     );
-  }
-
-  /** POST /forecast-records/:id/transition */
-
-
-  transition(id: number, body: { from: string; to: string; comment?: string | null }) {
-    return this.http.post<ForecastRecord>(`${this.baseUrl}/${id}/transition`, body);
   }
 
 

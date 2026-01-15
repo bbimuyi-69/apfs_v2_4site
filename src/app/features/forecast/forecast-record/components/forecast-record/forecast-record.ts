@@ -128,6 +128,16 @@ export class ForecastRecordComponent {
     { value: 'APFS Coordination Cell', label: 'APFS Coordination Cell' },
   ];
 
+  //Constants for sectional scrolling
+  private readonly SECTION_IDS = [
+    '#sec-record-info',
+    '#sec-requirements',
+    '#sec-small-business',
+    '#sec-value-classification',
+    '#sec-contracting',
+    // '#sec-funding', // future
+  ] as const;
+
   trackByValue(_: number, item: OptionItem) {
     return item.value;
   }
@@ -565,6 +575,63 @@ export class ForecastRecordComponent {
     this.cdr.detectChanges();
   }
 
+  private scrollToFirstInvalidSection(): void {
+    queueMicrotask(() => {
+      const invalidEl =
+        document.querySelector<HTMLElement>('.is-invalid input, .is-invalid select, .is-invalid textarea') ??
+        document.querySelector<HTMLElement>('input.ng-invalid, select.ng-invalid, textarea.ng-invalid');
+
+      if (!invalidEl) return;
+
+      // 1️⃣ prefer explicit known sections
+      let section: HTMLElement | null = null;
+
+      for (const sel of this.SECTION_IDS) {
+        const found = invalidEl.closest<HTMLElement>(sel);
+        if (found) { section = found; break; }
+      }
+
+      // 2️⃣ fallback to nearest generic section
+      section ??= invalidEl.closest<HTMLElement>('section.sec');
+
+      // 3️⃣ scroll (use your slowed scroll)
+      if (section) {
+        const y = section.getBoundingClientRect().top + window.scrollY - 80;
+        this.smoothScrollTo(y, 900);
+      } else {
+        invalidEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+
+      invalidEl.focus({ preventScroll: true });
+    });
+  }
+
+
+  private smoothScrollTo(yTarget: number, duration = 700): void {
+    const yStart = window.scrollY;
+    const distance = yTarget - yStart;
+    const startTime = performance.now();
+
+    const easeInOut = (t: number) =>
+      t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+    const step = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = easeInOut(progress);
+
+      window.scrollTo(0, yStart + distance * eased);
+
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      }
+    };
+
+    requestAnimationFrame(step);
+  }
+
+
+
   private focusAfterAction(): void {
     // placeholder utility if you want to focus a known element after actions
   }
@@ -638,6 +705,24 @@ export class ForecastRecordComponent {
 
     this.computeRailPermissions();
   }
+
+
+  private triggerValidationUI(): boolean {
+    if (!this.form) return false;
+
+    this.submitted = true;
+    this.applyRoleRequiredValidators();
+    this.form.markAllAsTouched();
+
+    if (this.form.invalid) {
+      this.logInvalidControls();
+      this.focusFirstInvalid();
+      return false;
+    }
+
+    return true;
+  }
+
   //#endregion
 
   //#region Lifecycle
@@ -767,6 +852,11 @@ export class ForecastRecordComponent {
     console.log('form errors', this.form.errors);
   }
 
+  /**
+ * DEPRECATED (UI removed):
+ * Old submit handler before "Approve & Send" matched APFS behavior (validate + save + then comment).
+ * Kept temporarily for reference during refactor; safe to delete once forward flow is stable.
+ */
   onSubmit(): void {
     if (!this.form) return;
     if (!this.canApproveSend) return;
@@ -865,7 +955,20 @@ export class ForecastRecordComponent {
   }
   //#endregion
 
-  //#region Reject / Transition
+  //#region Reject / Transition / Workflow Helpers
+  private normalizeLane(raw: unknown): ForecastWorkflowLane | null {
+    const s = String(raw ?? '').trim().toLowerCase();
+    if (!s) return null;
+
+    if (s.includes('draft')) return ForecastWorkflowLane.Draft;
+    if (s.includes('require')) return ForecastWorkflowLane.Requirements;
+    if (s.includes('contract')) return ForecastWorkflowLane.Contracting;
+    if (s.includes('coordinator')) return ForecastWorkflowLane.APFSCoordinator;
+    if (s.includes('publish')) return ForecastWorkflowLane.Published;
+
+    return null;
+  }
+
   get canReject(): boolean {
     if (!this.isEditMode) return false;
     if (this.isPublished) return false;
@@ -889,16 +992,22 @@ export class ForecastRecordComponent {
     return true;
   }
 
+  //this might not be needed at some point
+  //this might not be needed at some point
   onTransition(toLane: ForecastWorkflowLane) {
     if (!this.form) return;
     if (!this.recordId) return;
 
     const fromLane = this.form.controls.workflowStatus.value;
 
-    console.log('toLane:', toLane, 'is enum?', toLane === ForecastWorkflowLane.Requirements);
+    console.group('[onTransition]');
+    console.log('recordId:', this.recordId);
+    console.log('fromLane:', fromLane);
+    console.log('toLane:', toLane);
+    console.groupEnd();
 
     // ✅ HARD exemption: Draft → Requirements (no comment, no forward screen)
-    if (fromLane === ForecastWorkflowLane.Draft && toLane === ForecastWorkflowLane.Requirements) {
+    if (this.isLane(fromLane, ForecastWorkflowLane.Draft) && this.isLane(toLane, ForecastWorkflowLane.Requirements)) {
       this.performTransition(toLane);
       return;
     }
@@ -908,6 +1017,124 @@ export class ForecastRecordComponent {
       queryParams: { from: fromLane, to: toLane, returnTo: 'record' },
     });
   }
+
+  onApproveAndSend(): void {
+    if (!this.form) return;
+    if (!this.recordId) return;
+
+    const fromLaneRaw = this.form.controls.workflowStatus.value;
+    const toLane = this.nextLaneFromAny(fromLaneRaw);
+
+    if (!toLane) {
+      alert(`Cannot determine next lane from "${fromLaneRaw}". Check enum/string mapping.`);
+      return;
+    }
+
+    // ✅ highlights missing fields + focuses first invalid
+    if (!this.triggerValidationUI()) return;
+
+    // 2) save current form data BEFORE routing to comment screen
+    const raw = this.form.getRawValue() as any;
+
+    const idNum = Number(this.recordId);
+    if (!Number.isFinite(idNum)) {
+      alert('Invalid record id.');
+      return;
+    }
+
+    // merge to avoid wiping fields not represented by the form
+    const base: ForecastRecord = this.record ?? ({ id: idNum } as ForecastRecord);
+
+    const recordToSave: ForecastRecord = this.normalizeOutgoing({
+      ...base,
+      ...raw,
+      id: idNum,
+    });
+
+    this.loadError = null;
+
+    this.service.update(recordToSave).subscribe({
+      next: () => {
+        // ✅ Keep your “Draft → Requirements is instant” rule
+        if (
+          this.isLane(fromLaneRaw, ForecastWorkflowLane.Draft) &&
+          this.isLane(toLane, ForecastWorkflowLane.Requirements)
+        ) {
+          this.performTransition(toLane);
+          return;
+        }
+
+        // ✅ otherwise route to forward/comment screen
+        this.router.navigate(['/forecast', this.recordId, 'forward'], {
+          queryParams: { from: fromLaneRaw, to: toLane, returnTo: 'record' },
+        });
+      },
+      error: (e: any) => {
+        console.error('[Approve & Send] save failed', e);
+        this.loadError = e?.error?.message ?? e?.message ?? 'Save failed. Please try again.';
+      },
+    });
+  }
+
+
+
+  /** Optional: scrub/shape raw form values if needed */
+  private normalizeOutgoing(v: any): any {
+    // If your selects emit "" when unselected, convert to null (optional)
+    if (v.dollarRange === '') v.dollarRange = null;
+    if (v.naicsCode === '') v.naicsCode = null;
+    return v;
+  }
+
+
+
+
+  /**
+   * Robust next-lane resolver.
+   * Works whether workflowStatus is:
+   * - enum value
+   * - 'Contracting'
+   * - 'Contracting Office'
+   * - 'APFS Coordinator'
+   * - etc.
+   */
+  private nextLaneFromAny(from: unknown): ForecastWorkflowLane | null {
+    const s = String(from ?? '').trim().toLowerCase();
+    if (!s) return null;
+
+    if (s.includes('draft')) return ForecastWorkflowLane.Requirements;
+    if (s.includes('require')) return ForecastWorkflowLane.Contracting;
+    if (s.includes('contract')) return ForecastWorkflowLane.APFSCoordinator;
+    if (s.includes('coordinator')) return ForecastWorkflowLane.Published;
+    if (s.includes('publish')) return null;
+
+    return this.nextLaneStrict(this.normalizeLane(from));
+  }
+
+
+  /** Strict mapping when the value already matches the enum */
+  private nextLaneStrict(from: ForecastWorkflowLane | null): ForecastWorkflowLane | null {
+    switch (from) {
+      case ForecastWorkflowLane.Draft:
+        return ForecastWorkflowLane.Requirements;
+      case ForecastWorkflowLane.Requirements:
+        return ForecastWorkflowLane.Contracting;
+      case ForecastWorkflowLane.Contracting:
+        return ForecastWorkflowLane.APFSCoordinator;
+      case ForecastWorkflowLane.APFSCoordinator:
+        return ForecastWorkflowLane.Published;
+      default:
+        return null;
+    }
+  }
+
+
+  /** Handles enum vs string comparisons safely */
+  private isLane(value: unknown, lane: ForecastWorkflowLane): boolean {
+    return String(value ?? '').trim().toLowerCase() === String(lane ?? '').trim().toLowerCase();
+  }
+
+
 
   private performTransition(toLane: ForecastWorkflowLane): void {
     if (!this.form) return;
@@ -926,7 +1153,6 @@ export class ForecastRecordComponent {
 
     this.service
       .transition(id, {
-        from: fromLane,
         to: toLane,
         comment: comment || null,
       })
@@ -979,7 +1205,7 @@ export class ForecastRecordComponent {
   }
   //#endregion
 
-  //#region Navigation / Rail Handlers
+  //#region Navigation / Rail Handlers 
   onCancel(): void {
     this.router.navigate(['/dashboard-v2']);
   }
