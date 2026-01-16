@@ -20,6 +20,11 @@
           <li><a routerLink="/about" routerLinkActive="active">About</a></li>
           <li><a routerLink="/contact" routerLinkActive="active">Contact Us</a></li>
 
+          <a *ngIf="auth.isAdmin" class="top-nav-item" routerLink="/admin">
+            System Administration
+          </a>
+
+
           <li *ngIf="auth.isLoggedIn">
             <a routerLink="/dashboard-v2" routerLinkActive="active">Dashboard</a>
           </li>

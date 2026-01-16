@@ -1,0 +1,46 @@
+<div class="admin-shell">
+    <div class="admin-head">
+        <div>
+            <h1 class="title">System Administration</h1>
+            <p class="subtitle">
+                Manage users, roles, and system configuration.
+            </p>
+        </div>
+
+        <div class="whoami" *ngIf="auth.user as u">
+            <div class="whoami-label">Signed in as</div>
+            <div class="whoami-name">{{ u.firstName }} {{ u.lastName }}</div>
+            <div class="whoami-meta">{{ u.role }} • {{ u.component }} • {{ u.office }}</div>
+        </div>
+    </div>
+
+    <div class="card-grid">
+        <div class="card">
+            <div class="card-title">User Management</div>
+            <div class="card-body">
+                Activate/deactivate users and update role, component, and office assignments.
+            </div>
+            <button class="btn" type="button" (click)="goUsers()">Open</button>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Lookup Tables</div>
+            <div class="card-body">
+                Maintain picklists like NAICS codes, set-asides, dollar ranges, and offices.
+            </div>
+            <button class="btn" type="button" (click)="goLookups()">Open</button>
+        </div>
+
+        <div class="card muted">
+            <div class="card-title">System Settings</div>
+            <div class="card-body">
+                Coming soon: workflow rules, feature flags, maintenance mode.
+            </div>
+            <button class="btn secondary" type="button" disabled>Coming soon</button>
+        </div>
+    </div>
+
+    <div class="note">
+        <strong>Tip:</strong> This is a shell page. Next we’ll add <em>/admin/users</em> and <em>/admin/lookups</em>.
+    </div>
+</div>

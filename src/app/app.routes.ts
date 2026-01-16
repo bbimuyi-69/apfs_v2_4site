@@ -32,6 +32,30 @@ export const routes: Routes = [
     { path: 'user-login', component: UserLogin, data: { title: 'User Login' } },
 
     {
+        path: 'admin',
+        canActivate: [authGuard],
+        loadComponent: () => import('./features/admin/admin-home/admin-home').then(m => m.AdminHome),
+    },
+    {
+        path: 'admin/users',
+        canActivate: [authGuard],
+        loadComponent: () =>
+            import('./features/admin/admin-users/admin-users').then(m => m.AdminUsers),
+    },
+    {
+        path: 'admin/users/:id/edit',
+        canActivate: [authGuard],
+        loadComponent: () =>
+            import('./components/user/request-new-user-form/request-new-user-form')
+                .then(m => m.RequestNewUserForm) // <-- use your real exported class name
+    },
+
+
+
+
+
+
+    {
         path: 'dashboard-v2',
         component: DashboardV2Page,
         canActivate: [authGuard],

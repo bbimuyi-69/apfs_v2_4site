@@ -1,5 +1,8 @@
 <div class="page-body">
-    <h2 class="form-title">APFS Access Request for DHS Personnel</h2>
+    <h2 class="form-title">Four Site Access Request for DHS Personnel</h2>
+
+    <h2>{{ isEditMode ? 'Edit User' : 'New User Request' }}</h2>
+
 
     <form class="access-form" [formGroup]="requestNewUserForm" (ngSubmit)="onSubmit()">
 
@@ -58,20 +61,29 @@
 
         <!-- Component -->
         <div class="form-row">
-            <label for="component">Component</label>
+            <label for="component">
+                Component
+                <span *ngIf="isEditMode" class="hint-hover">
+                    <span class="hint-trigger" aria-label="Why is component locked?">ⓘ</span>
+                    <span class="field-hint">Component cannot be changed after user creation.</span>
+                </span>
+            </label>
+
             <select id="component" formControlName="component">
                 <option value="" disabled>Select…</option>
                 <option *ngFor="let c of components" [value]="c">{{ c }}</option>
             </select>
+
             <div class="field-error" *ngIf="showError('component')">
                 Component is required.
             </div>
         </div>
 
+
         <!-- Role -->
         <div class="form-row">
             <label for="role">APFS Functional Role</label>
-            <select id="role" formControlName="role" [disabled]="!requestNewUserForm.get('employeeType')?.value">
+            <select id="role" formControlName="role">
                 <option value="" disabled>Select…</option>
 
                 <option *ngIf="!requestNewUserForm.get('employeeType')?.value" value="" disabled>
@@ -93,10 +105,7 @@
         <!-- Office (Component + Role dependent) -->
         <div class="form-row">
             <label for="office">Office</label>
-            <select id="office" formControlName="office" [disabled]="
-          !requestNewUserForm.get('component')?.value ||
-          !requestNewUserForm.get('role')?.value
-        ">
+            <select id="office" formControlName="office">
                 <option value="" disabled>Select…</option>
 
                 <option *ngIf="!requestNewUserForm.get('component')?.value" value="" disabled>
@@ -126,20 +135,20 @@
             </div>
         </div>
 
-        <!-- User ID (optional) -->
+        <!-- User ID (optional) 
         <div class="form-row">
             <label for="id">User ID</label>
             <input id="id" type="text" formControlName="id" />
             <div class="field-hint">
                 Optional (if unknown, leave blank).
             </div>
-        </div>
+        </div>-->
 
-        <!-- Is Active -->
-        <div class="form-row checkbox-row">
+        <div *ngIf="isEditMode" class="form-row checkbox-row">
             <label for="isActive">Is Active</label>
             <input id="isActive" type="checkbox" formControlName="isActive" />
         </div>
+
 
         <!-- Messages -->
         <div *ngIf="submissionSuccess" class="message success">

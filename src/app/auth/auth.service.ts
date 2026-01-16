@@ -30,6 +30,13 @@ export class AuthService {
     return !!this.session;
   }
 
+  /** System Administration access */
+  get isAdmin(): boolean {
+    // matches your db.json user role: "Admin"
+    return this.user?.role === 'Admin';
+  }
+
+
   /**
    * DEV login:
    * - requires password === 'password' (same behavior you had)

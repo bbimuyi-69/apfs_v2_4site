@@ -1,29 +1,62 @@
-1)
-User Comps
-Keeping it brief right now, will either keep simple and call API or expand model
+TODOs
+1) Assign to offices
+2) Filter records by office
+3) Add AFPS Number to records
+4) Deal with delete on records and history
+5) *Verify Should not send foward is form is invalid
+6) On assignment can assign to individual as well
+7) Need to add claim button on rails
+8) On assignment can assign to individual as well
+9) Make the approve button say where its going
+10) Publish records change from a P TO A F
+11) Need an unpublish button
+12) Fiscal year needs to change Oct and instead of agency use 7000 codes
+13) Only Admins can re-assign and cannot skip steps 
+14) When I reject it also needs to go back to dashboard
+15) Need an unpublish button
+16) When submitting a new request it should go to home page and add a message that it was submitted
 
+
+
+
+TODOs   
+/System Admin Features
+1) Create System Admin Dashboard
+
+
+
+
+
+/COMPLETED
+13) ***Done Cant unclaim or claim after someone else elaims
+9) *DONE Adding a comment in approving
+7) ***Done Maybe remove component
 2)Hide New Request from only users with role": "Requirements"
 3)*DONE Add AFPS Number
 4)*DONE Create History on each transaction
-5)Filter records by office
 6)*DONE Differntiate beweetn submit and approve and send - DELETED Submit
-7) ***Done Maybe remove component
-8) Assign to office
 9) *DONE Adding a comment in approving
-10) Deal with delete on records and history
-11) *Verify Should not send foward is form is invalid
-12) On assignment can assign to individual as well
-13) Need to add claim button on rails
-13) Cant unclaim or claim after someone else elaims
-14) Make the approve button say where its going
-15)Publish records change from a P TO A F
-16) Need an unpublish button
-17) Fiscal year needs to change Oct and instead of agency use 7000 codes
-18) Only Admins can re-assign and cannot skip steps
-19) When I reject it also needs to go back to dashboard
+
 
 
 
 BUGS
 1)Approve only aster I submit once and fields reset and then I can send
 2)When I Delete its not deleting history
+
+
+Current Status:
+On branch Baseline_011526
+Your branch is up to date with 'origin/Baseline_011526'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   TODOs
+        modified:   src/app/app.html
+        modified:   src/app/app.routes.ts
+        modified:   src/app/auth/auth.service.ts
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        src/app/features/admin/
