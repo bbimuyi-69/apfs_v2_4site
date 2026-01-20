@@ -1,0 +1,174 @@
+<div class="page-body">
+    <h2 class="form-title">Four Site Access Request for DHS Personnel</h2>
+
+    <h2>{{ isEditMode ? 'Edit User' : 'New User Request' }}</h2>
+
+
+    <form class="access-form" [formGroup]="requestNewUserForm" (ngSubmit)="onSubmit()">
+
+        <!-- Job Title -->
+        <div class="form-row">
+            <label for="title">Job Title</label>
+            <input id="title" type="text" formControlName="title" />
+            <div class="field-error" *ngIf="showError('title')">
+                Job title is required.
+            </div>
+        </div>
+
+        <!-- First Name -->
+        <div class="form-row">
+            <label for="firstName">First Name</label>
+            <input id="firstName" type="text" formControlName="firstName" />
+            <div class="field-error" *ngIf="showError('firstName')">
+                First name is required.
+            </div>
+        </div>
+
+        <!-- Last Name -->
+        <div class="form-row">
+            <label for="lastName">Last Name</label>
+            <input id="lastName" type="text" formControlName="lastName" />
+            <div class="field-error" *ngIf="showError('lastName')">
+                Last name is required.
+            </div>
+        </div>
+
+        <!-- Email -->
+        <div class="form-row">
+            <label for="email">Email Address</label>
+            <input id="email" type="email" formControlName="email" />
+            <div class="field-error" *ngIf="showError('email')">
+                <span *ngIf="requestNewUserForm.controls['email']?.errors?.['required']">
+                    Email is required.
+                </span>
+                <span *ngIf="requestNewUserForm.controls['email']?.errors?.['email']">
+                    Enter a valid email address.
+                </span>
+            </div>
+        </div>
+
+        <!-- Employee Type -->
+        <div class="form-row">
+            <label for="employeeType">Employee Type</label>
+            <select id="employeeType" formControlName="employeeType">
+                <option value="" disabled>Select…</option>
+                <option *ngFor="let t of employeeTypes" [value]="t">{{ t }}</option>
+            </select>
+            <div class="field-error" *ngIf="showError('employeeType')">
+                Employee type is required.
+            </div>
+        </div>
+
+        <!-- Component -->
+        <div class="form-row">
+            <label for="component">
+                Component
+                <span *ngIf="isEditMode" class="hint-hover">
+                    <span class="hint-trigger" aria-label="Why is component locked?">ⓘ</span>
+                    <span class="field-hint">Component cannot be changed after user creation.</span>
+                </span>
+            </label>
+
+            <select id="component" formControlName="component">
+                <option value="" disabled>Select…</option>
+                <option *ngFor="let c of components" [value]="c">{{ c }}</option>
+            </select>
+
+            <div class="field-error" *ngIf="showError('component')">
+                Component is required.
+            </div>
+        </div>
+
+
+        <!-- Role -->
+        <div class="form-row">
+            <label for="role">APFS Functional Role</label>
+            <select id="role" formControlName="role">
+                <option value="" disabled>Select…</option>
+
+                <option *ngIf="!requestNewUserForm.get('employeeType')?.value" value="" disabled>
+                    Select an Employee Type first…
+                </option>
+
+                <option *ngIf="requestNewUserForm.get('employeeType')?.value && roleOptions.length === 0" value=""
+                    disabled>
+                    No roles available for this Employee Type…
+                </option>
+
+                <option *ngFor="let r of roleOptions" [value]="r">{{ r }}</option>
+            </select>
+            <div class="field-error" *ngIf="showError('role')">
+                Role is required.
+            </div>
+        </div>
+
+        <!-- Office (Component + Role dependent) -->
+        <div class="form-row">
+            <label for="office">Office</label>
+            <select id="office" formControlName="office">
+                <option value="" disabled>Select…</option>
+
+                <option *ngIf="!requestNewUserForm.get('component')?.value" value="" disabled>
+                    Select a Component first…
+                </option>
+
+                <option *ngIf="
+            requestNewUserForm.get('component')?.value &&
+            !requestNewUserForm.get('role')?.value
+          " value="" disabled>
+                    Select a Role first…
+                </option>
+
+                <option *ngIf="
+            requestNewUserForm.get('component')?.value &&
+            requestNewUserForm.get('role')?.value &&
+            officeOptions.length === 0
+          " value="" disabled>
+                    No offices available for this Component / Role…
+                </option>
+
+                <option *ngFor="let o of officeOptions" [value]="o">{{ o }}</option>
+            </select>
+
+            <div class="field-error" *ngIf="showError('office')">
+                Office is required.
+            </div>
+        </div>
+
+        <!-- User ID (optional) 
+        <div class="form-row">
+            <label for="id">User ID</label>
+            <input id="id" type="text" formControlName="id" />
+            <div class="field-hint">
+                Optional (if unknown, leave blank).
+            </div>
+        </div>-->
+
+        <div *ngIf="isEditMode" class="form-row checkbox-row">
+            <label for="isActive">Is Active</label>
+            <input id="isActive" type="checkbox" formControlName="isActive" />
+        </div>
+
+
+        <!-- Messages -->
+        <div *ngIf="submissionSuccess" class="message success">
+            User request successfully submitted!
+        </div>
+
+        <div *ngIf="submissionError" class="message error">
+            {{ submissionError }}
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary" [disabled]="requestNewUserForm.invalid || isSubmitting">
+                {{ isSubmitting ? 'Submitting…' : 'Send your request' }}
+            </button>
+
+            <button type="button" class="btn btn-secondary" (click)="cancel()">
+                Cancel
+            </button>
+        </div>
+
+    </form>
+</div>

@@ -1,0 +1,85 @@
+<div class="page">
+    <div class="head">
+        <div>
+            <h1 class="title">User Management</h1>
+            <p class="subtitle">View and search system users.</p>
+        </div>
+
+        <div class="actions">
+            <a class="btn secondary" routerLink="/admin">Back</a>
+        </div>
+
+
+
+
+    </div>
+
+    <div class="controls">
+        <div class="search">
+            <label class="label" for="q">Search</label>
+            <div class="search-row">
+                <input id="q" type="text" [formControl]="q" placeholder="Name, email, role, component, office…" />
+                <button type="button" class="btn secondary" (click)="clearSearch()" [disabled]="!q.value">
+                    Clear
+                </button>
+            </div>
+
+            <div class="status">
+                <span *ngIf="loading" class="pill">Loading…</span>
+                <span *ngIf="error" class="pill error">{{ error }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+        <table class="table" *ngIf="(users$ | async) as users">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Component</th>
+                    <th>Office</th>
+                    <th class="center">Active</th>
+                </tr>
+            </thead>
+
+            <tbody *ngIf="users.length; else empty">
+                <tr *ngFor="let u of users; trackBy: trackById">
+                    <td class="strong">{{ u.firstName }} {{ u.lastName }}</td>
+                    <td class="mono">{{ u.email }}</td>
+                    <td>{{ u.role }}</td>
+                    <td>{{ u.component }}</td>
+                    <td>{{ u.office }}</td>
+                    <td class="center">
+                        <span class="pill-wrapper">
+                            <span class="pill" [class.ok]="u.isActive" [class.off]="!u.isActive">
+                                {{ u.isActive ? 'Yes' : 'No' }}
+                            </span>
+
+                            <span *ngIf="!u.isActive" class="field-hint">
+                                Inactive users cannot sign in.
+                            </span>
+                        </span>
+                    </td>
+
+
+
+                    <td class="center">
+
+                        <button type="button" class="btn secondary" (click)="startEditUser(u)">Edit</button>
+
+
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <ng-template #empty>
+            <div class="empty">
+                <div class="empty-title">No users found</div>
+                <div class="empty-sub">Try a different search term.</div>
+            </div>
+        </ng-template>
+    </div>
+</div>
