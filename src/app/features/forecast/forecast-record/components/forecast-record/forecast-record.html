@@ -32,6 +32,8 @@
             </div>
             <!-- #endregion Rail Card: Utilities -->
 
+
+
             <!-- #region Rail Card: Primary Actions -->
             <div class="rail-card">
                 <button type="button" class="rail-btn rail-btn-primary" (click)="onSaveDraft()"
@@ -51,10 +53,14 @@
                 </button>
 
                 <button type="button" class="rail-btn rail-btn-accent" (click)="onApproveAndSend()"
-                    [disabled]="isLoading || !canApproveSend">
+                    [disabled]="isLoading || !canApproveSend || isDraft">
                     Approve &amp; Send
                     <span class="rail-icon" aria-hidden="true">✈️</span>
                 </button>
+
+
+
+
 
 
 
@@ -459,9 +465,22 @@
 
             <!-- #region Bottom Actions -->
             <div class="apfs-actions">
-                <button type="button" class="btn-primary" (click)="onSaveDraft()" [disabled]="!canSave || isLoading">
-                    Save Draft
+                <span *ngIf="saveSuccessMessage" class="save-success">
+                    ✓ Record saved
+                </span>
+
+                <button type="button" class="btn-primary" (click)="recordId ? onSaveRecord() : onSaveDraft()"
+                    [disabled]="!canSave || isLoading">
+                    {{ recordId ? 'Save Record' : 'Save Draft' }}
                 </button>
+
+
+
+                <!--<button type="button" class="btn-primary" (click)="recordId ? onSubmit() : onSaveDraft()"
+                    [disabled]="!canSave || isLoading">
+                    {{ recordId ? 'Save Record' : 'Save Draft' }}
+                </button>-->
+
 
                 <!--
         <button type="button" class="btn-secondary" (click)="onSubmit()" [disabled]="!canApproveSend || isLoading">

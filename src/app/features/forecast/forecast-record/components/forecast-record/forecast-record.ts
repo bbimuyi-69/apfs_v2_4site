@@ -89,6 +89,10 @@ export class ForecastRecordComponent {
   private readonly service = inject(ForecastRecordService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly auth = inject(AuthService);
+
+  hasSavedRecord = false; // ✅ HERE to track if we have saved at least once
+  saveSuccessMessage = false;
+
   //#endregion
 
   //#region Lookups
@@ -567,6 +571,9 @@ export class ForecastRecordComponent {
 
     this.computeRailPermissions();
   }
+
+
+
   //#endregion
 
   //#region View / UI Refresh Utilities
@@ -731,6 +738,7 @@ export class ForecastRecordComponent {
 
     // initial shell
     this.form = buildForecastRecordForm(createEmptyForecastRecord());
+    this.hasSavedRecord = true;
     this.submitted = false;
 
     // ✅ lock component from auth (read-only)
@@ -810,10 +818,19 @@ export class ForecastRecordComponent {
 
   //#region Save / Submit
   onSaveDraft(): void {
+
+    console.log('[onSaveDraft]', {
+      recordId: this.recordId,
+      willCall: this.recordId ? 'update' : 'create-path',
+    });
+
+    console.log('[onSaveDraft] ENTER', { recordId: this.recordId });
     if (!this.form) return;
     if (!this.canSave) return;
 
     const raw = this.form.getRawValue() as any;
+
+    console.log('[onSaveDraft] after getRawValue', { recordId: this.recordId });
 
     // Server owns these on CREATE (and update protects them anyway)
     if (!this.recordId) {
@@ -825,15 +842,96 @@ export class ForecastRecordComponent {
       ? ({ ...raw, id: Number(this.recordId) } as ForecastRecord)
       : (raw as ForecastRecord);
 
+    console.log('[onSaveDraft] service methods', {
+      hasCreate: typeof (this.service as any).create,
+      hasUpdate: typeof (this.service as any).update,
+      hasTransition: typeof (this.service as any).transition,
+    });
+
+
     const request$ = this.recordId
       ? this.service.update(payload)
       : this.service.create(payload);
+
+    console.log('[onSaveDraft] BEFORE request subscribe', { recordId: this.recordId });
 
     request$.subscribe({
       next: () => this.router.navigate(['/dashboard-v2']),
       error: (e: unknown) => console.error('Save failed', e),
     });
+
+    this.hasSavedRecord = true;
+    this.saveSuccessMessage = true;
+
+    // optional: auto-hide after 3 seconds
+    setTimeout(() => {
+      this.saveSuccessMessage = false;
+      this.flushView?.();
+    }, 3000);
+
+
   }
+
+  //Nav Rail on Approve & Send
+  onApproveAndSend(): void {
+    console.log('[onApproveAndSend]');
+    if (!this.form) return;
+    if (!this.recordId) return;
+
+    const fromLaneRaw = this.form.controls.workflowStatus.value;
+    const toLane = this.nextLaneFromAny(fromLaneRaw);
+
+    if (!toLane) {
+      alert(`Cannot determine next lane from "${fromLaneRaw}". Check enum/string mapping.`);
+      return;
+    }
+
+    // ✅ highlights missing fields + focuses first invalid
+    if (!this.triggerValidationUI()) return;
+
+    // 2) save current form data BEFORE routing to comment screen
+    const raw = this.form.getRawValue() as any;
+
+    const idNum = Number(this.recordId);
+    if (!Number.isFinite(idNum)) {
+      alert('Invalid record id.');
+      return;
+    }
+
+    // merge to avoid wiping fields not represented by the form
+    const base: ForecastRecord = this.record ?? ({ id: idNum } as ForecastRecord);
+
+    const recordToSave: ForecastRecord = this.normalizeOutgoing({
+      ...base,
+      ...raw,
+      id: idNum,
+    });
+
+    this.loadError = null;
+
+    this.service.update(recordToSave).subscribe({
+      next: () => {
+        // ✅ Keep your “Draft → Requirements is instant” rule
+        if (
+          this.isLane(fromLaneRaw, ForecastWorkflowLane.Draft) &&
+          this.isLane(toLane, ForecastWorkflowLane.Requirements)
+        ) {
+          this.performTransition(toLane);
+          return;
+        }
+
+        // ✅ otherwise route to forward/comment screen
+        this.router.navigate(['/forecast', this.recordId, 'forward'], {
+          queryParams: { from: fromLaneRaw, to: toLane, returnTo: 'record' },
+        });
+      },
+      error: (e: any) => {
+        console.error('[Approve & Send] save failed', e);
+        this.loadError = e?.error?.message ?? e?.message ?? 'Save failed. Please try again.';
+      },
+    });
+  }
+
 
   logInvalidControls(): void {
     if (!this.form) return;
@@ -892,6 +990,71 @@ export class ForecastRecordComponent {
       error: (e) => console.error('Create failed', e),
     });
   }
+
+
+  onSaveRecord(): void {
+    if (!this.form) return;
+    if (!this.recordId) return;
+    if (!this.canSave) return;
+
+    const idNum = Number(this.recordId);
+    if (!Number.isFinite(idNum)) return;
+
+    if (!this.triggerValidationUI()) return;
+
+    const raw = this.form.getRawValue() as any;
+    const base: ForecastRecord = this.record ?? ({ id: idNum } as ForecastRecord);
+
+    const currentLane = this.form.controls.workflowStatus.value;
+    const nextLane = this.isLane(currentLane, ForecastWorkflowLane.Draft)
+      ? ForecastWorkflowLane.Requirements
+      : currentLane;
+
+    const recordToSave: ForecastRecord = this.normalizeOutgoing({
+      ...base,
+      ...raw,
+      id: idNum,
+      workflowStatus: nextLane,
+    });
+
+    this.isLoading = true;
+    this.flushView();
+
+    this.service.update(recordToSave).subscribe({
+      next: (updated) => {
+        this.record = updated;
+
+        // rebuild form so workflowStatus reflects server truth
+        this.form = buildForecastRecordForm(updated);
+        this.submitted = false;
+
+        this.lockComponentFromAuth();
+        this.hydrateOfficeFromProfile();
+        this.applyAccessState();
+        this.hydratePrimaryContactFromProfile();
+
+        this.isLoading = false;
+        this.flushView(); // ✅ this is the key piece for re-enabling Approve & Send
+        this.hasSavedRecord = true;
+        this.saveSuccessMessage = true;
+
+        // optional: auto-hide after 3 seconds
+        setTimeout(() => {
+          this.saveSuccessMessage = false;
+          this.flushView?.();
+        }, 3000);
+
+
+      },
+      error: (e: any) => {
+        console.error('[onSaveRecord] save failed', e);
+        this.loadError = e?.error?.message ?? e?.message ?? 'Save failed. Please try again.';
+        this.isLoading = false;
+        this.flushView(); // ✅ also flush on error
+      },
+    });
+  }
+
   //#endregion
 
   //#region Delete
@@ -1018,63 +1181,6 @@ export class ForecastRecordComponent {
     });
   }
 
-  onApproveAndSend(): void {
-    if (!this.form) return;
-    if (!this.recordId) return;
-
-    const fromLaneRaw = this.form.controls.workflowStatus.value;
-    const toLane = this.nextLaneFromAny(fromLaneRaw);
-
-    if (!toLane) {
-      alert(`Cannot determine next lane from "${fromLaneRaw}". Check enum/string mapping.`);
-      return;
-    }
-
-    // ✅ highlights missing fields + focuses first invalid
-    if (!this.triggerValidationUI()) return;
-
-    // 2) save current form data BEFORE routing to comment screen
-    const raw = this.form.getRawValue() as any;
-
-    const idNum = Number(this.recordId);
-    if (!Number.isFinite(idNum)) {
-      alert('Invalid record id.');
-      return;
-    }
-
-    // merge to avoid wiping fields not represented by the form
-    const base: ForecastRecord = this.record ?? ({ id: idNum } as ForecastRecord);
-
-    const recordToSave: ForecastRecord = this.normalizeOutgoing({
-      ...base,
-      ...raw,
-      id: idNum,
-    });
-
-    this.loadError = null;
-
-    this.service.update(recordToSave).subscribe({
-      next: () => {
-        // ✅ Keep your “Draft → Requirements is instant” rule
-        if (
-          this.isLane(fromLaneRaw, ForecastWorkflowLane.Draft) &&
-          this.isLane(toLane, ForecastWorkflowLane.Requirements)
-        ) {
-          this.performTransition(toLane);
-          return;
-        }
-
-        // ✅ otherwise route to forward/comment screen
-        this.router.navigate(['/forecast', this.recordId, 'forward'], {
-          queryParams: { from: fromLaneRaw, to: toLane, returnTo: 'record' },
-        });
-      },
-      error: (e: any) => {
-        console.error('[Approve & Send] save failed', e);
-        this.loadError = e?.error?.message ?? e?.message ?? 'Save failed. Please try again.';
-      },
-    });
-  }
 
 
 

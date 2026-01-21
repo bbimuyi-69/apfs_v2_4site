@@ -680,6 +680,20 @@
 /* ===================================
    Utilities
 =================================== */
+
+.save-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.save-success {
+    font-size: 13px;
+    color: #15803d;
+    /* calm green */
+    opacity: 0.9;
+}
+
 .hint {
     margin-top: 6px;
     font-size: 11px;

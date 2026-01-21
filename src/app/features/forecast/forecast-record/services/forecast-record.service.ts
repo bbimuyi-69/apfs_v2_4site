@@ -223,6 +223,9 @@ export class ForecastRecordService {
   }
 
   update(record: ForecastRecord): Observable<ForecastRecord> {
+
+    console.trace('[ForecastRecordService.update] called');
+
     if (!record.id) {
       return throwError(() => new Error('ForecastRecord.id is required for update'));
     }
@@ -252,6 +255,7 @@ export class ForecastRecordService {
    * Prefer `advance()` for lane transitions + history.
    */
   submit(id: number, submittedBy: string | null = null): Observable<ForecastRecord> {
+    console.trace('[ForecastRecordService.submit] called');
     if (!this.useMock) {
       return this.http
         .post<ForecastRecord>(`${this.baseUrl}/${id}/submit`, { submittedBy }, { headers: this.userHeaders() })
