@@ -1,11 +1,15 @@
 @import './styles/_tokens.css';
 @import './styles/_components.css';
 
-html, body { height: 100%; }
-body{
-  margin:0;
-  font-family:var(--font);
-  background:var(--bg);
-  color:var(--text);
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow-x: clip;
 }
-*{ box-sizing:border-box; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+}

@@ -1,15 +1,16 @@
 /* ===============================
-   APFS Angular Homepage Styles
+   APFS App Shell Styles (theme-safe)
    =============================== */
 
 :host {
   display: block;
-  background: #f5f7fa;
-  font-family: Arial, Helvetica, sans-serif;
   min-height: 100vh;
+
+  /* Let global styles.css own body bg/font.
+     Keep :host transparent so theme shows through. */
+  background: transparent;
+  font-family: var(--font);
 }
-
-
 
 .app-layout {
   min-height: 100vh;
@@ -17,41 +18,34 @@
   flex-direction: column;
 }
 
-
-
 /* ===============================
-   Header
+   Header (Top nav area)
    =============================== */
-.app-header-band {
-  background: #264a73;
-  color: #fff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
-  margin-bottom: 14px;
-  border-radius: 8px;
-  /* keep your spacing */
-}
 
 .apfs-header {
-  background: #ffffff;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
 }
 
 .apfs-header-inner {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 10px 15px;
+  padding: var(--s-2) var(--s-4);
+
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 20px;
+  gap: var(--s-5);
+
   overflow: visible;
   /* allow dropdowns to escape */
 }
 
-/* Scoped brand styles to avoid collisions with other components */
+/* Brand */
 .apfs-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--s-3);
 }
 
 .apfs__logo {
@@ -62,13 +56,13 @@
 .brand-text .brand-title {
   font-size: 14px;
   font-weight: 800;
-  color: #264a78;
+  color: var(--text);
   line-height: 1.1;
 }
 
 .brand-text .brand-sub {
   font-size: 11px;
-  color: #6b6e70;
+  color: var(--muted);
   line-height: 1.1;
 }
 
@@ -84,24 +78,32 @@
   list-style: none;
   margin: 0;
   padding: 0;
+
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: var(--s-4);
+
   overflow: visible;
 }
 
-.nav-links a {
+.nav-links a,
+.dropdown-toggle {
   text-decoration: none;
-  color: #333;
+  color: var(--text);
+
   padding: 8px 12px;
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
   font-weight: 500;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
+/* Active link */
 .nav-links a.active {
-  color: #fff;
-  background-color: #6b6e70;
+  color: #ffffff;
+  background-color: var(--brand-blue);
 }
 
 /* Dropdown */
@@ -112,31 +114,29 @@ li.dropdown {
 .dropdown-toggle {
   background: transparent;
   border: 0;
-  padding: 8px 12px;
   margin: 0;
   font: inherit;
-  color: #333;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 500;
-  border-radius: 4px;
 }
 
+/* Hover */
+.nav-links a:hover,
 .dropdown-toggle:hover {
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--surface-2);
 }
 
 /* Caret */
 .caret {
   margin-left: 5px;
   display: inline-block;
+
   width: 0;
   height: 0;
-  border-top: 5px solid #333;
+
+  border-top: 5px solid var(--text);
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
+
   transition: transform 0.2s ease;
   vertical-align: middle;
 }
@@ -145,36 +145,39 @@ li.dropdown {
   transform: rotate(180deg);
 }
 
-/* Dropdown menu (*ngIf controls existence) */
+/* Dropdown menu */
 .dropdown-menu {
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
+
   min-width: 220px;
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+
   padding: 6px 0;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-md);
+
   z-index: 9999;
 }
 
 .dropdown-menu li a {
   display: block;
   padding: 10px 14px;
-  color: #333;
+  color: var(--text);
   text-decoration: none;
   white-space: nowrap;
 }
 
 .dropdown-menu li a:hover {
-  background-color: #f1f1f1;
+  background: var(--surface-2);
 }
 
 /* Government banner */
 .gov-banner {
   font-size: 12px;
-  color: #333;
+  color: var(--text);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -192,31 +195,41 @@ li.dropdown {
 
 .apfs-content {
   flex: 1;
+
+  /* keep current layout: centered content */
   max-width: 1200px;
-  margin: 30px auto;
-  padding: 0 15px;
+  margin: var(--s-6) auto;
+  padding: 0 var(--s-4);
 }
 
-/* The app-header band itself doesn't need breakout rules (full-width-band handles it) */
+/* App header band (the <app-header> wrapper) */
 .app-header-band {
-  /* optional spacing */
-  margin-bottom: 14px;
+  background: var(--brand-blue);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+
+  margin-bottom: var(--s-4);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  /* keeps rounded corners clean */
 }
 
 /* Info section */
 .info-section {
-  margin-top: 40px;
+  margin-top: var(--s-6);
 }
 
 .info-section h2 {
-  margin-top: 25px;
-  font-size: 14px;
+  margin-top: var(--s-5);
+  font-size: var(--text-md);
+  color: var(--text);
 }
 
 .info-section p {
-  margin-top: 10px;
-  font-size: 13px;
+  margin-top: var(--s-2);
+  font-size: var(--text-sm);
   line-height: 1.6;
+  color: var(--text);
 }
 
 /* ===============================
@@ -224,17 +237,24 @@ li.dropdown {
    =============================== */
 
 .apfs-footer {
-  background: #ffffff;
-  border-top: 1px solid #ccc;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
   text-align: center;
-  padding: 15px;
-  font-size: 13px;
+
+  padding: var(--s-4);
+  font-size: var(--text-sm);
+
+  color: var(--text);
 }
 
 .apfs-footer a {
-  color: #264a78;
+  color: var(--brand-blue);
   text-decoration: none;
   margin: 0 5px;
+}
+
+.apfs-footer a:hover {
+  text-decoration: underline;
 }
 
 /* ===============================

@@ -18,5 +18,11 @@
         <ng-template #loggedOut>
             <a class="btn btn-link" routerLink="/user-login">Sign in</a>
         </ng-template>
+
+        <button type="button" class="icon-btn" (click)="onThemeClick()" [attr.aria-label]="themeLabel"
+            [title]="themeLabel">
+            <span aria-hidden="true">{{ themeIcon }}</span>
+        </button>
+
     </div>
 </header>

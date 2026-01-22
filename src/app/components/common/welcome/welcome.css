@@ -2,28 +2,28 @@
     display: block;
 }
 
+/* Full-width band background */
+/* Wrapper: no background, just spacing */
 .subcontent-band {
-    background: transparent;
-    /* or keep your page bg */
+    width: 100%;
+    padding-top: var(--s-5);
+    padding-bottom: var(--s-6);
 }
 
 .subcontent-panel {
-    background: #c2c0c1;
-    /* <-- move the gray here */
-    color: #ffffff;
-    padding: 15px 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
-    /* helps ensure corners clip cleanly */
+    max-width: 1100px;
+    margin: 0 auto;
+
+    background: var(--surface);
+    color: var(--text);
+
+    padding: var(--s-5);
+    border-radius: 18px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
 }
 
-/* Typography */
-.subcontent-panel p {
-    margin: 0;
-    font-size: 20px;
-    line-height: 1.4;
-}
+
 
 /* If/when you re-enable cards later, keep them scoped to Welcome */
 .card-grid {
@@ -34,23 +34,28 @@
 }
 
 .apfs-card {
-    background: #ffffff;
-    border: 1px solid #3b78c2;
-    border-radius: 3px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-sm);
 }
 
+
 .card-header {
-    background: #264a78;
+    background: var(--brand-blue);
     color: #ffffff;
     padding: 10px;
     font-weight: 600;
 }
 
+
 .card-body {
     padding: 15px;
-    font-size: 12px;
+    font-size: var(--text-sm);
     line-height: 1.6;
+    color: var(--text);
 }
+
 
 /* Buttons scoped to Welcome cards only (prevents conflicts with app-header buttons) */
 .card-body .btn {
@@ -63,20 +68,21 @@
 }
 
 .card-body .btn-success {
-    background: #3a8f3a;
+    background: var(--ok);
     color: #ffffff;
 }
 
 .card-body .btn-primary {
-    background: #264a78;
+    background: var(--brand-blue);
     color: #ffffff;
 }
 
 .card-body .btn-secondary {
-    background: #e0e0e0;
-    color: #000;
+    background: var(--surface-2);
+    color: var(--text);
     margin-left: 5px;
 }
+
 
 /* Responsive */
 @media (max-width: 900px) {

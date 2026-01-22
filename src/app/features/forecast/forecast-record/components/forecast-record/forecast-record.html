@@ -185,13 +185,13 @@
                         Select the office associated with each workflow lane.
                     </div>
 
-                    <!-- Debug (optional) -->
+                    <!-- Debug (optional) 
                     <div class="hint mono" style="font-size:12px;">
                         value={{ form?.get('requirementsOffice')?.value }}
                         invalid={{ form?.get('requirementsOffice')?.invalid }}
                         disabled={{ form?.get('requirementsOffice')?.disabled }}
                         errors={{ form?.get('requirementsOffice')?.errors | json }}
-                    </div>
+                    </div>-->
 
                     <div class="grid-3">
                         <div class="field" [class.is-invalid]="isInvalid('requirementsOffice')">
@@ -546,7 +546,7 @@
 
     </div>
 
-    <!-- #region Debug Panel (optional) -->
+    <!-- #region Debug Panel (optional) 
     <div class="hint mono" style="font-size:12px;">
         <li>form?.get('requirementsOffice')?.value={{ form?.get('requirementsOffice')?.value }}</li>
         <li>form?.get('requirementsOffice')?.invalid={{ form?.get('requirementsOffice')?.invalid }}</li>
@@ -558,7 +558,7 @@
         <li>form?.get('contractingOffice')?.disabled={{ form?.get('contractingOffice')?.disabled }}</li>
         <li>form?.get('contractingOffice')?.errors={{ form?.get('contractingOffice')?.errors | json }}</li>
         <li> canApproveSend={{canApproveSend}} | isLoading={{isLoading}} | formValid={{form?.valid}}</li>
-    </div>
+    </div>-->
     <!-- #endregion Debug Panel (optional) -->
 
     <!-- #region No Form Template -->

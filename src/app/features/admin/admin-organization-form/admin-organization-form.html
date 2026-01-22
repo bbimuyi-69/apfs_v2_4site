@@ -1,0 +1,75 @@
+<div class="page">
+    <div class="head">
+        <div>
+            <h1 class="title">{{ titleText }}</h1>
+            <p class="subtitle">{{ subtitleText }}</p>
+        </div>
+
+        <div class="actions">
+            <a class="btn secondary" routerLink="/admin/organization">Back</a>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="status">
+            <span *ngIf="isLoading" class="pill">Loading…</span>
+            <span *ngIf="error" class="pill error">{{ error }}</span>
+        </div>
+
+        <form class="form" [formGroup]="form" (ngSubmit)="save()">
+            <div class="grid">
+                <!-- Full Name -->
+                <div class="field">
+                    <label class="label" for="full_name">Full Name *</label>
+                    <input id="full_name" type="text" formControlName="full_name"
+                        placeholder="Office of the Chief Information Officer" />
+                    <div class="field-error" *ngIf="showError('full_name')">Full name is required.</div>
+                </div>
+
+                <!-- Acronym -->
+                <div class="field">
+                    <label class="label" for="acronym">Acronym</label>
+                    <input id="acronym" type="text" formControlName="acronym" placeholder="OCIO" />
+                </div>
+
+                <!-- Short Name -->
+                <div class="field">
+                    <label class="label" for="name">Short Name</label>
+                    <input id="name" type="text" formControlName="name" placeholder="OCIO" />
+                </div>
+
+                <!-- Parent -->
+                <div class="field">
+                    <label class="label" for="parent_id">Parent Organization</label>
+                    <select id="parent_id" formControlName="parent_id">
+                        <option [ngValue]="null">— None (top-level) —</option>
+                        <option *ngFor="let p of parents" [ngValue]="p.id">
+                            {{ p.label }}
+                        </option>
+                    </select>
+                    <div class="hint">Tip: choose a parent to nest this org in the hierarchy.</div>
+                </div>
+
+                <!-- Active -->
+                <div class="field">
+                    <label class="label" for="active">Active</label>
+                    <select id="active" formControlName="active">
+                        <option [ngValue]="1">Yes</option>
+                        <option [ngValue]="0">No</option>
+                    </select>
+                    <div class="hint">Inactive orgs can be hidden from picklists.</div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button class="btn" type="submit" [disabled]="isSaving || isLoading">
+                    {{ isSaving ? 'Saving…' : 'Save' }}
+                </button>
+
+                <button class="btn secondary" type="button" (click)="cancel()" [disabled]="isSaving">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

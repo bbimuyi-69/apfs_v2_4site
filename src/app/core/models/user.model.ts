@@ -6,8 +6,9 @@ export interface User {
     email: string;
     employeeType: string;
     component: string;
+    organization_id: number;
     role: string;
     office: string;
-    isActive: boolean;  
+    isActive: boolean;
 
 }

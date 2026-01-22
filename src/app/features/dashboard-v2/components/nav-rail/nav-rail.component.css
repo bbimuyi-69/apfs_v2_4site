@@ -1,76 +1,90 @@
-.rail {
-  width: 260px;
-  background: #f8fafc;
-  border-right: 1px solid #e5e7eb;
-  display: flex;
-  flex-direction: column;
+:host {
+  display: block;
 }
 
+/* Rail container */
+.rail {
+  width: 260px;
+  background: var(--surface-2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+
+  /* anchors text tokens for anything inside */
+  color: var(--text);
+}
+
+/* Nav stack */
 .nav {
-  padding: 12px;
+  padding: var(--s-3);
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-/* Unified link styling (kills purple/underline/visited defaults) */
+/* Unified link styling */
 .nav-link {
   display: flex;
   align-items: center;
   gap: 10px;
 
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
 
-  color: #0f172a;
+  color: var(--text);
   text-decoration: none;
 
   line-height: 1.1;
-  font-weight: 600;
+  font-weight: 650;
   user-select: none;
+
+  /* prevents “visited purple” + keeps consistent */
+  -webkit-tap-highlight-color: transparent;
 }
 
 .nav-link:visited {
-  color: #0f172a;
+  color: var(--text);
 }
 
 .nav-link:hover {
-  background: #eef2ff;
+  background: var(--hover-tint);
 }
 
+/* Active state */
 .nav-link.active {
-  background: #ffffff;
-  border: 1px solid #c7d2fe;
-  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
-/* Section divider spacing */
+/* Divider section */
 .nav-section {
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--border);
 }
 
-/* Slightly different emphasis for doc link (optional) */
+/* Optional emphasis */
 .nav-doc {
-  font-weight: 600;
+  font-weight: 650;
   opacity: 0.95;
 }
 
-/* “New Request” should not look like a browser link */
+/* CTA block */
 .nav-cta {
   margin-top: 6px;
-  background: #ecfeff;
-  border: 1px solid #a5f3fc;
+  background: var(--note-bg);
+  /* re-uses your “note” token */
+  border: 1px solid var(--note-border);
 }
 
 .nav-cta:hover {
-  background: #cffafe;
+  background: var(--hover-tint);
 }
 
-/* Optional: if you have the accent bar */
+/* Accent bar */
 .accent {
   height: 6px;
-  background: linear-gradient(90deg, #2563eb, #22c55e);
   margin-top: auto;
+  background: linear-gradient(90deg, var(--brand-blue), var(--ok));
 }

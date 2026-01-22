@@ -1,0 +1,12 @@
+.page-body {
+    padding: var(--s-5) var(--s-6);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+    color: var(--text);
+    max-width: 980px;
+    margin: 0 auto;
+}
+
+.page-body p:first-child {
+    font-size: var(--text-md);
+}

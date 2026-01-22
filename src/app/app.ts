@@ -5,6 +5,7 @@ import { filter, map } from 'rxjs/operators';
 
 import { Header } from './core/layout/header/header';
 import { AuthService } from './auth/auth.service';
+import { ThemeService } from './core/Theme/theme.service';
 
 type DropdownKey = 'government' | 'documentation';
 
@@ -26,6 +27,9 @@ export class App {
   private readonly router = inject(Router);
   private readonly activatedRoute = inject(ActivatedRoute);
 
+  // ✅ inject ThemeService here (NOT inside constructor)
+  private readonly themeService = inject(ThemeService);
+
   dropdowns: Record<DropdownKey, boolean> = {
     government: false,
     documentation: false,
@@ -37,6 +41,13 @@ export class App {
     if (this.auth.isLoggedIn) {
       this.auth.loadMe().subscribe({ error: () => { } });
     }
+
+    // ❌ REMOVE THIS (inject() not allowed here)
+    // const themeService: ThemeService = inject(ThemeService);
+
+    // (No further code needed; the service constructor applies the theme)
+    // If you want to be explicit, you could reference it once:
+    // void this.themeService;
 
     this.router.events
       .pipe(

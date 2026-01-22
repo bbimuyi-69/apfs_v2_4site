@@ -26,25 +26,17 @@
 
 /* Pills */
 .pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: var(--text-sm);
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--pill-bg);
 }
 
 .pill--info {
-  border-color: rgba(11, 90, 134, 0.35);
-  color: var(--brand-blue);
+  border-color: var(--info-border);
 }
 
 .pill--danger {
-  border-color: rgba(181, 31, 42, 0.35);
-  color: var(--brand-red);
+  border-color: var(--danger-border);
 }
+
 
 /* Inputs */
 .input {
@@ -58,9 +50,12 @@
 }
 
 .input:focus {
-  border-color: rgba(11, 90, 134, 0.45);
-  box-shadow: 0 0 0 3px rgba(11, 90, 134, 0.12);
+  border-color: var(--focus-border);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
+
+
+
 
 /* Buttons */
 .btn {
@@ -96,7 +91,7 @@
 }
 
 .row-focus:hover {
-  background: rgba(11, 90, 134, 0.05);
+  background: var(--hover-tint);
 }
 
 .row-focus:hover::before {

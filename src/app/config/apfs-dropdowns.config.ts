@@ -25,7 +25,7 @@ export const ROLES_BY_EMPLOYEE_TYPE: Record<EmployeeType, string[]> = {
 // ✅ SINGLE SOURCE OF TRUTH for offices
 // Offices are determined ONLY by (component + role)
 export const OFFICES_BY_COMPONENT_AND_ROLE: Record<string, Record<string, string[]>> = {
-    HQ: {
+    'DHS HQ': {
         Requirements: ['OCIO', 'Finance', 'Program Office'],
         'Contracting Office': ['Procurement'],
         'APFS Coordinator': ['OCIO'],

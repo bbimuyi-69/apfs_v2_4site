@@ -168,7 +168,7 @@ td {
     background: var(--surface-2);
     border-color: var(--border);
     color: var(--text);
-    cursor: default;
+    cursor: pointer;
     box-shadow: none;
 }
 
@@ -267,4 +267,24 @@ td {
     td {
         padding: 10px 10px;
     }
+}
+
+/* ========= ORG ONLY ADDITIONS ========= */
+
+/* Make the last column a reasonable width for Edit */
+.table th:last-child,
+.table td:last-child {
+    width: 110px;
+    white-space: nowrap;
+}
+
+/* Tree indentation shim */
+.indent {
+    display: inline-block;
+    width: 0;
+}
+
+/* Optional: make the org name read like a primary cell */
+.org-name {
+    font-weight: 900;
 }

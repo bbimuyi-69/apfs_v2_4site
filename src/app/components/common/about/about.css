@@ -1,19 +1,56 @@
+:host {
+    display: block;
+}
+
+/* Page container */
 .page-body {
-    padding: 25px 30px;
-    font-size: 12px;
-    line-height: 1.2;
-    color: #222;
+    padding: var(--s-5) var(--s-6);
+
+    font-size: var(--text-sm);
+    line-height: 1.7;
+
+    color: var(--text);
+    font-family: var(--font);
+
+    max-width: 980px;
+    margin: 0 auto;
 }
 
+/* Paragraphs */
 .page-body p {
-    margin-bottom: 16px;
+    margin-bottom: var(--s-4);
 }
 
+/* Ordered lists */
 .page-body ol {
-    margin-left: 25px;
-    margin-bottom: 16px;
+    margin-left: var(--s-5);
+    margin-bottom: var(--s-4);
 }
 
-.page-body li {
-    margin-bottom: 8px;
+/* List items */
+.page-body li::marker {
+    color: var(--brand-blue);
+    font-weight: 700;
+}
+
+
+/* Link styling (important for dark mode) */
+.page-body a {
+    color: var(--brand-blue);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.page-body a:hover {
+    text-decoration-thickness: 2px;
+}
+
+/* Emphasis */
+.page-body strong {
+    font-weight: 700;
+    color: var(--text);
+}
+
+.page-body em {
+    color: var(--muted);
 }

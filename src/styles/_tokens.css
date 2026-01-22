@@ -1,39 +1,120 @@
-:root{
-  --brand-red:#b51f2a;
-  --brand-blue:#0b5a86;
+/* =========================
+   APFS TOKENS (Light default)
+   ========================= */
+:root {
+  /* Brand */
+  --brand-red: #b51f2a;
+  --brand-blue: #0b5a86;
 
-  --bg:#f6f7f9;
-  --surface:#ffffff;
-  --text:#111827;
-  --muted:#6b7280;
-  --border:rgba(17,24,39,.12);
+  /* App surfaces */
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #f1f5f9;
+  /* NEW: subtle alt surface */
+  --surface-inset: #eef2f7;
+  /* NEW: inputs/readonly blocks */
+  --text: #111827;
+  --muted: #6b7280;
+  --border: rgba(17, 24, 39, 0.12);
 
-  --danger:#b51f2a;
-  --warn:#b45309;
-  --ok:#047857;
-  --info:#0b5a86;
+  /* Semantic */
+  --danger: #b51f2a;
+  --warn: #b45309;
+  --ok: #047857;
+  --info: #0b5a86;
 
-  --radius-lg:16px;
-  --radius-md:12px;
-  --radius-sm:10px;
+  /* NEW: semantic border tints (used by pills/buttons) */
+  --info-border: rgba(11, 90, 134, 0.35);
+  --danger-border: rgba(181, 31, 42, 0.35);
 
-  --shadow-sm:0 1px 2px rgba(0,0,0,.06);
-  --shadow-md:0 8px 20px rgba(0,0,0,.10);
+  /* NEW: interaction */
+  --hover-tint: rgba(11, 90, 134, 0.05);
+  /* row hover */
+  --pill-bg: rgba(255, 255, 255, 0.70);
+  /* pill background */
+  --focus-border: rgba(11, 90, 134, 0.45);
+  /* input focus border */
+  --focus-ring: rgba(11, 90, 134, 0.12);
+  /* input focus ring */
 
-  --s-1:4px;
-  --s-2:8px;
-  --s-3:12px;
-  --s-4:16px;
-  --s-5:24px;
-  --s-6:32px;
+  /* Radii */
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --radius-sm: 10px;
 
-  --font:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;
-  --text-xs:12px;
-  --text-sm:13px;
-  --text-md:14px;
-  --text-lg:18px;
-  --text-xl:22px;
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 8px 20px rgba(0, 0, 0, 0.10);
 
-  --rail-w:240px;
-  --topbar-h:56px;
+  /* Spacing */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+
+  /* Typography */
+  --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-md: 14px;
+  --text-lg: 18px;
+  --text-xl: 22px;
+
+  /* Layout */
+  --rail-w: 240px;
+  --topbar-h: 56px;
+}
+
+/* =========================
+   APFS TOKENS (Dark override)
+   ========================= */
+body[data-theme="dark"] {
+  /* Brand (brighten for dark surfaces) */
+  --brand-blue: #60a5fa;
+  --brand-red: #fb7185;
+
+  /* App surfaces */
+  --bg: #0b1220;
+  --surface: #111b2d;
+  --surface-2: #0f1a2b;
+  --surface-inset: #0d1626;
+
+  --text: rgba(255, 255, 255, 0.92);
+  --muted: rgba(255, 255, 255, 0.60);
+  --border: rgba(255, 255, 255, 0.12);
+
+  /* Semantic (slightly brighter for readability) */
+  --danger: #fb7185;
+  --warn: #f59e0b;
+  --ok: #22c55e;
+  --info: #60a5fa;
+
+  /* semantic borders */
+  --info-border: rgba(96, 165, 250, 0.45);
+  --danger-border: rgba(251, 113, 133, 0.45);
+
+  /* interactions */
+  --hover-tint: rgba(96, 165, 250, 0.10);
+  --pill-bg: rgba(255, 255, 255, 0.06);
+  --focus-border: rgba(96, 165, 250, 0.55);
+  --focus-ring: rgba(96, 165, 250, 0.22);
+
+  /* Shadows (darker) */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+
+
+/* _tokens.css (add to :root) */
+:root {
+  --note-bg: rgba(11, 90, 134, 0.06);
+  --note-border: rgba(11, 90, 134, 0.18);
+}
+
+/* _tokens.css (add to body[data-theme="dark"]) */
+body[data-theme="dark"] {
+  --note-bg: rgba(96, 165, 250, 0.10);
+  --note-border: rgba(96, 165, 250, 0.22);
 }

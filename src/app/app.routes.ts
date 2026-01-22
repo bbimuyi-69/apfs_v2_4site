@@ -30,7 +30,7 @@ export const routes: Routes = [
     { path: 'request', component: Request, data: { title: 'Request' } },
     { path: 'request-new-user', component: RequestNewUserForm, data: { title: 'Request New User' } },
     { path: 'user-login', component: UserLogin, data: { title: 'User Login' } },
-
+    // Admin routes
     {
         path: 'admin',
         canActivate: [authGuard],
@@ -49,6 +49,39 @@ export const routes: Routes = [
             import('./components/user/request-new-user-form/request-new-user-form')
                 .then(m => m.RequestNewUserForm) // <-- use your real exported class name
     },
+    {
+        path: 'admin/lookups',
+        canActivate: [authGuard],
+        loadComponent: () =>
+            import('./features/admin/admin-lookup/admin-lookup').then(m => m.AdminLookup),
+    },
+    // Organization Management
+    {
+        path: 'admin/organization',
+        canActivate: [authGuard],
+        loadComponent: () =>
+            import('./features/admin/admin-organization/admin-organization')
+                .then(m => m.AdminOrganization),
+    },
+
+    {
+        path: 'admin/organization/new',
+        loadComponent: () => import('./features/admin/admin-organization-form/admin-organization-form').then(m => m.AdminOrganizationFormComponent),
+    },
+    {
+        path: 'admin/organization/:id/edit',
+        loadComponent: () => import('./features/admin/admin-organization-form/admin-organization-form').then(m => m.AdminOrganizationFormComponent),
+    },
+
+    /*{
+        path: 'admin/organization/:id/edit',
+        canActivate: [authGuard],
+        loadComponent: () =>
+            import('./features/admin/admin-organization/admin-organization-edit')
+                .then(m => m.AdminOrganizationEdit),
+    },*/
+    // End Organization Management
+
 
 
 

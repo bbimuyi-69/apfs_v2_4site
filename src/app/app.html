@@ -3,9 +3,9 @@
   <header class="apfs-header">
     <div class="apfs-header-inner">
       <div class="apfs-brand">
-        <img src="/assets/images/4site.jpg" class="apfs__logo" alt="4Site" />
+        <img src="/assets/images/4-site_FINAL_withoutTag.png" class="apfs__logo" alt="4Site" />
         <div class="brand-text">
-          <div class="brand-sub">Acquisition Planning Forecast System</div>
+          <div class="brand-sub">Forecasting System for Industry Tracking and Engagement</div>
         </div>
       </div>
 
@@ -20,10 +20,11 @@
           <li><a routerLink="/about" routerLinkActive="active">About</a></li>
           <li><a routerLink="/contact" routerLinkActive="active">Contact Us</a></li>
 
-          <a *ngIf="auth.isAdmin" class="top-nav-item" routerLink="/admin">
-            System Administration
-          </a>
-
+          <li *ngIf="auth.isAdmin">
+            <a routerLink="/admin" routerLinkActive="active">
+              System Administration
+            </a>
+          </li>
 
           <li *ngIf="auth.isLoggedIn">
             <a routerLink="/dashboard-v2" routerLinkActive="active">Dashboard</a>
@@ -32,12 +33,13 @@
           <!-- Government Users -->
           <li class="dropdown" [class.active]="dropdowns.government">
             <button type="button" class="dropdown-toggle" (click)="toggleDropdown('government', $event)"
-              [attr.aria-expanded]="dropdowns.government">
+              [attr.aria-expanded]="dropdowns.government" aria-controls="menu-government">
               🏛️ Government Users
               <span class="caret" [class.open]="dropdowns.government"></span>
             </button>
 
-            <ul class="dropdown-menu" *ngIf="dropdowns.government" (click)="$event.stopPropagation()">
+            <ul id="menu-government" class="dropdown-menu" *ngIf="dropdowns.government"
+              (click)="$event.stopPropagation()">
               <li><a routerLink="/rob" (click)="closeDropdowns()">Government Access</a></li>
               <li><a routerLink="/request-new-user" (click)="closeDropdowns()">Request Account</a></li>
             </ul>
@@ -46,18 +48,17 @@
           <!-- Documentation -->
           <li class="dropdown" [class.active]="dropdowns.documentation">
             <button type="button" class="dropdown-toggle" (click)="toggleDropdown('documentation', $event)"
-              [attr.aria-expanded]="dropdowns.documentation">
+              [attr.aria-expanded]="dropdowns.documentation" aria-controls="menu-docs">
               📘 Documentation
               <span class="caret" [class.open]="dropdowns.documentation"></span>
             </button>
 
-            <ul class="dropdown-menu" *ngIf="dropdowns.documentation" (click)="$event.stopPropagation()">
+            <ul id="menu-docs" class="dropdown-menu" *ngIf="dropdowns.documentation" (click)="$event.stopPropagation()">
               <li><a routerLink="/apfs-tutorial" (click)="closeDropdowns()">APFS Tutorial</a></li>
-              <!-- later: pdf links -->
             </ul>
           </li>
 
-          <li><a routerLink="/users" routerLinkActive="active">👥 User List</a></li>
+
         </ul>
       </nav>
 
@@ -68,10 +69,26 @@
     </div>
   </header>
 
+  <!--
+    NOTE about .app-header-band width:
+    Right now, .app-header-band sits inside <main class="apfs-content">, which is max-width: 1200px.
+    So the blue band will be constrained (centered, not full-bleed).
+
+    If you want the band to be full width across the viewport, move .app-header-band OUTSIDE the
+    <main class="apfs-content"> wrapper and keep an inner container inside it.
+  -->
+
+  <!-- Full-width band version (uncomment if you move it outside main)
+  <div class="app-header-band">
+    <div class="inner-1200">
+      <app-header [pageTitle]="title"></app-header>
+    </div>
+  </div>
+  -->
+
   <!-- Main Content -->
   <main class="apfs-content">
-    <!-- Full-width band wrapper; app-header stays aligned to 1200 -->
-    <div class="full-width-band app-header-band">
+    <div class="app-header-band">
       <div class="inner-1200">
         <app-header [pageTitle]="title"></app-header>
       </div>
@@ -79,22 +96,19 @@
 
     <router-outlet></router-outlet>
 
-    <!-- OPTIONAL: Move into Welcome page later if you don’t want global -->
-    <section class="info-section">
+    <section class="info-section app-shell-info">
       <h2>About This Data</h2>
-      <p>
-        Public Law 100-656, the Business Opportunity Development Reform Act of 1988, amended the Small Business Act to
+      <p>Public Law 100-656, the Business Opportunity Development Reform Act of 1988, amended the Small Business Act to
         emphasize acquisition planning. The law requires agencies to compile and make projections of contracting
-        opportunities that small businesses (including small, disadvantaged businesses 8(a), women-owned, HUBZone,
-        veteran-owned, and service-disabled veteran-owned) may perform. For more details, review the 'About' link above.
-      </p>
+        opportunities that small businesses (including small, disadvantaged businesses and 8(a) program participants,
+        women-owned, Historically Underutilized Business Zone (HUBZone), veteran-owned, and service-disabled
+        veteran-owned) may perform. For more details, review the 'About' link above or click here:</p>
 
       <h2>Potential Subcontracting Opportunities</h2>
-      <p>
-        The information in APFS helps build the statutorily required annual Forecast of Contract Opportunities (i.e. the
-        Forecast). The Forecast allows industry, especially small businesses, the opportunity to learn about prospective
-        DHS business opportunities (including subcontracting) over the simplified acquisition threshold (SAT).
-      </p>
+      <p>The information in APFS helps build the statutorily required annual Forecast of Contract Opportunities (i.e.
+        the Forecast). The Forecast allows industry, especially small businesses, the opportunity to learn about
+        prospective DHS business opportunities (which includes subcontracting) over the simplified acquisition threshold
+        (SAT).</p>
     </section>
   </main>
 

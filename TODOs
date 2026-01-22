@@ -15,6 +15,8 @@ TODOs
 14) When I reject it also needs to go back to dashboard
 15) Need an unpublish button
 16) When submitting a new request it should go to home page and add a message that it was submitted
+17) Enforce No edit unless claimed
+18) i CAN GO STRAING TO USER/ORGANIZATION ROUTE
 
 
 
@@ -24,6 +26,8 @@ TODOs
 1) Create System Admin Dashboard
 2) Create edit user feature
 3) Create edit office feature
+4) Reassign record in requirements to a different person, can be handled bya user
+5) Admin can see records across offices
 
 
 

@@ -1,75 +1,117 @@
+:host {
+    display: block;
+}
+
+/* The header sits inside .app-header-band, so treat it like "on-brand" */
 .app-header {
-    height: 52px;
     display: flex;
     align-items: center;
     justify-content: space-between;
 
-    /* keep padding for content */
-    padding: 0 18px;
+    gap: var(--s-4);
+    padding: var(--s-3) var(--s-4);
 
-    /* ✅ background/shadow now live on the full-width band wrapper */
-    background: transparent;
-    box-shadow: none;
-
-
-    color: #fff;
+    /* inherit band color; don't set a background here */
+    color: #ffffff;
 }
 
-.header-left {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-}
-
-.app-brand {
-    color: #fff;
+/* Left */
+.header-left .app-brand {
+    color: #ffffff;
     text-decoration: none;
     font-weight: 700;
-    letter-spacing: 0.2px;
-    font-size: 18px;
+    font-size: var(--text-lg);
+    line-height: 1.2;
 }
 
+/* Right cluster */
 .header-right {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--s-3);
 }
 
+/* User chip */
 .user-chip {
-    text-align: right;
-    line-height: 1.1;
+    display: grid;
+    gap: 2px;
+
+    padding: 6px 10px;
+    border-radius: 999px;
+
+    /* subtle contrast against the band */
+    background: rgba(255, 255, 255, 0.10);
+    border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .user-name {
-    font-size: 13px;
     font-weight: 700;
+    font-size: var(--text-sm);
+    line-height: 1.1;
+    color: #ffffff;
 }
 
 .user-meta {
-    font-size: 11px;
-    opacity: 0.9;
+    font-size: var(--text-xs);
+    color: rgba(255, 255, 255, 0.75);
 }
 
+/* Buttons/links inside header band */
 .btn {
-    height: 30px;
-    padding: 0 10px;
-    border-radius: 3px;
-    border: 1px solid transparent;
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    background: rgba(255, 255, 255, 0.10);
+    color: #ffffff;
+
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+
     cursor: pointer;
-    font-size: 12px;
-}
-
-.btn-logout {
-    background: #f5f5f5;
-    border-color: #d7d7d7;
-    color: #222;
-}
-
-/* ✅ Sign in link should be white on the blue band */
-.btn-link {
-    color: #0a0a0a;
     text-decoration: none;
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    padding: 6px 10px;
-    border-radius: 3px;
+    font-size: var(--text-sm);
+}
+
+.btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.btn:active {
+    background: rgba(255, 255, 255, 0.20);
+}
+
+/* Logout can be slightly stronger */
+.btn-logout {
+    font-weight: 600;
+}
+
+/* Sign in link styled like a button */
+.btn-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Theme icon button */
+.icon-btn {
+    width: 36px;
+    height: 36px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    background: rgba(255, 255, 255, 0.10);
+    color: #ffffff;
+
+    cursor: pointer;
+}
+
+.icon-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.icon-btn span {
+    font-size: 16px;
+    line-height: 1;
 }
