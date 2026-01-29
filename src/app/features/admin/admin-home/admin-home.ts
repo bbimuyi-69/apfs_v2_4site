@@ -19,6 +19,7 @@ export class AdminHome {
     this.router.navigateByUrl('/admin/users');
   }
 
+  
   goLookups(): void {
     this.router.navigateByUrl('/admin/lookups');
   }

@@ -13,7 +13,7 @@
   <div class="tbody">
     <div class="tr row-focus" *ngFor="let r of rows" (click)="rowClick.emit(r)">
       <div class="mono">{{ r.apfsNumber || r.id }}</div>
-      <div class="title">{{ r.requirementsTitle }}</div>
+      <div class="title">{{ r.requirement }}</div>
       <div></div>
       <div>{{ r.component || '—' }}</div>
 

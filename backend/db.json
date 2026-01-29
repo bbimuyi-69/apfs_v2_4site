@@ -1,0 +1,1632 @@
+{
+  "users": [
+    {
+      "id": 1768502629880,
+      "firstName": "Harry",
+      "lastName": "Tubman",
+      "title": "HQ Requirements",
+      "email": "HQ_Req@hq.dhs.gov",
+      "employeeType": "Federal Employee",
+      "component": "DHS HQ",
+      "organization_id": 71,
+      "role": "Requirements",
+      "office": "OCIO",
+      "isActive": true
+    },
+    {
+      "id": 1768504210658,
+      "firstName": "Harriet",
+      "lastName": "Tubman",
+      "title": "HQ Contracting",
+      "email": "HQ_Cont@hq.dhs.gov",
+      "employeeType": "Federal Employee",
+      "component": "DHS HQ",
+      "organization_id": 71,
+      "role": "Contracting Office",
+      "office": "Procurement",
+      "isActive": true
+    },
+    {
+      "id": 1768504278480,
+      "firstName": "Henry",
+      "lastName": "Winkler",
+      "title": "HQ Coordinator",
+      "email": "HQ_Coord@hq.dhs.gov",
+      "employeeType": "Federal Employee",
+      "component": "DHS HQ",
+      "organization_id": 71,
+      "role": "APFS Coordinator",
+      "office": "OCIO",
+      "isActive": true
+    },
+    {
+      "id": 1768504324245,
+      "firstName": "Honest",
+      "lastName": "Abe",
+      "title": "HQ Admin",
+      "email": "HQ_Admin@hq.dhs.gov",
+      "employeeType": "Federal Employee",
+      "component": "DHS HQ",
+      "organization_id": 71,
+      "role": "Admin",
+      "office": "OCIO",
+      "isActive": true
+    },
+    {
+      "id": 1768580093331,
+      "firstName": "Harry",
+      "lastName": "Tubman",
+      "title": "HQ Requirements",
+      "email": "HQ_Req@hq.dhs.gov",
+      "employeeType": "Federal Employee",
+      "component": "DHS HQ",
+      "organization_id": 71,
+      "role": "Requirements",
+      "office": "OCIO",
+      "isActive": true
+    },
+    {
+      "id": 1768584326086,
+      "firstName": "Charles",
+      "lastName": "Lindberg",
+      "title": "CBP Admin",
+      "email": "CBP_Admin@hq.dhs.gov",
+      "employeeType": "Federal Employee",
+      "component": "CBP",
+      "organization_id": 2,
+      "role": "Admin",
+      "office": "Office of Trade",
+      "isActive": true
+    },
+    {
+      "id": 1768584805313,
+      "firstName": "Clarke",
+      "lastName": "Kent",
+      "title": "CBP Req User",
+      "email": "CBP_Req@CBP.DHS.GOV",
+      "employeeType": "Federal Employee",
+      "component": "CBP",
+      "organization_id": 2,
+      "role": "Requirements",
+      "office": "Office of Field Operations",
+      "isActive": true
+    },
+    {
+      "id": 1768586236181,
+      "firstName": "test",
+      "lastName": "user",
+      "title": "test user will delete",
+      "email": "test@cbp.dhs.gov",
+      "employeeType": "Federal Employee",
+      "component": "CBP",
+      "organization_id": 2,
+      "role": "Contracting Office",
+      "office": "OIT",
+      "isActive": false
+    },
+    {
+      "id": 1769037105315,
+      "firstName": "tbone",
+      "lastName": "burnett",
+      "title": "TEST USER",
+      "email": "tbone@gmail.com",
+      "employeeType": "Federal Employee",
+      "component": "DHS HQ",
+      "organization_id": 71,
+      "role": "Requirements",
+      "office": "Finance",
+      "isActive": true
+    },
+    {
+      "id": 1769545078331,
+      "firstName": "test",
+      "lastName": "usee",
+      "title": "test user",
+      "email": "testUser@hq.dhs.gov",
+      "employeeType": "Federal Employee",
+      "component": "DHS HQ",
+      "organization_id": 71,
+      "role": "Requirements",
+      "office": "OCIO",
+      "isActive": false
+    }
+  ],
+  "forecastRecords": [
+    {
+      "workflowStatus": "Contracting",
+      "requirementsOffice": "Requirements Division",
+      "contractingOffice": "Procurement Office",
+      "coordinatorOffice": "APFS PMO",
+      "transitionComment": "",
+      "requirementsTitle": "asd",
+      "requirement": "ASD",
+      "programLevel": "LEVEL_1",
+      "smallBusinessSetAside": null,
+      "smallBusinessProgram": null,
+      "dollarRange": "0_250K",
+      "naicsCode": "111120",
+      "contractType": null,
+      "strategicSourcingVehicleUsed": null,
+      "strategicSourcingVehicle": null,
+      "typeOfAward": null,
+      "competitive": null,
+      "contractStatus": null,
+      "incumbent": null,
+      "contractNumber": null,
+      "estimatedPopStart": null,
+      "estimatedPopEnd": null,
+      "fiscalYear": null,
+      "anticipatedAwardDate": null,
+      "estimatedSolicitationReleaseDate": null,
+      "placeOfPerformanceCity": null,
+      "placeOfPerformanceState": null,
+      "primaryContactFirstName": "Harry",
+      "primaryContactLastName": "Tubman",
+      "primaryContactPhone": null,
+      "primaryContactEmail": "HQ_Req@hq.dhs.gov",
+      "alternateContactFirstName": null,
+      "alternateContactLastName": null,
+      "alternateContactPhone": null,
+      "alternateContactEmail": null,
+      "sbSpecialistFirstName": null,
+      "sbSpecialistLastName": null,
+      "sbSpecialistPhone": null,
+      "sbSpecialistEmail": null,
+      "id": 1769014238592,
+      "component": "HQ",
+      "apfsNumber": "APFS-2026-HQ-7458",
+      "status": "Contracting",
+      "createdAt": "2026-01-21T16:50:38.592Z",
+      "updatedAt": "2026-01-21T16:52:30.674Z",
+      "assignedToUserId": null,
+      "assignedToName": null,
+      "assignedAt": null,
+      "history": [
+        {
+          "id": 1769014238592,
+          "time": "2026-01-21T16:50:38.592Z",
+          "user_display": "HQ_Req@hq.dhs.gov",
+          "user_comment": "Created",
+          "assignment_display": null,
+          "assignment_id": null,
+          "forecast_id": 1769014238592,
+          "previous_state_id": null,
+          "new_state_id": 0,
+          "latest": 1,
+          "user_id": "1768502629880"
+        }
+      ]
+    },
+    {
+      "workflowStatus": "Draft",
+      "requirementsOffice": "Program Office",
+      "contractingOffice": "Contracting Division",
+      "coordinatorOffice": "APFS PMO",
+      "transitionComment": "",
+      "requirementsTitle": "asdfadsf",
+      "requirement": "asdf",
+      "programLevel": "LEVEL_1",
+      "smallBusinessSetAside": null,
+      "smallBusinessProgram": null,
+      "dollarRange": "0_250K",
+      "naicsCode": "111120",
+      "contractType": null,
+      "strategicSourcingVehicleUsed": null,
+      "strategicSourcingVehicle": null,
+      "typeOfAward": null,
+      "competitive": null,
+      "contractStatus": null,
+      "incumbent": null,
+      "contractNumber": null,
+      "estimatedPopStart": null,
+      "estimatedPopEnd": null,
+      "fiscalYear": null,
+      "anticipatedAwardDate": null,
+      "estimatedSolicitationReleaseDate": null,
+      "placeOfPerformanceCity": null,
+      "placeOfPerformanceState": null,
+      "primaryContactFirstName": "Harry",
+      "primaryContactLastName": "Tubman",
+      "primaryContactPhone": null,
+      "primaryContactEmail": "HQ_Req@hq.dhs.gov",
+      "alternateContactFirstName": null,
+      "alternateContactLastName": null,
+      "alternateContactPhone": null,
+      "alternateContactEmail": null,
+      "sbSpecialistFirstName": null,
+      "sbSpecialistLastName": null,
+      "sbSpecialistPhone": null,
+      "sbSpecialistEmail": null,
+      "id": 1769108458276,
+      "component": "DHS HQ",
+      "apfsNumber": "APFS-2026-DHSHQ-2859",
+      "status": "Draft",
+      "createdAt": "2026-01-22T19:00:58.276Z",
+      "updatedAt": "2026-01-22T19:46:07.313Z",
+      "assignedToUserId": "1768504324245",
+      "assignedToName": "Honest Abe",
+      "assignedAt": "2026-01-22T19:46:07.313Z"
+    },
+    {
+      "workflowStatus": "Contracting",
+      "requirementsOffice": "Program Office",
+      "contractingOffice": "Procurement Office",
+      "coordinatorOffice": "APFS PMO",
+      "transitionComment": "",
+      "requirementsTitle": "2nd test",
+      "requirement": "2nd test",
+      "programLevel": "LEVEL_1",
+      "smallBusinessSetAside": null,
+      "smallBusinessProgram": null,
+      "dollarRange": "0_250K",
+      "naicsCode": "111130",
+      "contractType": null,
+      "strategicSourcingVehicleUsed": null,
+      "strategicSourcingVehicle": null,
+      "typeOfAward": null,
+      "competitive": null,
+      "contractStatus": null,
+      "incumbent": null,
+      "contractNumber": null,
+      "estimatedPopStart": null,
+      "estimatedPopEnd": null,
+      "fiscalYear": null,
+      "anticipatedAwardDate": null,
+      "estimatedSolicitationReleaseDate": null,
+      "placeOfPerformanceCity": null,
+      "placeOfPerformanceState": null,
+      "primaryContactFirstName": "Harry",
+      "primaryContactLastName": "Tubman",
+      "primaryContactPhone": null,
+      "primaryContactEmail": "HQ_Req@hq.dhs.gov",
+      "alternateContactFirstName": null,
+      "alternateContactLastName": null,
+      "alternateContactPhone": null,
+      "alternateContactEmail": null,
+      "sbSpecialistFirstName": null,
+      "sbSpecialistLastName": null,
+      "sbSpecialistPhone": null,
+      "sbSpecialistEmail": null,
+      "id": 1769114217612,
+      "component": "DHS HQ",
+      "apfsNumber": "APFS-2026-DHSHQ-4416",
+      "status": "Contracting",
+      "createdAt": "2026-01-22T20:36:57.612Z",
+      "updatedAt": "2026-01-22T20:42:15.545Z",
+      "assignedToUserId": null,
+      "assignedToName": null,
+      "assignedAt": null,
+      "history": [
+        {
+          "id": 1769114217613,
+          "time": "2026-01-22T20:36:57.613Z",
+          "user_display": "HQ_Req@hq.dhs.gov",
+          "user_comment": "Created",
+          "assignment_display": null,
+          "assignment_id": null,
+          "forecast_id": 1769114217612,
+          "previous_state_id": null,
+          "new_state_id": 0,
+          "latest": 1,
+          "user_id": "1768502629880"
+        }
+      ]
+    }
+  ],
+  "recordHistory": [
+    {
+      "id": 1769010042205,
+      "time": "2026-01-21T15:40:42.205Z",
+      "user_display": "HQ_Req@hq.dhs.gov",
+      "user_comment": "Created",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1769010042205,
+      "previous_state_id": null,
+      "new_state_id": 0,
+      "latest": 0,
+      "user_id": "1768502629880"
+    },
+    {
+      "id": 1769010111141,
+      "time": "2026-01-21T15:41:51.141Z",
+      "user_display": "HQ_Req@hq.dhs.gov",
+      "user_comment": "adASD",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1769010042205,
+      "previous_state_id": 1,
+      "new_state_id": 2,
+      "latest": 0,
+      "user_id": "1768502629880"
+    },
+    {
+      "id": 1769012589283,
+      "time": "2026-01-21T16:23:09.283Z",
+      "user_display": "HQ_Req@hq.dhs.gov",
+      "user_comment": "Deleted record",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1769010042205,
+      "previous_state_id": 2,
+      "new_state_id": 2,
+      "latest": 1,
+      "user_id": "1768502629880"
+    },
+    {
+      "id": 1769012613976,
+      "time": "2026-01-21T16:23:33.976Z",
+      "user_display": "HQ_Req@hq.dhs.gov",
+      "user_comment": "Created",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1769012613976,
+      "previous_state_id": null,
+      "new_state_id": 0,
+      "latest": 0,
+      "user_id": "1768502629880"
+    },
+    {
+      "id": 1769012625923,
+      "time": "2026-01-21T16:23:45.923Z",
+      "user_display": "HQ_Req@hq.dhs.gov",
+      "user_comment": "sadASd",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1769012613976,
+      "previous_state_id": 1,
+      "new_state_id": 2,
+      "latest": 0,
+      "user_id": "1768502629880"
+    },
+    {
+      "id": 1769012639832,
+      "time": "2026-01-21T16:23:59.832Z",
+      "user_display": "HQ_Req@hq.dhs.gov",
+      "user_comment": "Deleted record",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1769012613976,
+      "previous_state_id": 2,
+      "new_state_id": 2,
+      "latest": 1,
+      "user_id": "1768502629880"
+    },
+    {
+      "id": 1769012652355,
+      "time": "2026-01-21T16:24:12.355Z",
+      "user_display": "HQ_Req@hq.dhs.gov",
+      "user_comment": "Created",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1769012652355,
+      "previous_state_id": null,
+      "new_state_id": 0,
+      "latest": 0,
+      "user_id": "1768502629880"
+    },
+    {
+      "id": 1769012656339,
+      "time": "2026-01-21T16:24:16.339Z",
+      "user_display": "HQ_Req@hq.dhs.gov",
+      "user_comment": "",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1769012652355,
+      "previous_state_id": 0,
+      "new_state_id": 1,
+      "latest": 0,
+      "user_id": "1768502629880"
+    },
+    {
+      "id": 1769012787261,
+      "time": "2026-01-21T16:26:27.261Z",
+      "user_display": "HQ_Req@hq.dhs.gov",
+      "user_comment": "Deleted record",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1769012652355,
+      "previous_state_id": 1,
+      "new_state_id": 1,
+      "latest": 1,
+      "user_id": "1768502629880"
+    },
+    {
+      "id": 1769012817228,
+      "time": "2026-01-21T16:26:57.228Z",
+      "user_display": "HQ_Req@hq.dhs.gov",
+      "user_comment": "Created",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1769012817228,
+      "previous_state_id": null,
+      "new_state_id": 0,
+      "latest": 0,
+      "user_id": "1768502629880"
+    },
+    {
+      "id": 1769013041040,
+      "time": "2026-01-21T16:30:41.040Z",
+      "user_display": "HQ_Req@hq.dhs.gov",
+      "user_comment": "Deleted record",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1769012817228,
+      "previous_state_id": 1,
+      "new_state_id": 1,
+      "latest": 1,
+      "user_id": "1768502629880"
+    },
+    {
+      "id": 1769013057001,
+      "time": "2026-01-21T16:30:57.001Z",
+      "user_display": "HQ_Req@hq.dhs.gov",
+      "user_comment": "Created",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1769013057001,
+      "previous_state_id": null,
+      "new_state_id": 0,
+      "latest": 0,
+      "user_id": "1768502629880"
+    },
+    {
+      "id": 1769013850346,
+      "time": "2026-01-21T16:44:10.346Z",
+      "user_display": "HQ_Req@hq.dhs.gov",
+      "user_comment": "Deleted record",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1769013057001,
+      "previous_state_id": 1,
+      "new_state_id": 1,
+      "latest": 1,
+      "user_id": "1768502629880"
+    },
+    {
+      "id": 1769013861759,
+      "time": "2026-01-21T16:44:21.759Z",
+      "user_display": "HQ_Req@hq.dhs.gov",
+      "user_comment": "Created",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1769013861759,
+      "previous_state_id": null,
+      "new_state_id": 0,
+      "latest": 0,
+      "user_id": "1768502629880"
+    },
+    {
+      "id": 1769013880365,
+      "time": "2026-01-21T16:44:40.365Z",
+      "user_display": "HQ_Req@hq.dhs.gov",
+      "user_comment": "zxcvzxcv",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1769013861759,
+      "previous_state_id": 1,
+      "new_state_id": 2,
+      "latest": 0,
+      "user_id": "1768502629880"
+    },
+    {
+      "id": 1769014115131,
+      "time": "2026-01-21T16:48:35.131Z",
+      "user_display": "HQ_Req@hq.dhs.gov",
+      "user_comment": "Created",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1769014115131,
+      "previous_state_id": null,
+      "new_state_id": 0,
+      "latest": 0,
+      "user_id": "1768502629880"
+    },
+    {
+      "id": 1769014230764,
+      "time": "2026-01-21T16:50:30.764Z",
+      "user_display": "HQ_Req@hq.dhs.gov",
+      "user_comment": "Deleted record",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1769014115131,
+      "previous_state_id": 1,
+      "new_state_id": 1,
+      "latest": 1,
+      "user_id": "1768502629880"
+    },
+    {
+      "id": 1769014235395,
+      "time": "2026-01-21T16:50:35.395Z",
+      "user_display": "HQ_Req@hq.dhs.gov",
+      "user_comment": "Deleted record",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1769013861759,
+      "previous_state_id": 2,
+      "new_state_id": 2,
+      "latest": 1,
+      "user_id": "1768502629880"
+    },
+    {
+      "id": 1769014238592,
+      "time": "2026-01-21T16:50:38.592Z",
+      "user_display": "HQ_Req@hq.dhs.gov",
+      "user_comment": "Created",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1769014238592,
+      "previous_state_id": null,
+      "new_state_id": 0,
+      "latest": 0,
+      "user_id": "1768502629880"
+    },
+    {
+      "id": 1769014350674,
+      "time": "2026-01-21T16:52:30.674Z",
+      "user_display": "HQ_Req@hq.dhs.gov",
+      "user_comment": "AFSDASDFA",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1769014238592,
+      "previous_state_id": 1,
+      "new_state_id": 2,
+      "latest": 1,
+      "user_id": "1768502629880"
+    },
+    {
+      "id": 1769108458277,
+      "time": "2026-01-22T19:00:58.277Z",
+      "user_display": "HQ_Req@hq.dhs.gov",
+      "user_comment": "Created",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1769108458276,
+      "previous_state_id": null,
+      "new_state_id": 0,
+      "latest": 0,
+      "user_id": "1768502629880"
+    },
+    {
+      "id": 1769111167313,
+      "time": "2026-01-22T19:46:07.313Z",
+      "user_display": "HQ_Admin@hq.dhs.gov",
+      "user_comment": "Claimed",
+      "assignment_display": "Honest Abe",
+      "assignment_id": "1768504324245",
+      "forecast_id": 1769108458276,
+      "previous_state_id": 0,
+      "new_state_id": 0,
+      "latest": 1,
+      "user_id": "1768504324245"
+    },
+    {
+      "id": 1769114217613,
+      "time": "2026-01-22T20:36:57.613Z",
+      "user_display": "HQ_Req@hq.dhs.gov",
+      "user_comment": "Created",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1769114217612,
+      "previous_state_id": null,
+      "new_state_id": 0,
+      "latest": 0,
+      "user_id": "1768502629880"
+    },
+    {
+      "id": 1769114535545,
+      "time": "2026-01-22T20:42:15.545Z",
+      "user_display": "HQ_Req@hq.dhs.gov",
+      "user_comment": "testing send to contracts",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1769114217612,
+      "previous_state_id": 1,
+      "new_state_id": 2,
+      "latest": 1,
+      "user_id": "1768502629880"
+    }
+  ],
+  "apfs_organization": [
+    {
+      "id": 2,
+      "name": "CBP",
+      "acronym": "CBP",
+      "full_name": "CBP",
+      "active": 1,
+      "parent_id": null
+    },
+    {
+      "id": 3,
+      "name": "Air and Marine",
+      "acronym": "Air and Marine",
+      "full_name": "CBP/Air and Marine",
+      "active": 1,
+      "parent_id": 2
+    },
+    {
+      "id": 4,
+      "name": "BP/SOG",
+      "acronym": "BP/SOG",
+      "full_name": "CBP/BP/SOG",
+      "active": 1,
+      "parent_id": 2
+    },
+    {
+      "id": 5,
+      "name": "US Border Patrol",
+      "acronym": "BP",
+      "full_name": "CBP/BP",
+      "active": 1,
+      "parent_id": 2
+    },
+    {
+      "id": 6,
+      "name": "BLW",
+      "acronym": "BLW",
+      "full_name": "CBP/BP/BLW",
+      "active": 1,
+      "parent_id": 5
+    },
+    {
+      "id": 7,
+      "name": "Del Rio Sector",
+      "acronym": "Del Rio Sector",
+      "full_name": "CBP/BP/Del Rio Sector",
+      "active": 1,
+      "parent_id": 5
+    },
+    {
+      "id": 9,
+      "name": "EIT",
+      "acronym": "EIT",
+      "full_name": "CBP/BP/EIT",
+      "active": 1,
+      "parent_id": 5
+    },
+    {
+      "id": 11,
+      "name": "El Paso Sector",
+      "acronym": "El Paso Sector",
+      "full_name": "CBP/BP/El Paso Sector",
+      "active": 1,
+      "parent_id": 5
+    },
+    {
+      "id": 12,
+      "name": "ELC",
+      "acronym": "ELC",
+      "full_name": "CBP/BP/ELC",
+      "active": 1,
+      "parent_id": 5
+    },
+    {
+      "id": 13,
+      "name": "Laredo",
+      "acronym": "Laredo",
+      "full_name": "CBP/BP/Laredo",
+      "active": 1,
+      "parent_id": 5
+    },
+    {
+      "id": 14,
+      "name": "Marfa Sector",
+      "acronym": "Marfa Sector",
+      "full_name": "CBP/BP/Marfa Sector",
+      "active": 1,
+      "parent_id": 5
+    },
+    {
+      "id": 15,
+      "name": "Rio Grande Valley Sector",
+      "acronym": "Rio Grande Valley Se",
+      "full_name": "CBP/BP/Rio Grande Valley Se",
+      "active": 1,
+      "parent_id": 5
+    },
+    {
+      "id": 17,
+      "name": "San Diego Sector",
+      "acronym": "San Diego Sector",
+      "full_name": "CBP/BP/San Diego Sector",
+      "active": 1,
+      "parent_id": 5
+    },
+    {
+      "id": 18,
+      "name": "SWB",
+      "acronym": "SWB",
+      "full_name": "CBP/BP/SWB",
+      "active": 1,
+      "parent_id": 5
+    },
+    {
+      "id": 19,
+      "name": "TCA",
+      "acronym": "TCA",
+      "full_name": "CBP/BP/TCA",
+      "active": 1,
+      "parent_id": 5
+    },
+    {
+      "id": 22,
+      "name": "Facilities Management & Engineering",
+      "acronym": "Facilities Managemen",
+      "full_name": "CBP/Facilities Managemen",
+      "active": 1,
+      "parent_id": 2
+    },
+    {
+      "id": 23,
+      "name": "HQ",
+      "acronym": "HQ",
+      "full_name": "CBP/HQ",
+      "active": 1,
+      "parent_id": 2
+    },
+    {
+      "id": 24,
+      "name": "HRM",
+      "acronym": "HRM",
+      "full_name": "CBP/HRM",
+      "active": 1,
+      "parent_id": 2
+    },
+    {
+      "id": 25,
+      "name": "IA",
+      "acronym": "IA",
+      "full_name": "CBP/IA",
+      "active": 1,
+      "parent_id": 2
+    },
+    {
+      "id": 26,
+      "name": "INA",
+      "acronym": "INA",
+      "full_name": "CBP/INA",
+      "active": 1,
+      "parent_id": 2
+    },
+    {
+      "id": 27,
+      "name": "National Air Training Center - Oklahoma City",
+      "acronym": "National Air Trainin",
+      "full_name": "CBP/National Air Trainin",
+      "active": 1,
+      "parent_id": 2
+    },
+    {
+      "id": 28,
+      "name": "National Logistics Center",
+      "acronym": "National Logistics C",
+      "full_name": "CBP/National Logistics C",
+      "active": 1,
+      "parent_id": 2
+    },
+    {
+      "id": 29,
+      "name": "Office of Administration",
+      "acronym": "Office of Administra",
+      "full_name": "CBP/Office of Administra",
+      "active": 1,
+      "parent_id": 2
+    },
+    {
+      "id": 30,
+      "name": "Office of Air and Marine Operations",
+      "acronym": "Office of Air and Ma",
+      "full_name": "CBP/Office of Air and Ma",
+      "active": 1,
+      "parent_id": 2
+    },
+    {
+      "id": 31,
+      "name": "Office of Intelligence",
+      "acronym": "Office of Intelligen",
+      "full_name": "CBP/Office of Intelligen",
+      "active": 1,
+      "parent_id": 2
+    },
+    {
+      "id": 32,
+      "name": "Office of Technology Innovation and Acquisition",
+      "acronym": "Office of Technology",
+      "full_name": "CBP/Office of Technology",
+      "active": 1,
+      "parent_id": 2
+    },
+    {
+      "id": 33,
+      "name": "OFO",
+      "acronym": "OFO",
+      "full_name": "CBP/OFO",
+      "active": 1,
+      "parent_id": 2
+    },
+    {
+      "id": 35,
+      "name": "OIT",
+      "acronym": "OIT",
+      "full_name": "CBP/OIT",
+      "active": 1,
+      "parent_id": 2
+    },
+    {
+      "id": 36,
+      "name": "BEMS",
+      "acronym": "BEMS",
+      "full_name": "CBP/OIT/BEMS",
+      "active": 1,
+      "parent_id": 35
+    },
+    {
+      "id": 37,
+      "name": "CSPO",
+      "acronym": "CSPO",
+      "full_name": "CBP/OIT/CSPO",
+      "active": 1,
+      "parent_id": 35
+    },
+    {
+      "id": 38,
+      "name": "EDME",
+      "acronym": "EDME",
+      "full_name": "CBP/OIT/EDME",
+      "active": 1,
+      "parent_id": 35
+    },
+    {
+      "id": 39,
+      "name": "EDCOG",
+      "acronym": "EDCOG",
+      "full_name": "CBP/OIT/EDME/EDCOG",
+      "active": 1,
+      "parent_id": 38
+    },
+    {
+      "id": 52,
+      "name": "ENTS",
+      "acronym": "ENTS",
+      "full_name": "CBP/OIT/ENTS",
+      "active": 1,
+      "parent_id": 35
+    },
+    {
+      "id": 59,
+      "name": "LSS",
+      "acronym": "LSS",
+      "full_name": "CBP/OIT/LSS",
+      "active": 1,
+      "parent_id": 35
+    },
+    {
+      "id": 60,
+      "name": "ITB",
+      "acronym": "ITB",
+      "full_name": "CBP/OIT/LSS/ITB",
+      "active": 1,
+      "parent_id": 59
+    },
+    {
+      "id": 61,
+      "name": "PSPO",
+      "acronym": "PSPO",
+      "full_name": "CBP/OIT/PSPO",
+      "active": 1,
+      "parent_id": 35
+    },
+    {
+      "id": 62,
+      "name": "TASPO",
+      "acronym": "TASPO",
+      "full_name": "CBP/OIT/TASPO",
+      "active": 1,
+      "parent_id": 35
+    },
+    {
+      "id": 63,
+      "name": "WM",
+      "acronym": "WM",
+      "full_name": "CBP/OIT/WM",
+      "active": 1,
+      "parent_id": 35
+    },
+    {
+      "id": 64,
+      "name": "WSPO",
+      "acronym": "WSPO",
+      "full_name": "CBP/OIT/WSPO",
+      "active": 1,
+      "parent_id": 35
+    },
+    {
+      "id": 65,
+      "name": "OPA",
+      "acronym": "OPA",
+      "full_name": "CBP/OPA",
+      "active": 1,
+      "parent_id": 2
+    },
+    {
+      "id": 66,
+      "name": "OT",
+      "acronym": "OT",
+      "full_name": "CBP/OT",
+      "active": 1,
+      "parent_id": 2
+    },
+    {
+      "id": 67,
+      "name": "OTD",
+      "acronym": "OTD",
+      "full_name": "CBP/OTD",
+      "active": 1,
+      "parent_id": 2
+    },
+    {
+      "id": 68,
+      "name": "SBI",
+      "acronym": "SBI",
+      "full_name": "CBP/SBI",
+      "active": 1,
+      "parent_id": 2
+    },
+    {
+      "id": 71,
+      "name": "DHS HQ",
+      "acronym": "DHS HQ",
+      "full_name": "DHS HQ",
+      "active": 1,
+      "parent_id": null
+    },
+    {
+      "id": 87,
+      "name": "Countering Weapons of Mass Destruction (CWMD)",
+      "acronym": "CWMD",
+      "full_name": "DHS HQ/CWMD",
+      "active": 0,
+      "parent_id": 71
+    },
+    {
+      "id": 97,
+      "name": "Cybersecurity and Infrastructure Security Agency (CISA)",
+      "acronym": "CISA",
+      "full_name": "DHS HQ/CISA",
+      "active": 1,
+      "parent_id": 71
+    },
+    {
+      "id": 122,
+      "name": "Office of Legislative Affairs",
+      "acronym": "OLA",
+      "full_name": "DHS HQ/OLA",
+      "active": 1,
+      "parent_id": 71
+    },
+    {
+      "id": 128,
+      "name": "Office of Procurement Operations (OPO)",
+      "acronym": "OPO",
+      "full_name": "DHS HQ/OPO",
+      "active": 1,
+      "parent_id": 71
+    },
+    {
+      "id": 130,
+      "name": "Office of Operations Coordination and Planning (OPS)",
+      "acronym": "OPS",
+      "full_name": "DHS HQ/OPS",
+      "active": 1,
+      "parent_id": 71
+    },
+    {
+      "id": 131,
+      "name": "Science & Technology Directorate",
+      "acronym": "S&T",
+      "full_name": "DHS HQ/S&T",
+      "active": 1,
+      "parent_id": 71
+    },
+    {
+      "id": 199,
+      "name": "Chief Financial Officer",
+      "acronym": "CFO",
+      "full_name": "DHS HQ/CFO",
+      "active": 0,
+      "parent_id": 71
+    },
+    {
+      "id": 205,
+      "name": "Office for Civil Rights and Civil Liberties",
+      "acronym": "CRCL",
+      "full_name": "DHS HQ/CRCL",
+      "active": 1,
+      "parent_id": 71
+    },
+    {
+      "id": 210,
+      "name": "Office of Public Affairs",
+      "acronym": "OPA",
+      "full_name": "DHS HQ/OPA",
+      "active": 1,
+      "parent_id": 71
+    },
+    {
+      "id": 212,
+      "name": "Office of Policy",
+      "acronym": "PLCY",
+      "full_name": "DHS HQ/PLCY",
+      "active": 1,
+      "parent_id": 71
+    },
+    {
+      "id": 216,
+      "name": "Privacy Office",
+      "acronym": "PRIV",
+      "full_name": "DHS HQ/PRIV",
+      "active": 1,
+      "parent_id": 71
+    },
+    {
+      "id": 217,
+      "name": "FEMA",
+      "acronym": "FEMA",
+      "full_name": "FEMA",
+      "active": 1,
+      "parent_id": null
+    },
+    {
+      "id": 282,
+      "name": "FLETC",
+      "acronym": "FLETC",
+      "full_name": "FLETC",
+      "active": 1,
+      "parent_id": null
+    },
+    {
+      "id": 284,
+      "name": "BPB",
+      "acronym": "BPB",
+      "full_name": "FLETC/BPB",
+      "active": 0,
+      "parent_id": 282
+    },
+    {
+      "id": 286,
+      "name": "CHELTENHAM",
+      "acronym": "CHELTENHAM",
+      "full_name": "FLETC/CHELTENHAM",
+      "active": 0,
+      "parent_id": 282
+    },
+    {
+      "id": 287,
+      "name": "Charleston",
+      "acronym": "Charleston",
+      "full_name": "FLETC/Charleston",
+      "active": 0,
+      "parent_id": 282
+    },
+    {
+      "id": 290,
+      "name": "DD",
+      "acronym": "DD",
+      "full_name": "FLETC/DD",
+      "active": 1,
+      "parent_id": 282
+    },
+    {
+      "id": 293,
+      "name": "DO",
+      "acronym": "DO",
+      "full_name": "FLETC/DO",
+      "active": 1,
+      "parent_id": 282
+    },
+    {
+      "id": 295,
+      "name": "FAD",
+      "acronym": "FAD",
+      "full_name": "FLETC/FAD",
+      "active": 0,
+      "parent_id": 282
+    },
+    {
+      "id": 296,
+      "name": "FMD",
+      "acronym": "FMD",
+      "full_name": "FLETC/FMD",
+      "active": 0,
+      "parent_id": 282
+    },
+    {
+      "id": 298,
+      "name": "HCOD",
+      "acronym": "HCOD",
+      "full_name": "FLETC/HCOD",
+      "active": 0,
+      "parent_id": 282
+    },
+    {
+      "id": 301,
+      "name": "Artesia",
+      "acronym": "Artesia",
+      "full_name": "FLETC/Artesia",
+      "active": 0,
+      "parent_id": 282
+    },
+    {
+      "id": 310,
+      "name": "Immigration and Customs Enforcement",
+      "acronym": "ICE",
+      "full_name": "ICE",
+      "active": 1,
+      "parent_id": null
+    },
+    {
+      "id": 312,
+      "name": "Office of the Director",
+      "acronym": "OD",
+      "full_name": "ICE/OD",
+      "active": 1,
+      "parent_id": 310
+    },
+    {
+      "id": 314,
+      "name": "Office of The Principal Legal Advisor",
+      "acronym": "OPLA",
+      "full_name": "ICE/OPLA",
+      "active": 1,
+      "parent_id": 310
+    },
+    {
+      "id": 317,
+      "name": "Office of the Chief Financial Officer",
+      "acronym": "CFO",
+      "full_name": "ICE/M&A/CFO",
+      "active": 1,
+      "parent_id": 787
+    },
+    {
+      "id": 318,
+      "name": "Office of the Chief Information Officer",
+      "acronym": "CIO",
+      "full_name": "ICE/M&A/CIO",
+      "active": 1,
+      "parent_id": 787
+    },
+    {
+      "id": 320,
+      "name": "Office of Intelligence",
+      "acronym": "INT",
+      "full_name": "ICE/HSI/INT",
+      "active": 0,
+      "parent_id": 634
+    },
+    {
+      "id": 324,
+      "name": "Office of Professional Responsibility",
+      "acronym": "OPR",
+      "full_name": "ICE/OPR",
+      "active": 1,
+      "parent_id": 310
+    },
+    {
+      "id": 325,
+      "name": "Transportation Security Administration",
+      "acronym": "TSA",
+      "full_name": "TSA",
+      "active": 1,
+      "parent_id": null
+    },
+    {
+      "id": 326,
+      "name": "Law Enforcement/Federal Air Marshal Service/TSA-18",
+      "acronym": "FAMS",
+      "full_name": "TSA/FAMS",
+      "active": 1,
+      "parent_id": 325
+    },
+    {
+      "id": 327,
+      "name": "Office of Chief Information Officer/TSA-11",
+      "acronym": "CIO",
+      "full_name": "TSA/CIO",
+      "active": 1,
+      "parent_id": 325
+    },
+    {
+      "id": 328,
+      "name": "Inspection/TSA-13",
+      "acronym": "Inspection",
+      "full_name": "TSA/Inspection",
+      "active": 1,
+      "parent_id": 325
+    },
+    {
+      "id": 329,
+      "name": "Finance & Administration (CFO)/TSA 14",
+      "acronym": "CFO",
+      "full_name": "TSA/CFO",
+      "active": 1,
+      "parent_id": 325
+    },
+    {
+      "id": 330,
+      "name": "Office of Security Capability/TSA-16",
+      "acronym": "Security Capability",
+      "full_name": "TSA/Security Capability",
+      "active": 1,
+      "parent_id": 325
+    },
+    {
+      "id": 331,
+      "name": "Finance & Administration (CAO)/TSA 17",
+      "acronym": "CAO",
+      "full_name": "TSA/CAO",
+      "active": 1,
+      "parent_id": 325
+    },
+    {
+      "id": 334,
+      "name": "Human Capital/TSA-21",
+      "acronym": "Human Capital",
+      "full_name": "TSA/Human Capital",
+      "active": 1,
+      "parent_id": 325
+    },
+    {
+      "id": 337,
+      "name": "Office of Security Policy & Industry Engagement/TSA-28",
+      "acronym": "OSPIE",
+      "full_name": "TSA/OSPIE",
+      "active": 1,
+      "parent_id": 325
+    },
+    {
+      "id": 338,
+      "name": "Security Operations/TSA-29",
+      "acronym": "Security Operations",
+      "full_name": "TSA/Security Operations",
+      "active": 1,
+      "parent_id": 325
+    },
+    {
+      "id": 340,
+      "name": "Strategic Communications & Public Affairs/TSA-4",
+      "acronym": "Public Affairs",
+      "full_name": "TSA/Public Affairs",
+      "active": 1,
+      "parent_id": 325
+    },
+    {
+      "id": 341,
+      "name": "United States Coast Guard",
+      "acronym": "USCG",
+      "full_name": "USCG",
+      "active": 1,
+      "parent_id": null
+    },
+    {
+      "id": 347,
+      "name": "Aviation Logistics Center",
+      "acronym": "ALC",
+      "full_name": "USCG/ALC",
+      "active": 1,
+      "parent_id": 341
+    },
+    {
+      "id": 371,
+      "name": "CG-C5I Service Center",
+      "acronym": "CG-C5I",
+      "full_name": "USCG/CG-C5I",
+      "active": 1,
+      "parent_id": 341
+    },
+    {
+      "id": 482,
+      "name": "Office of Contracting & Procurement Headquarters",
+      "acronym": "CG-HCA",
+      "full_name": "USCG/CG-HCA",
+      "active": 1,
+      "parent_id": 341
+    },
+    {
+      "id": 528,
+      "name": "Surface Forces Logistics Center",
+      "acronym": "SFLC",
+      "full_name": "USCG/SFLC",
+      "active": 1,
+      "parent_id": 341
+    },
+    {
+      "id": 535,
+      "name": "Operational Logistics Command-LOGCOM9",
+      "acronym": "LOGCOM",
+      "full_name": "USCG/LOGCOM",
+      "active": 1,
+      "parent_id": 341
+    },
+    {
+      "id": 561,
+      "name": "USSS",
+      "acronym": "USSS",
+      "full_name": "USSS",
+      "active": 1,
+      "parent_id": null
+    },
+    {
+      "id": 611,
+      "name": "Office of Intelligence & Analysis",
+      "acronym": "OIA",
+      "full_name": "TSA/OIA",
+      "active": 1,
+      "parent_id": 325
+    },
+    {
+      "id": 613,
+      "name": "Administrator/TSA-1",
+      "acronym": "Administrator",
+      "full_name": "TSA/Administrator",
+      "active": 1,
+      "parent_id": 325
+    },
+    {
+      "id": 615,
+      "name": "Civil Rights & Liberties/Ombudsman/TSA-6",
+      "acronym": "Civil Rights",
+      "full_name": "TSA/Civil Rights",
+      "active": 1,
+      "parent_id": 325
+    },
+    {
+      "id": 616,
+      "name": "Claims Processing/TSA-9",
+      "acronym": "Claims",
+      "full_name": "TSA/Claims",
+      "active": 1,
+      "parent_id": 325
+    },
+    {
+      "id": 617,
+      "name": "Operational & Technical Training/TSA 12",
+      "acronym": "OCR/OTT",
+      "full_name": "TSA/OCR/OTT",
+      "active": 1,
+      "parent_id": 325
+    },
+    {
+      "id": 619,
+      "name": "Freedom of Information",
+      "acronym": "",
+      "full_name": "TSA/",
+      "active": 1,
+      "parent_id": 325
+    },
+    {
+      "id": 628,
+      "name": "Office of Acquisition Program Management",
+      "acronym": "OAPM",
+      "full_name": "TSA/OAPM",
+      "active": 1,
+      "parent_id": 325
+    },
+    {
+      "id": 629,
+      "name": "Office of Information Technology",
+      "acronym": "OIT",
+      "full_name": "TSA/OIT",
+      "active": 1,
+      "parent_id": 325
+    },
+    {
+      "id": 634,
+      "name": "Homeland Security Investigations",
+      "acronym": "HSI",
+      "full_name": "ICE/HSI",
+      "active": 1,
+      "parent_id": 310
+    },
+    {
+      "id": 640,
+      "name": "Enforcement and Removal Operations",
+      "acronym": "ERO",
+      "full_name": "ICE/ERO",
+      "active": 1,
+      "parent_id": 310
+    },
+    {
+      "id": 666,
+      "name": "OC/JOD",
+      "acronym": "OC/JOD",
+      "full_name": "CBP/OC/JOD",
+      "active": 1,
+      "parent_id": 2
+    },
+    {
+      "id": 711,
+      "name": "Office of General Counsel (OGC)",
+      "acronym": "OGC",
+      "full_name": "DHS HQ/OGC",
+      "active": 1,
+      "parent_id": 71
+    },
+    {
+      "id": 744,
+      "name": "Office of Training & Development /TSA 8",
+      "acronym": "OTD",
+      "full_name": "TSA/OTD",
+      "active": 1,
+      "parent_id": 325
+    },
+    {
+      "id": 745,
+      "name": "Los Angeles, CA  Airport-TSA-1LAX0",
+      "acronym": "LAX",
+      "full_name": "TSA/LAX",
+      "active": 1,
+      "parent_id": 325
+    },
+    {
+      "id": 746,
+      "name": "Office of Global Strategies/TSA-38",
+      "acronym": "Global Strategies",
+      "full_name": "TSA/Global Strategies",
+      "active": 1,
+      "parent_id": 325
+    },
+    {
+      "id": 755,
+      "name": "Management Directorate",
+      "acronym": "MGMT",
+      "full_name": "DHS HQ/MGMT",
+      "active": 1,
+      "parent_id": 71
+    },
+    {
+      "id": 756,
+      "name": "U.S. Citizenship & Immigration Services",
+      "acronym": "USCIS",
+      "full_name": "USCIS",
+      "active": 1,
+      "parent_id": null
+    },
+    {
+      "id": 770,
+      "name": "Office of Contracting and Procurement � SHORE",
+      "acronym": "CG-SHORE",
+      "full_name": "USCG/CG-SHORE",
+      "active": 1,
+      "parent_id": 341
+    },
+    {
+      "id": 773,
+      "name": "Office of Acquisition",
+      "acronym": "OAQ",
+      "full_name": "ICE/M&A/OAQ",
+      "active": 1,
+      "parent_id": 787
+    },
+    {
+      "id": 785,
+      "name": "ACFS",
+      "acronym": "ACFS",
+      "full_name": "ACFS",
+      "active": 1,
+      "parent_id": null
+    },
+    {
+      "id": 786,
+      "name": "Office of the Secretary",
+      "acronym": "OS",
+      "full_name": "DHS HQ/OS",
+      "active": 1,
+      "parent_id": 71
+    },
+    {
+      "id": 787,
+      "name": "Management and Administration",
+      "acronym": "M&A",
+      "full_name": "ICE/M&A",
+      "active": 1,
+      "parent_id": 310
+    },
+    {
+      "id": 795,
+      "name": "Office of Firearms and Tactical Programs",
+      "acronym": "OFTP",
+      "full_name": "ICE/OD/OFTP",
+      "active": 1,
+      "parent_id": 312
+    },
+    {
+      "id": 801,
+      "name": "Office of Civil Rights Compliance",
+      "acronym": "OCRC",
+      "full_name": "ICE/OCRC",
+      "active": 1,
+      "parent_id": 310
+    },
+    {
+      "id": 802,
+      "name": "Office of Inspector General",
+      "acronym": "OIG",
+      "full_name": "OIG",
+      "active": 1,
+      "parent_id": null
+    },
+    {
+      "id": 806,
+      "name": "Operations Support",
+      "acronym": "OPS SUPT",
+      "full_name": "CBP/OPS SUPT",
+      "active": 1,
+      "parent_id": 2
+    },
+    {
+      "id": 807,
+      "name": "Office of Health Security",
+      "acronym": "OHS",
+      "full_name": "DHS HQ/OHS",
+      "active": 1,
+      "parent_id": 71
+    },
+    {
+      "id": 808,
+      "name": "Military Advisor's Office",
+      "acronym": "MIL",
+      "full_name": "DHS HQ/MIL",
+      "active": 1,
+      "parent_id": 71
+    },
+    {
+      "id": 809,
+      "name": "Enrollment Service & Vetting Programs",
+      "acronym": "ESVP",
+      "full_name": "TSA/ESVP",
+      "active": 1,
+      "parent_id": 325
+    },
+    {
+      "id": 810,
+      "name": "TSA 26 - Investigations",
+      "acronym": "OOI",
+      "full_name": "TSA/OOI",
+      "active": 1,
+      "parent_id": 325
+    },
+    {
+      "id": 811,
+      "name": "Office of State and Local Law Enforcement",
+      "acronym": "OSLLE",
+      "full_name": "DHS HQ/OSLLE",
+      "active": 1,
+      "parent_id": 71
+    },
+    {
+      "id": 813,
+      "name": "Chief of Staff",
+      "acronym": "TSA/COS",
+      "full_name": "TSA/TSA/COS",
+      "active": 1,
+      "parent_id": 325
+    },
+    {
+      "id": 816,
+      "name": "Operations Support",
+      "acronym": "OS",
+      "full_name": "TSA/OS",
+      "active": 1,
+      "parent_id": 325
+    },
+    {
+      "id": 1769110293236,
+      "full_name": "DHS HQ CPO",
+      "name": "CPO",
+      "acronym": "DHS HQ CPO",
+      "active": 1,
+      "parent_id": 71
+    }
+  ]
+}

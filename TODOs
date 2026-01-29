@@ -3,7 +3,7 @@ TODOs
 2) Filter records by office
 3) Add AFPS Number to records
 4) Deal with delete on records and history
-5) *Verify Should not send foward is form is invalid
+
 6) On assignment can assign to individual as well
 7) Need to add claim button on rails
 8) On assignment can assign to individual as well
@@ -69,20 +69,56 @@ Untracked files:
         src/app/features/admin/
 
 
-         TODOs                                              |  67 ++++--
- src/app/app.html                                   |   5 +
- src/app/app.routes.ts                              |  24 ++
- src/app/auth/auth.service.ts                       |   7 +
- .../request-new-user-form.css                      |  32 +++
- .../request-new-user-form.html                     |  31 ++-
- .../request-new-user-form/request-new-user-form.ts | 248 +++++++++++++++++++--
- src/app/core/services/user.service.ts              |  11 +
- src/app/features/admin/admin-home/admin-home.css   | 115 ++++++++++
- src/app/features/admin/admin-home/admin-home.html  |  46 ++++
- .../features/admin/admin-home/admin-home.spec.ts   |  23 ++
- src/app/features/admin/admin-home/admin-home.ts    |  25 +++
- src/app/features/admin/admin-users/admin-users.css | 208 +++++++++++++++++
- .../features/admin/admin-users/admin-users.html    |  85 +++++++
- .../features/admin/admin-users/admin-users.spec.ts |  23 ++
- src/app/features/admin/admin-users/admin-users.ts  | 101 +++++++++
- 16 files changed, 1006 insertions(+), 45 deletions(-)
+        
+src/app/app.css
+src/app/app.html
+***src/app/app.routes.ts
+src/app/app.ts
+
+src/app/components/common/about/about.css
+src/app/components/common/contact/contact.css
+src/app/components/common/contact/contact.html
+src/app/components/common/welcome/welcome.css
+src/app/components/common/welcome/welcome.html
+***src/app/components/user/request-new-user-form/request-new-user-form.ts
+
+src/app/config/apfs-dropdowns.config.ts
+
+src/app/core/Theme/theme.model.ts
+src/app/core/Theme/theme.service.ts
+src/app/core/layout/header/header.css
+src/app/core/layout/header/header.html
+src/app/core/layout/header/header.ts
+***src/app/core/models/user.model.ts
+***src/app/core/services/apfs-organization.service.ts
+
+***src/app/features/admin/admin-home/admin-home.css
+***src/app/features/admin/admin-home/admin-home.html
+***src/app/features/admin/admin-lookup/admin-lookup.css
+***src/app/features/admin/admin-lookup/admin-lookup.html
+***src/app/features/admin/admin-lookup/admin-lookup.spec.ts
+***src/app/features/admin/admin-lookup/admin-lookup.ts
+***src/app/features/admin/admin-organization-form/admin-organization-form.css
+***src/app/features/admin/admin-organization-form/admin-organization-form.html
+***src/app/features/admin/admin-organization-form/admin-organization-form.spec.ts
+***src/app/features/admin/admin-organization-form/admin-organization-form.ts
+***src/app/features/admin/admin-organization/admin-organization.css
+***src/app/features/admin/admin-organization/admin-organization.html
+***src/app/features/admin/admin-organization/admin-organization.spec.ts
+***src/app/features/admin/admin-organization/admin-organization.ts
+***src/app/features/admin/admin-users/admin-users.css
+
+src/app/features/dashboard-v2/components/nav-rail/nav-rail.component.css
+src/app/features/dashboard-v2/components/nav-rail/nav-rail.component.html
+src/app/features/dashboard-v2/components/record-drawer/record-drawer.component.css
+src/app/features/dashboard-v2/components/records-table/records-table.component.css
+src/app/features/dashboard-v2/components/records-table/records-table.component.html
+src/app/features/dashboard-v2/dashboard-v2.page.css
+src/app/features/forecast/forecast-record/components/forecast-record/forecast-record.html
+
+***src/assets/images/4-site_FINAL_withTag.png
+***src/assets/images/4-site_FINAL_withoutTag.png
+
+src/styles.css
+src/styles/_components.css
+src/styles/_tokens.css

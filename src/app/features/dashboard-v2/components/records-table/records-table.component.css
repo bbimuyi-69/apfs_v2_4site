@@ -31,7 +31,7 @@
 
 .tr {
   display: grid;
-  grid-template-columns: 160px 2.2fr 140px 120px 140px 160px 160px;
+  grid-template-columns: 160px minmax(0, 2.2fr) 140px 120px 140px 160px 160px;
   padding: 12px;
   align-items: center;
 
@@ -39,6 +39,13 @@
   background: var(--surface);
   cursor: pointer;
 }
+
+.tr>div {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 
 .tr:hover {
   background: var(--hover-tint);
