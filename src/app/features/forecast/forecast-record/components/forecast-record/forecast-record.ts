@@ -388,6 +388,8 @@ export class ForecastRecordComponent {
     return false;
   }
 
+
+  //this is the primary section of role based fields requried to move fromn state to state
   private getRoleRequiredControls(): Array<keyof ForecastRecordFormGroup['controls']> {
     const role = this.normalizeRailRole();
     const status = this.normalizeRailStatus(this.workflowStatus);
@@ -400,6 +402,7 @@ export class ForecastRecordComponent {
         'primaryContactFirstName',
         'primaryContactLastName',
         'primaryContactEmail',
+        'primaryContactPhone',
 
         // ✅ Offices now required
         'requirementsOffice',
@@ -409,10 +412,17 @@ export class ForecastRecordComponent {
         // Value Classification now required
         'dollarRange',
         'naicsCode',
-
         'requirementsTitle',
         'requirement',
         'programLevel',
+
+        // Place of Performance now required
+        'placeOfPerformanceCity',
+        'placeOfPerformanceState',
+
+        //Contracting Section fields now required in Requirements lane
+        'competitive',
+        'contractStatus',
       ];
     }
 

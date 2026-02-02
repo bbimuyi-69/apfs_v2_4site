@@ -303,8 +303,8 @@ export function applyForecastRecordRolePermissions(
     setEnabled(form.controls.strategicSourcingVehicle, isContractingOffice);
     setEnabled(form.controls.typeOfAward, isContractingOffice);
 
-    setEnabled(form.controls.competitive, isContractingOffice);
-    setEnabled(form.controls.contractStatus, isContractingOffice);
+    setEnabled(form.controls.competitive, isRequirements || isContractingOffice);
+    setEnabled(form.controls.contractStatus, isRequirements || isContractingOffice);
     setEnabled(form.controls.incumbent, isContractingOffice);
     setEnabled(form.controls.contractNumber, isContractingOffice);
 

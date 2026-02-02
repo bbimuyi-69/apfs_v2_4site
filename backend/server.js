@@ -1011,9 +1011,29 @@ app.put(`${API_PREFIX}/apfs-organization/:id`, (req, res) => {
     return res.json(updated);
 });
 
+// =========================
+// PUBLIC ORG OPTIONS (for unauthenticated request form)
+// Returns a flat list for dropdowns: [{ id, full_name }]
+// =========================
+app.get(`${API_PREFIX}/public/apfs-organization/options`, (req, res) => {
+    const data = loadData();
+    const onlyActive = String(req.query.active ?? '') === '1';
 
+    const rows = Array.isArray(data.apfs_organization) ? data.apfs_organization : [];
 
+    const options = rows
+        .map(r => ({
+            id: Number(r.id),
+            full_name: String(r.full_name ?? '').trim(),
+            active: Number(r.active) === 0 ? 0 : 1,
+        }))
+        .filter(o => Number.isFinite(o.id) && !!o.full_name)
+        .filter(o => !onlyActive || o.active === 1)
+        .sort((a, b) => a.full_name.localeCompare(b.full_name))
+        .map(o => ({ id: o.id, full_name: o.full_name })); // sanitize output
 
+    res.json(options);
+});
 
 
 // =========================

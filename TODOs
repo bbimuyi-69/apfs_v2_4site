@@ -15,7 +15,7 @@ TODOs
 14) When I reject it also needs to go back to dashboard
 15) Need an unpublish button
 16) When submitting a new request it should go to home page and add a message that it was submitted
-17) Enforce No edit unless claimed
+17) ***Enforce No edit unless claimed
 18) i CAN GO STRAING TO USER/ORGANIZATION ROUTE
 
 
@@ -68,11 +68,11 @@ Untracked files:
   (use "git add <file>..." to include in what will be committed)
         src/app/features/admin/
 
-
+`
         
 src/app/app.css
 src/app/app.html
-***src/app/app.routes.ts
+src/app/app.routes.ts
 src/app/app.ts
 
 src/app/components/common/about/about.css
@@ -80,7 +80,7 @@ src/app/components/common/contact/contact.css
 src/app/components/common/contact/contact.html
 src/app/components/common/welcome/welcome.css
 src/app/components/common/welcome/welcome.html
-***src/app/components/user/request-new-user-form/request-new-user-form.ts
+src/app/components/user/request-new-user-form/request-new-user-form.ts
 
 src/app/config/apfs-dropdowns.config.ts
 
@@ -89,24 +89,24 @@ src/app/core/Theme/theme.service.ts
 src/app/core/layout/header/header.css
 src/app/core/layout/header/header.html
 src/app/core/layout/header/header.ts
-***src/app/core/models/user.model.ts
-***src/app/core/services/apfs-organization.service.ts
+src/app/core/models/user.model.ts
+src/app/core/services/apfs-organization.service.ts
 
-***src/app/features/admin/admin-home/admin-home.css
-***src/app/features/admin/admin-home/admin-home.html
-***src/app/features/admin/admin-lookup/admin-lookup.css
-***src/app/features/admin/admin-lookup/admin-lookup.html
-***src/app/features/admin/admin-lookup/admin-lookup.spec.ts
-***src/app/features/admin/admin-lookup/admin-lookup.ts
-***src/app/features/admin/admin-organization-form/admin-organization-form.css
-***src/app/features/admin/admin-organization-form/admin-organization-form.html
-***src/app/features/admin/admin-organization-form/admin-organization-form.spec.ts
-***src/app/features/admin/admin-organization-form/admin-organization-form.ts
-***src/app/features/admin/admin-organization/admin-organization.css
-***src/app/features/admin/admin-organization/admin-organization.html
-***src/app/features/admin/admin-organization/admin-organization.spec.ts
-***src/app/features/admin/admin-organization/admin-organization.ts
-***src/app/features/admin/admin-users/admin-users.css
+src/app/features/admin/admin-home/admin-home.css
+src/app/features/admin/admin-home/admin-home.html
+src/app/features/admin/admin-lookup/admin-lookup.css
+src/app/features/admin/admin-lookup/admin-lookup.html
+src/app/features/admin/admin-lookup/admin-lookup.spec.ts
+src/app/features/admin/admin-lookup/admin-lookup.ts
+src/app/features/admin/admin-organization-form/admin-organization-form.css
+src/app/features/admin/admin-organization-form/admin-organization-form.html
+src/app/features/admin/admin-organization-form/admin-organization-form.spec.ts
+src/app/features/admin/admin-organization-form/admin-organization-form.ts
+src/app/features/admin/admin-organization/admin-organization.css
+src/app/features/admin/admin-organization/admin-organization.html
+src/app/features/admin/admin-organization/admin-organization.spec.ts
+src/app/features/admin/admin-organization/admin-organization.ts
+src/app/features/admin/admin-users/admin-users.css
 
 src/app/features/dashboard-v2/components/nav-rail/nav-rail.component.css
 src/app/features/dashboard-v2/components/nav-rail/nav-rail.component.html
@@ -116,9 +116,9 @@ src/app/features/dashboard-v2/components/records-table/records-table.component.h
 src/app/features/dashboard-v2/dashboard-v2.page.css
 src/app/features/forecast/forecast-record/components/forecast-record/forecast-record.html
 
-***src/assets/images/4-site_FINAL_withTag.png
-***src/assets/images/4-site_FINAL_withoutTag.png
+src/assets/images/4-site_FINAL_withTag.png
+src/assets/images/4-site_FINAL_withoutTag.png
 
 src/styles.css
 src/styles/_components.css
-src/styles/_tokens.css
+src/styles/_tokens.css`

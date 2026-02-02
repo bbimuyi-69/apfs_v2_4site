@@ -39,6 +39,10 @@ export class RequestNewUserForm implements OnInit {
   organizations: ApfsOrganization[] = [];
   private readonly orgIdByName = new Map<string, number>();
 
+  // org load UX
+  orgsLoading = false;
+  orgsLoadError = '';
+
   // Edit mode
   isEditMode = false;
   editingUserId: number | null = null;
@@ -75,9 +79,7 @@ export class RequestNewUserForm implements OnInit {
       isActive: [false],
     });
 
-    this.updateComponentEnabled();
-
-    // dependent dropdown logic
+    // Dependent dropdown logic
     const roleCtrl = this.requestNewUserForm.get('role')!;
     const officeCtrl = this.requestNewUserForm.get('office')!;
 
@@ -92,6 +94,7 @@ export class RequestNewUserForm implements OnInit {
       hasComponent && hasRole ? officeCtrl.enable({ emitEvent: false }) : officeCtrl.disable({ emitEvent: false });
     };
 
+    // Defaults
     updateRoleEnabled();
     updateOfficeEnabled();
 
@@ -99,26 +102,7 @@ export class RequestNewUserForm implements OnInit {
     this.dropdowns.getEmployeeTypes().subscribe((list: string[]) => (this.employeeTypes = list ?? []));
 
     // ✅ Organizations drive the "component" dropdown (phase 1)
-    this.orgService.getOrganizations().subscribe({
-      next: (orgs: ApfsOrganization[]) => {
-        this.organizations = orgs ?? [];
-
-        this.orgIdByName.clear();
-        for (const o of this.organizations) {
-          const name = String(o?.full_name ?? '').trim();
-          const id = Number(o?.id);
-          if (name && Number.isFinite(id)) this.orgIdByName.set(name, id);
-        }
-
-        // feed existing template loop: *ngFor="let c of components"
-        this.components = this.organizations
-          .map(o => String(o?.full_name ?? '').trim())
-          .filter(Boolean);
-
-        this.cdr.detectChanges();
-      },
-      error: (err) => console.error('Error fetching organizations:', err),
-    });
+    this.loadOrganizations();
 
     // Helpers
     const clearRole = () => {
@@ -203,9 +187,61 @@ export class RequestNewUserForm implements OnInit {
     });
   }
 
+  private loadOrganizations(): void {
+    this.orgsLoading = true;
+    this.orgsLoadError = '';
+
+    // If you used the updated org service, this will:
+    // - use scoped tree for logged-in Admins
+    // - fall back to public options for anonymous users
+    this.orgService.getOrganizations({ activeOnly: true }).subscribe({
+      next: (orgs: ApfsOrganization[]) => {
+        this.orgsLoading = false;
+
+        this.organizations = orgs ?? [];
+
+        this.orgIdByName.clear();
+        for (const o of this.organizations) {
+          const name = String(o?.full_name ?? '').trim();
+          const id = Number(o?.id);
+          if (name && Number.isFinite(id)) this.orgIdByName.set(name, id);
+        }
+
+        // feed existing template loop: *ngFor="let c of components"
+        this.components = this.organizations
+          .map(o => String(o?.full_name ?? '').trim())
+          .filter(Boolean);
+
+        if (!this.components.length) {
+          this.orgsLoadError = 'Organization list is currently unavailable. Please try again later.';
+          this.requestNewUserForm.get('component')?.disable({ emitEvent: false });
+        } else {
+          this.updateComponentEnabled();
+        }
+
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error fetching organizations:', err);
+
+        this.orgsLoading = false;
+        this.orgsLoadError = 'Organization list is currently unavailable. Please try again later.';
+        this.requestNewUserForm.get('component')?.disable({ emitEvent: false });
+
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
   private updateComponentEnabled(): void {
     const ctrl = this.requestNewUserForm.get('component');
     if (!ctrl) return;
+
+    // If org list is down, keep disabled regardless
+    if (this.orgsLoadError) {
+      ctrl.disable({ emitEvent: false });
+      return;
+    }
 
     if (this.isEditMode) ctrl.disable({ emitEvent: false });
     else ctrl.enable({ emitEvent: false });
@@ -299,6 +335,8 @@ export class RequestNewUserForm implements OnInit {
         }
       });
     }
+
+    this.updateComponentEnabled();
   }
 
   showError(controlName: string): boolean {
@@ -411,5 +449,6 @@ export class RequestNewUserForm implements OnInit {
     });
     this.roleOptions = [];
     this.officeOptions = [];
+    this.updateComponentEnabled();
   }
 }

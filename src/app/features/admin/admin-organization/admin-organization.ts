@@ -5,6 +5,7 @@ import { ReactiveFormsModule, FormControl } from '@angular/forms';
 
 import { ApfsOrganizationService, ApfsOrganizationNode } from 'src/app/core/services/apfs-organization.service';
 import { debounceTime, startWith } from 'rxjs/operators';
+import { ChangeDetectorRef } from '@angular/core';
 
 type FlatOrgRow = {
   id: number;
@@ -24,6 +25,7 @@ type FlatOrgRow = {
   styleUrls: ['./admin-organization.css'],
 })
 export class AdminOrganization implements OnInit {
+  private readonly cdr = inject(ChangeDetectorRef);
   private readonly orgSvc = inject(ApfsOrganizationService);
 
   isLoading = false;
@@ -51,25 +53,25 @@ export class AdminOrganization implements OnInit {
     this.orgSvc.getScopedTree({ activeOnly: true }).subscribe({
       next: (tree) => {
         const roots = Array.isArray(tree) ? tree : [tree];
-        this.rows = this.flattenTree(roots);
-
-        // ✅ refresh filtered view after load
+        this.rows = [...this.flattenTree(roots)];
         this.applyFilter(this.q.value);
 
         this.isLoading = false;
+        this.cdr.markForCheck(); // ✅ force repaint if parent is OnPush
       },
       error: () => {
         this.error = 'Failed to load organizations.';
         this.isLoading = false;
+        this.cdr.markForCheck();
       },
     });
   }
 
   private applyFilter(term: string) {
-    const q = term.toLowerCase().trim();
+    const q = (term ?? '').toLowerCase().trim();
 
     if (!q) {
-      this.filteredRows = this.rows;
+      this.filteredRows = [...this.rows];   // ✅ new reference
       return;
     }
 
@@ -78,6 +80,7 @@ export class AdminOrganization implements OnInit {
       (r.acronym || '').toLowerCase().includes(q)
     );
   }
+
 
   clearSearch() {
     this.q.setValue('');
