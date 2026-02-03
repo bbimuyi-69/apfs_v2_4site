@@ -700,6 +700,15 @@
     color: #555;
 }
 
+/* APFS form sizing guardrails */
+.apfs-form input,
+.apfs-form select,
+.apfs-form textarea {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+
 .apfs-loading {
     font-size: 13px;
     color: #475467;

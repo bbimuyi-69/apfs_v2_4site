@@ -136,6 +136,9 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
             (r.status as ForecastWorkflowLane) ??
             ForecastWorkflowLane.Draft) as ForecastWorkflowLane;
 
+
+    //this is the main form builder with new fields added and validation as needed
+    //Look here for adding new fields to the form        
     const form = new FormGroup(
         {
             /** System generated */
@@ -208,7 +211,16 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
                 nonNullable: true,
                 validators: [Validators.required, Validators.maxLength(100)],
             }),
-            primaryContactPhone: new FormControl(record.primaryContactPhone ?? null),
+            //            primaryContactPhone: new FormControl(record.primaryContactPhone ?? null),
+            primaryContactPhone: new FormControl(record.primaryContactPhone ?? '', {
+                nonNullable: true,
+                validators: [
+                    Validators.required,
+                    Validators.maxLength(25),
+                    Validators.pattern(/^\+?[\d\s().-]{7,25}$/),
+                ],
+            }),
+
             primaryContactEmail: new FormControl(record.primaryContactEmail ?? '', {
                 nonNullable: true,
                 validators: [Validators.required, Validators.email, Validators.maxLength(254)],
@@ -245,6 +257,8 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
  * Apply role-based enablement.
  * Call this AFTER enabling the form in edit mode.
  * This is where the role-based field enablement logic lives.
+ * //PAY ATTENTION
+ * this is what disables fields via css
  */
 export function applyForecastRecordRolePermissions(
     form: ForecastRecordFormGroup,

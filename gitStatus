@@ -10,3 +10,9 @@ Changes not staged for commit:
         modified:   src/app/features/forecast/forecast-record/components/forecast-record/forecast-record.form.ts
         modified:   src/app/features/forecast/forecast-record/components/forecast-record/forecast-record.ts     
         modified:   src/styles/_tokens.css
+
+
+        modified:   src/app/features/forecast/forecast-record/components/forecast-record/forecast-record.css
+        modified:   src/app/features/forecast/forecast-record/components/forecast-record/forecast-record.form.ts
+        modified:   src/app/features/forecast/forecast-record/components/forecast-record/forecast-record.html
+        modified:   src/app/features/forecast/forecast-record/components/forecast-record/forecast-record.ts

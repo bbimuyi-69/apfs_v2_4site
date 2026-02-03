@@ -148,7 +148,7 @@
                 <div class="subsec">
                     <div class="hint">Primary contact information for this requirement.</div>
 
-                    <div class="grid-3">
+                    <div class="grid-2">
                         <div class="field" [class.is-invalid]="isInvalid('primaryContactFirstName')">
                             <label>First Name <span class="req">*</span></label>
                             <input type="text" formControlName="primaryContactFirstName" />
@@ -165,6 +165,8 @@
                             </div>
                         </div>
 
+                    </div>
+                    <div class="grid-2">
                         <div class="field" [class.is-invalid]="isInvalid('primaryContactEmail')">
                             <label>Email <span class="req">*</span></label>
                             <input type="email" formControlName="primaryContactEmail" />
@@ -175,7 +177,18 @@
                                 Enter a valid email.
                             </div>
                         </div>
+
+                        <div class="field" [class.is-invalid]="isInvalid('primaryContactPhone')">
+                            <label>Primary Contact Phone Number <span class="req">*</span></label>
+                            <input type="text" formControlName="primaryContactPhone" />
+                            <div class="hint">Enter the phone number of the primary contact.</div>
+                            <div class="error" *ngIf="showError('primaryContactPhone','required')">
+                                Primary Contact Phone Number is required.
+                            </div>
+                        </div>
+
                     </div>
+
                 </div>
                 <!-- #endregion Primary Contact -->
 
@@ -359,12 +372,23 @@
             <section class="sec" id="sec-contracting" [class.readonly]="isEditMode && !canEditContractingSection">
                 <div class="sec-h">
                     <div class="sec-title">
-                        Contracting Office <span class="sec-sub">Owned by Contracting Office</span>
+                        Contracting Office <span class="sec-sub">Owned by Requirements / Contracting Office</span>
                     </div>
 
                     <div class="sec-meta">
-                        <span *ngIf="isEditMode && !canEditContractingSection" class="pill ro">Read-only</span>
-                        <span *ngIf="canEditContractingSection" class="pill ok">Editable</span>
+                        <span *ngIf="!isEditMode" class="pill ro">
+                            Read-only
+                        </span>
+
+                        <!-- Edit mode, but user cannot edit this section -->
+                        <span *ngIf="isEditMode && !canEditContractingSection" class="pill ro">
+                            Read-only
+                        </span>
+
+                        <!-- Edit mode and user can edit -->
+                        <span *ngIf="isEditMode && canEditContractingSection" class="pill ok">
+                            Editable
+                        </span>
                     </div>
                 </div>
 
@@ -442,6 +466,20 @@
                         <div class="hint">Identify if the contract is a new opportunity or a re-compete.</div>
                         <div class="error" *ngIf="showError('contractStatus','required')">This field is required.</div>
                     </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="field" [class.is-invalid]="isInvalid('fiscalYear')">
+                        <label>Fiscal Year <span class="req">*</span></label>
+                        <select formControlName="fiscalYear">
+                            <option *ngFor="let o of fiscalYears; trackBy: trackByValue" [value]="o.value">
+                                {{ o.label }}
+                            </option>
+                        </select>
+                        <div class="hint">Choose the status of the anticipated opportunity from the drop down.</div>
+                        <div class="error" *ngIf="showError('fiscalYear','required')">This field is required.</div>
+                    </div>
+
                 </div>
                 <!-- #endregion Contracting Selects -->
 

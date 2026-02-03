@@ -16,15 +16,15 @@ role: 'Requirements',
 ***A dollar range needs to be selected before approving.
 ***Competitive or Non - competitive needs to be selected before approving.
 ***A Contract status needs to be selected before approving.
-***A City needs to be entered before approving.
-***A State needs to be entered before approving.
-A contact first name needs to be entered before approving.
-A contact last name needs to be entered before approving.
-A contact phone number needs to be entered before approving.
-A valid contact government email address('.mil', '.gov', '@bvti.com') needs to be entered before approving.
+A City needs to be entered before approving.
+A State needs to be entered before approving.
+***A contact first name needs to be entered before approving.
+***A contact last name needs to be entered before approving.
+***A contact phone number needs to be entered before approving.
+***A valid contact government email address('.mil', '.gov', '@bvti.com') needs to be entered before approving.
 ***A NAICS code needs to be entered before approving.
-A Contracting Office needs to be added before approving this record
-A Fiscal Year needs to be added before approving
+***But this might be role based _ A Contracting Office needs to be added before approving this record
+***A Fiscal Year needs to be added before approving
 
 
 

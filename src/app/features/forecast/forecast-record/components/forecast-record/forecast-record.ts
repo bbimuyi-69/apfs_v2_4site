@@ -1,3 +1,17 @@
+//Readme: 
+/**
+ * FORECAST RECORD QUICK LINKS
+ * - Form build + always-required validators: buildForecastRecordForm (forecast-record.form.ts)
+ * - Enable/disable permissions: applyForecastRecordRolePermissions (forecast-record.form.ts)
+ * - Required-to-proceed list: getRoleRequiredControls (this file)
+ * - Action validation: triggerValidationUI -> applyRoleRequiredValidators (this file)
+ * - Workflow transitions: onApproveAndSend -> performTransition (this file)
+ * - Template gates: canEditRequirementsSection / canEditContractingSection (this file + html)
+ */
+
+
+
+
 //#region Imports
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, inject } from '@angular/core';
@@ -313,9 +327,29 @@ export class ForecastRecordComponent {
   get canEditCoordinatorSection(): boolean {
     return this.isEditMode && this.hasEditRightsFor('APFS Coordinator');
   }
+
+  //PAY ATTENTION
+  //This is better loging for being lane aware and can being ediatble by multiple roles
   get canEditContractingSection(): boolean {
-    return this.isEditMode && this.hasEditRightsFor('Contracting Office');
+    if (!this.isEditMode) return false;
+
+    const lane = this.normalizeRailStatus(this.workflowStatus);
+    if (lane === 'Draft') {
+      return this.hasEditRightsFor('Requirements');
+    }
+
+    if (lane === 'Requirements') {
+      return this.hasEditRightsFor('Requirements');
+    }
+
+    if (lane === 'Contracting') {
+      return this.hasEditRightsFor('Contracting Office');
+    }
+
+    return false;
   }
+
+
   get canEditClassificationSection(): boolean {
     return this.isEditMode && (this.canEditCoordinatorSection || this.canEditContractingSection);
   }
@@ -390,6 +424,8 @@ export class ForecastRecordComponent {
 
 
   //this is the primary section of role based fields requried to move fromn state to state
+  //PAY ATTENTION
+  //this allows the form to move for4ward in the workflow only if these fields are filled out
   private getRoleRequiredControls(): Array<keyof ForecastRecordFormGroup['controls']> {
     const role = this.normalizeRailRole();
     const status = this.normalizeRailStatus(this.workflowStatus);
@@ -402,7 +438,7 @@ export class ForecastRecordComponent {
         'primaryContactFirstName',
         'primaryContactLastName',
         'primaryContactEmail',
-        'primaryContactPhone',
+        //'primaryContactPhone',
 
         // ✅ Offices now required
         'requirementsOffice',
@@ -417,12 +453,13 @@ export class ForecastRecordComponent {
         'programLevel',
 
         // Place of Performance now required
-        'placeOfPerformanceCity',
-        'placeOfPerformanceState',
+        //'placeOfPerformanceCity',
+        //'placeOfPerformanceState',
 
         //Contracting Section fields now required in Requirements lane
         'competitive',
         'contractStatus',
+        'fiscalYear'
       ];
     }
 
