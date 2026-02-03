@@ -320,9 +320,25 @@ export class ForecastRecordComponent {
 
     return r === 'contracting' || r === 'contracting office';
   }
-
+  //PAY ATTENTION
+  //This is better loging for being lane aware and can being ediatble by multiple roles
   get canEditRequirementsSection(): boolean {
-    return this.isEditMode && this.hasEditRightsFor('Requirements');
+    if (!this.isEditMode) return false;
+
+    const lane = this.normalizeRailStatus(this.workflowStatus);
+    if (lane === 'Draft') {
+      return this.hasEditRightsFor('Requirements');
+    }
+
+    if (lane === 'Requirements') {
+      return this.hasEditRightsFor('Requirements');
+    }
+
+    if (lane === 'Contracting') {
+      return this.hasEditRightsFor('Contracting Office');
+    }
+
+    return false;
   }
   get canEditCoordinatorSection(): boolean {
     return this.isEditMode && this.hasEditRightsFor('APFS Coordinator');
@@ -443,7 +459,7 @@ export class ForecastRecordComponent {
         // ✅ Offices now required
         'requirementsOffice',
         'contractingOffice',
-        'coordinatorOffice',
+        //'coordinatorOffice',
 
         // Value Classification now required
         'dollarRange',

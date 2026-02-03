@@ -1,133 +1,226 @@
-APFS Forecast Record Roadmap (in descending importance)
-1) forecast-record.ts — Orchestrator
+# APFS Forecast Record — Developer Roadmap
 
-What it owns: workflow behavior, buttons, actions, saving, transitions, edit-mode, section gates, and “what happens when user clicks stuff.”
+This document is a **navigation and mental model guide** for the APFS Forecast Record feature.
+Its purpose is to help you quickly identify **which file and which method** to open when something feels “off”
+(editability, required fields, validation, workflow transitions, or layout).
 
-Critical methods to know (bookmark these):
+---
 
-Lifecycle / boot
+## File Importance (Descending Order)
 
-ngOnInit() / record load flow
+1. **`forecast-record.ts`** — Orchestrator (most important)
+2. **`forecast-record.form.ts`** — Form truth + permissions
+3. **`forecast-record.html`** — Layout + bindings
+4. **`forecast-record.service.ts`** — API boundary
 
-loadRecord() or initFormFromRecord() (whatever you call it)
+If you are unsure where to start, start at **#1**.
 
-syncFormPermissions() (you should have this) → calls applyForecastRecordRolePermissions(form, profile)
+---
 
-Edit mode gates
+## 1️⃣ `forecast-record.ts` — Orchestrator
 
-isEditMode (query param ?mode=edit)
+**What this file owns**
+- Workflow behavior
+- Action buttons
+- Save / Approve / Reject logic
+- Edit mode
+- Section-level read-only state
+- Validation flow
+- Transition routing
 
-canEditRequirementsSection, canEditContractingSection, etc. (UI-level gates)
+This is the **decision-making brain** of the forecast record.
 
-hasEditRightsFor(roleName) (role interpretation)
+### Critical methods to know
 
-Primary actions
+#### Lifecycle / Initialization
+- `ngOnInit()`
+- `loadRecord()` / `initFormFromRecord()`
+- `syncFormPermissions()`
+  - Calls `applyForecastRecordRolePermissions(form, profile)`
 
-onSaveDraft() → should be “light validation” (usually)
+#### Edit Mode + UI Gates
+- `isEditMode` (typically driven by `?mode=edit`)
+- `canEditRequirementsSection`
+- `canEditContractingSection`
+- `canEditCoordinatorSection`
+- `hasEditRightsFor(roleName)`
+- `normalizeRailRole()`
+- `normalizeRailStatus(raw)`
 
-onSaveRecord() → “heavy validation” (required-to-proceed)
+> These control **UI read-only vs editable appearance**, not actual form enablement.
 
-onApproveAndSend() → “heavy validation” + transition behavior
+---
 
-onReject(), onDelete(), onUnassign(), onReassign()
+#### Primary User Actions
+- `onSaveDraft()`
+  - Should be **light or permissive validation**
+- `onSaveRecord()`
+  - Should enforce required-to-proceed fields
+- `onApproveAndSend()`
+  - Required validation + workflow transition
+- `onReject()`
+- `onDelete()`
+- `onAssign()` / `onUnassign()`
 
-Validation pipeline (this is the hotspot)
+---
 
-triggerValidationUI()
+#### Validation Pipeline (Hot Zone)
+- `triggerValidationUI()`
+- `applyRoleRequiredValidators()`
+- `getRoleRequiredControls()`
+- `focusFirstInvalid()`
+- `logInvalidControls()`
 
-applyRoleRequiredValidators()
+> If a field is “required sometimes” or blocking Save / Approve unexpectedly, it’s here.
 
-focusFirstInvalid() / logInvalidControls()
+---
 
-getRoleRequiredControls() (controls required-to-proceed by lane/role)
+#### Workflow Transitions
+- `nextLaneFromAny(fromLane)`
+- `performTransition(toLane)`
 
-Workflow transitions
+---
 
-nextLaneFromAny(fromLane) (mapping logic)
+## 2️⃣ `forecast-record.form.ts` — Form Truth & Permissions
 
-performTransition(toLane) (API call / state update)
+**What this file owns**
+- The **shape of the form**
+- Default values
+- Always-required validators
+- Enable/disable logic (actual, real permissions)
 
-When you’re stuck: 90% of “why is this locked/required/transitioning weird” starts here.
+This is the **single source of truth** for what fields exist and whether they can be edited.
 
-2) forecast-record.form.ts — Truth of the form
+---
 
-What it owns: the reactive form shape, default values, static validators, and the real enable/disable permissions.
+### Critical elements
 
-Critical methods/types:
+#### Form Contract
+```ts
+export type ForecastRecordFormGroup = FormGroup<{ ... }>
 
-Form contract
 
-ForecastRecordFormGroup type (the authoritative list of controls)
+//buildForecastRecordForm(record)
+Responsibilities:
 
-Form creation
+Creates all FormControls
 
-buildForecastRecordForm(record)
+Sets default values
 
-sets initial values
+Applies always-required validators
 
-applies static validators (always required fields)
+Calls lockDownByDefault(form)
 
-calls lockDownByDefault(form)
+Hard-disables system fields:
 
-hard disables system fields (apfsNumber/workflowStatus/component)
+apfsNumber
 
-Permissions engine (big one)
+workflowStatus
 
-applyForecastRecordRolePermissions(form, profile)
+component
 
-this is the “who can type in what” source of truth
 
-should be called from the component whenever lane/role/edit changes
+//applyForecastRecordRolePermissions(form, profile)
+Responsibilities:
 
-Utilities
+Enables/disables controls based on:
 
-lockDownByDefault(form) (safe default disables)
+role
 
-setEnabled(...), hardDisable(...)
+workflow lane
 
-custom validators: maxWords(500)
+This is where actual typing ability is decided
 
-Rule of thumb:
+If a field looks editable but you can’t type, or vice versa — check here.
 
-If you’re asking “should this field be editable?” → this file.
+//Utilities
 
-If you’re asking “should this be required always?” → this file.
+lockDownByDefault(form)
 
-3) forecast-record.html — Layout + bindings
+setEnabled(control, boolean)
 
-What it owns: section boundaries, which controls appear where, and the UI read-only class behavior.
+hardDisable(control)
 
-Critical parts to find quickly:
+Custom validators:
 
-Section wrappers like:
+maxWords(500)
 
-sec-requirements
+//Key Rule (Memorize This)
+Question	Answer lives in
+Does the field exist?	ForecastRecordFormGroup
+Is it always required?	FormControl validators
+Can user type?	applyForecastRecordRolePermissions()
+Is it required only for Save / Approve?	getRoleRequiredControls()
 
-sec-place-of-performance
+//3️⃣ forecast-record.html — Layout & Bindings
 
-sec-contracting
+What this file owns
 
-Readonly gates:
+Section layout
 
-[class.readonly]="isEditMode && !canEditXSection"
+Grid alignment
 
-Form bindings:
+Read-only styling
 
-formControlName="..."
+Form bindings
 
-Grid layout wrappers:
+This file controls how things look, not how they behave.
 
-grid-2, grid-3 (this is where your squashed/overflow bugs come from)
+//Critical areas
+Section Wrappers
 
-Rule of thumb:
+#sec-requirements
 
-If you’re asking “why does this look weird / misaligned / squashed?” → here + CSS.
+#sec-place-of-performance
 
-4) forecast-record.service.ts — Backend boundary
+#sec-small-business
 
-What it owns: API endpoints for record CRUD + transitions + assignment (depending on your setup).
+#sec-contracting
 
-Critical methods:
+UI Read-only Gates
+
+//<section class="sec" [class.readonly]="isEditMode && !canEditXSection">
+This affects:
+
+visual state
+
+pointer events
+
+user perception
+
+This does NOT disable the form controls — it’s cosmetic/UX.
+
+//formControlName="fieldName"
+If Angular errors say “Cannot find control…”, the issue is in the form builder.
+
+//Grid Layout (Common Bug Source)
+
+grid-2 → 2 columns
+
+grid-3 → 3 columns
+
+Never use grid-3 unless you have 3 fields in that row.
+
+Misuse causes:
+
+squashed inputs
+
+overflow outside section boundaries
+
+misaligned rows
+
+
+//4️⃣ forecast-record.service.ts — API Boundary
+
+What this file owns
+
+HTTP calls
+
+Backend contract
+
+Persistence and transitions
+
+//Common methods
 
 getById(id)
 
@@ -135,26 +228,85 @@ create(payload)
 
 update(payload)
 
-transition(id, from, to, comment?) (if you have it)
+transition(id, from, to, comment?)
 
-assign/unassign (if present)
+assign() / unassign()
 
-Rule of thumb:
+If something saves but doesn’t persist, or transitions fail — check here.
 
-If you’re asking “why isn’t it saving / why is the payload wrong / why 401/500?” → here.
 
-The “Two-layer truth” that stops 80% of confusion
+//Validation Architecture (Critical Concept)
 
-You’ve already run into this, so here’s the anchor:
+There are two layers of required validation.
 
-Editability
+Layer 1 — Always Required
 
-Real: applyForecastRecordRolePermissions() (form.ts)
+Defined on the FormControl:
 
-Visual: canEditXSection + .readonly class (component + html)
+new FormControl(... validators: [Validators.required])
 
-Requiredness
 
-Always required: validators in buildForecastRecordForm() (form.ts)
+Examples:
 
-Required to proceed: getRoleRequiredControls() + applyRoleRequiredValidators() (component.ts)
+Primary Contact Email
+
+Primary Contact Phone
+
+These are always required, regardless of role or lane.
+
+
+//Layer 2 — Required to Proceed
+
+Defined dynamically:
+
+getRoleRequiredControls()
+applyRoleRequiredValidators()
+
+
+Examples:
+
+Offices
+
+NAICS
+
+Dollar Range
+
+Fiscal Year (Save Record / Approve only)
+
+These are required only for certain actions or lanes.
+
+//UI vs Form Truth (Most Common Confusion)
+UI Read-only
+
+Controlled by:
+
+canEditXSection
+
+.readonly CSS class
+
+Purpose: visual clarity
+
+Actual Editability
+
+Controlled by:
+
+applyForecastRecordRolePermissions()
+
+Purpose: real control enable/disable
+
+These must agree, or users will be confused.
+
+
+Final Note
+
+If something feels wrong:
+
+Check form permissions
+
+Then required-to-proceed
+
+Then UI read-only state
+
+Then layout grid
+
+This order will save you hours.

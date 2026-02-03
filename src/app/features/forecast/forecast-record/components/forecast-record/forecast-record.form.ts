@@ -272,9 +272,9 @@ export function applyForecastRecordRolePermissions(
     // ---- Offices edit window ----
     const lane = form.controls.workflowStatus.value;
     const officesEditableWindow =
-        lane === ForecastWorkflowLane.Draft || lane === ForecastWorkflowLane.Requirements;
+        lane === ForecastWorkflowLane.Draft || lane === ForecastWorkflowLane.Requirements || lane === ForecastWorkflowLane.Contracting;
 
-    const canEditOffices = isRequirements && officesEditableWindow;
+    const canEditOffices = isRequirements || isContractingOffice && officesEditableWindow;
 
     // System-managed fields always disabled
     hardDisable(form.controls.apfsNumber);
@@ -294,9 +294,9 @@ export function applyForecastRecordRolePermissions(
     setEnabled(form.controls.transitionComment, true);
 
     // Requirements section
-    setEnabled(form.controls.requirementsTitle, isRequirements);
-    setEnabled(form.controls.requirement, isRequirements);
-    setEnabled(form.controls.programLevel, isRequirements);
+    setEnabled(form.controls.requirementsTitle, isRequirements || isContractingOffice);
+    setEnabled(form.controls.requirement, isRequirements || isContractingOffice);
+    setEnabled(form.controls.programLevel, isRequirements || isContractingOffice);
 
     // Coordinator section
     setEnabled(form.controls.smallBusinessSetAside, isCoordinator);
