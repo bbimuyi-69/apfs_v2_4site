@@ -344,6 +344,17 @@ export class RequestNewUserForm implements OnInit {
     return !!ctrl && ctrl.touched && ctrl.invalid;
   }
 
+  get submitLabel(): string {
+    if (this.isSubmitting) return 'Submitting…';
+
+    if (this.isEditMode) return 'Save User';
+
+    if (this.isEditMode) return 'Update Profile';
+
+    return 'Send your request';
+  }
+
+
   cancel(): void {
     this.router.navigateByUrl('/dashboard');
   }
@@ -395,6 +406,11 @@ export class RequestNewUserForm implements OnInit {
     request$.subscribe({
       next: (response) => {
         console.debug(this.isEditMode ? 'User updated successfully:' : 'User request submitted successfully:', response);
+
+        if (this.isEditMode) {
+          this.router.navigateByUrl('/admin/users');
+          return;
+        }
 
         this.isSubmitting = false;
         this.submissionSuccess = true;

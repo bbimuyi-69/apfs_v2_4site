@@ -162,7 +162,7 @@
         <!-- Actions -->
         <div class="form-actions">
             <button type="submit" class="btn btn-primary" [disabled]="requestNewUserForm.invalid || isSubmitting">
-                {{ isSubmitting ? 'Submitting…' : 'Send your request' }}
+                {{ submitLabel }}
             </button>
 
             <button type="button" class="btn btn-secondary" (click)="cancel()">

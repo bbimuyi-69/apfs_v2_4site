@@ -108,7 +108,7 @@ export class ForwardCommentComponent implements OnInit {
 
     this.service.transition(this.recordId, payload).subscribe({
       next: () => {
-        const shouldGoDashboard =
+        /*const shouldGoDashboard =
           this.returnTo === 'dashboard' ||
           this.fromLane === 'Requirements' && this.toLane === 'Contracting';
 
@@ -116,7 +116,9 @@ export class ForwardCommentComponent implements OnInit {
           this.router.navigate(['/dashboard-v2']);
         } else {
           this.router.navigate(['/forecast', this.recordId], { queryParams: { mode: 'edit' } });
-        }
+        }*/
+
+        this.router.navigate(['/dashboard-v2']);
       },
       error: (e: any) => {
         console.error('[ForwardComment] transition failed', e);

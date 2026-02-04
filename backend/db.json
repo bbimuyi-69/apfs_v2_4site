@@ -168,6 +168,32 @@
       "role": "Requirements",
       "office": "Grants",
       "isActive": true
+    },
+    {
+      "id": 1770144868510,
+      "firstName": "asdf",
+      "lastName": "asdf",
+      "title": "sasdf",
+      "email": "asdf@hq.dhs.gov",
+      "employeeType": "Federal Employee",
+      "component": "DHS HQ",
+      "organization_id": 71,
+      "role": "Requirements",
+      "office": "OCIO",
+      "isActive": true
+    },
+    {
+      "id": 1770147996911,
+      "firstName": "dfasdf",
+      "lastName": "asdfasd",
+      "title": "asdfas",
+      "email": "fasdf@gov",
+      "employeeType": "Federal Employee",
+      "component": "DHS HQ",
+      "organization_id": 71,
+      "role": "Requirements",
+      "office": "OCIO",
+      "isActive": false
     }
   ],
   "forecastRecords": [
@@ -452,7 +478,7 @@
       ]
     },
     {
-      "workflowStatus": "Contracting",
+      "workflowStatus": "APFS Coordinator",
       "requirementsOffice": "Program Office",
       "contractingOffice": "Contracting Division",
       "coordinatorOffice": "",
@@ -494,13 +520,52 @@
       "id": 1770117331648,
       "component": "DHS HQ",
       "apfsNumber": "APFS-2026-DHSHQ-4718",
-      "status": "Contracting",
+      "status": "APFS Coordinator",
       "createdAt": "2026-02-03T11:15:31.648Z",
-      "updatedAt": "2026-02-03T11:36:41.590Z",
+      "updatedAt": "2026-02-03T11:45:13.729Z",
       "assignedToUserId": null,
       "assignedToName": null,
       "assignedAt": null,
       "history": [
+        {
+          "id": 1770119093321,
+          "time": "2026-02-03T11:44:53.321Z",
+          "user_display": "HQ_Coord@hq.dhs.gov",
+          "user_comment": "asdfasdf",
+          "assignment_display": "Henry Winkler",
+          "assignment_id": "1768504278480",
+          "forecast_id": 1770117331648,
+          "previous_state_id": 3,
+          "new_state_id": 2,
+          "latest": 1,
+          "user_id": "1768504278480"
+        },
+        {
+          "id": 1770119087676,
+          "time": "2026-02-03T11:44:47.676Z",
+          "user_display": "HQ_Coord@hq.dhs.gov",
+          "user_comment": "Claimed",
+          "assignment_display": "Henry Winkler",
+          "assignment_id": "1768504278480",
+          "forecast_id": 1770117331648,
+          "previous_state_id": 3,
+          "new_state_id": 3,
+          "latest": 0,
+          "user_id": "1768504278480"
+        },
+        {
+          "id": 1770118803145,
+          "time": "2026-02-03T11:40:03.145Z",
+          "user_display": "HQ_Cont@hq.dhs.gov",
+          "user_comment": "asdfasd",
+          "assignment_display": null,
+          "assignment_id": null,
+          "forecast_id": 1770117331648,
+          "previous_state_id": 2,
+          "new_state_id": 3,
+          "latest": 0,
+          "user_id": "1768504210658"
+        },
         {
           "id": 1770117651647,
           "time": "2026-02-03T11:20:51.647Z",
@@ -511,7 +576,7 @@
           "forecast_id": 1770117331648,
           "previous_state_id": 1,
           "new_state_id": 2,
-          "latest": 1,
+          "latest": 0,
           "user_id": "1768502629880"
         },
         {
@@ -1074,8 +1139,60 @@
       "forecast_id": 1770117331648,
       "previous_state_id": 1,
       "new_state_id": 2,
-      "latest": 1,
+      "latest": 0,
       "user_id": "1768502629880"
+    },
+    {
+      "id": 1770118803145,
+      "time": "2026-02-03T11:40:03.145Z",
+      "user_display": "HQ_Cont@hq.dhs.gov",
+      "user_comment": "asdfasd",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1770117331648,
+      "previous_state_id": 2,
+      "new_state_id": 3,
+      "latest": 0,
+      "user_id": "1768504210658"
+    },
+    {
+      "id": 1770119087676,
+      "time": "2026-02-03T11:44:47.676Z",
+      "user_display": "HQ_Coord@hq.dhs.gov",
+      "user_comment": "Claimed",
+      "assignment_display": "Henry Winkler",
+      "assignment_id": "1768504278480",
+      "forecast_id": 1770117331648,
+      "previous_state_id": 3,
+      "new_state_id": 3,
+      "latest": 0,
+      "user_id": "1768504278480"
+    },
+    {
+      "id": 1770119093321,
+      "time": "2026-02-03T11:44:53.321Z",
+      "user_display": "HQ_Coord@hq.dhs.gov",
+      "user_comment": "asdfasdf",
+      "assignment_display": "Henry Winkler",
+      "assignment_id": "1768504278480",
+      "forecast_id": 1770117331648,
+      "previous_state_id": 3,
+      "new_state_id": 2,
+      "latest": 0,
+      "user_id": "1768504278480"
+    },
+    {
+      "id": 1770119113729,
+      "time": "2026-02-03T11:45:13.729Z",
+      "user_display": "HQ_Cont@hq.dhs.gov",
+      "user_comment": "asdfasdf",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1770117331648,
+      "previous_state_id": 2,
+      "new_state_id": 3,
+      "latest": 1,
+      "user_id": "1768504210658"
     }
   ],
   "apfs_organization": [
