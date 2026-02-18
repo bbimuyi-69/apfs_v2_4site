@@ -1,0 +1,91 @@
+<div class="page">
+    <div class="head">
+        <div>
+            <h1 class="title">{{ titleText }}</h1>
+            <p class="subtitle">{{ subtitleText }}</p>
+        </div>
+
+        <div class="actions">
+            <a class="btn secondary" routerLink="/admin/offices">Back</a>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="status">
+            <span *ngIf="isLoading" class="pill">Loading…</span>
+            <span *ngIf="error" class="pill error">{{ error }}</span>
+        </div>
+
+        <form class="form" [formGroup]="form" (ngSubmit)="save()">
+            <div class="grid">
+                <!-- Full Name -->
+                <div class="field">
+                    <label class="label" for="full_name">Full Name *</label>
+                    <input id="full_name" type="text" formControlName="full_name"
+                        placeholder="CBP/Office of Acquisition" />
+                    <div class="field-error" *ngIf="showError('full_name')">Full name is required.</div>
+                </div>
+
+                <!-- Name -->
+                <div class="field">
+                    <label class="label" for="name">Name *</label>
+                    <input id="name" type="text" formControlName="name" placeholder="Office of Acquisition" />
+                    <div class="field-error" *ngIf="showError('name')">Name is required.</div>
+                </div>
+
+                <!-- Organization -->
+                <div class="field">
+                    <label class="label" for="organization_id">Organization *</label>
+                    <select id="organization_id" formControlName="organization_id">
+                        <option [ngValue]="null">— Select an organization —</option>
+                        <option *ngFor="let o of organizations" [ngValue]="o.id">
+                            {{ o.label }}
+                        </option>
+                    </select>
+                    <div class="field-error" *ngIf="showError('organization_id')">Organization is required.</div>
+                    <div class="hint">The office will be scoped under this organization/component.</div>
+                </div>
+
+                <!-- Assignment Permission Level -->
+                <div class="field">
+                    <label class="label" for="office_assignment_permissions_level_id">Office Assignment Level *</label>
+                    <input id="office_assignment_permissions_level_id" type="number"
+                        formControlName="office_assignment_permissions_level_id" placeholder="2" min="0" />
+                    <div class="field-error" *ngIf="showError('office_assignment_permissions_level_id')">
+                        Assignment level is required.
+                    </div>
+                    <div class="hint">
+                        Users must have a permission level at or above this value to assign/select the office.
+                    </div>
+                </div>
+
+                <!-- AAC Code -->
+                <div class="field">
+                    <label class="label" for="aac_code">AAC Code</label>
+                    <input id="aac_code" type="text" formControlName="aac_code" placeholder="CBP-OA" />
+                    <div class="hint">Optional external code used for reporting/legacy mapping.</div>
+                </div>
+
+                <!-- Active -->
+                <div class="field">
+                    <label class="label" for="active">Active</label>
+                    <select id="active" formControlName="active">
+                        <option [ngValue]="1">Yes</option>
+                        <option [ngValue]="0">No</option>
+                    </select>
+                    <div class="hint">Inactive offices can be hidden from picklists.</div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button class="btn" type="submit" [disabled]="isSaving || isLoading">
+                    {{ isSaving ? 'Saving…' : 'Save' }}
+                </button>
+
+                <button class="btn secondary" type="button" (click)="cancel()" [disabled]="isSaving">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

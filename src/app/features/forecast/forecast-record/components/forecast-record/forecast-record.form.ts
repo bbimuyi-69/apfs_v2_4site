@@ -192,13 +192,36 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
             incumbent: new FormControl(record.incumbent ?? null),
             contractNumber: new FormControl(record.contractNumber ?? null),
 
-            /** Dates (role toggled later) */
-            estimatedPopStart: new FormControl(record.estimatedPopStart ?? null),
-            estimatedPopEnd: new FormControl(record.estimatedPopEnd ?? null),
             fiscalYear: new FormControl(record.fiscalYear ?? null),
 
-            anticipatedAwardDate: new FormControl(record.anticipatedAwardDate ?? null),
-            estimatedSolicitationReleaseDate: new FormControl(record.estimatedSolicitationReleaseDate ?? null),
+
+            /** Dates (role toggled later) */
+            //estimatedPopStart: new FormControl(record.estimatedPopStart ?? null),
+            estimatedPopStart: new FormControl(record.estimatedPopStart ?? null, {
+                validators: [Validators.required,
+                Validators.pattern(/^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/),
+                ],
+            }),
+            estimatedPopEnd: new FormControl(record.estimatedPopEnd ?? null, {
+                validators: [Validators.required,
+                Validators.pattern(/^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/),
+                ],
+            }),
+            estimatedSolicitationReleaseDate: new FormControl(record.estimatedSolicitationReleaseDate ?? null, {
+                validators: [Validators.required,
+                Validators.pattern(/^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/),
+                ],
+            }),
+            anticipatedAwardDate: new FormControl(record.anticipatedAwardDate ?? null, {
+                validators: [Validators.required,
+                Validators.pattern(/^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/),
+                ],
+            }),
+
+
+
+
+
 
             placeOfPerformanceCity: new FormControl(record.placeOfPerformanceCity ?? null),
             placeOfPerformanceState: new FormControl(record.placeOfPerformanceState ?? null),
@@ -236,7 +259,15 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
             /** Coordinator-updated (role toggled later) */
             sbSpecialistFirstName: new FormControl(record.sbSpecialistFirstName ?? null),
             sbSpecialistLastName: new FormControl(record.sbSpecialistLastName ?? null),
-            sbSpecialistPhone: new FormControl(record.sbSpecialistPhone ?? null),
+
+            sbSpecialistPhone: new FormControl(record.sbSpecialistPhone ?? null, {
+                validators: [
+                    Validators.required, // keep if this field is required
+                    Validators.maxLength(25),
+                    Validators.pattern(/^\(\d{3}\)\s\d{3}-\d{4}(?:\s(?:ext\.|x)\s\d{1,6})?$/i),
+                ],
+            }),
+
             sbSpecialistEmail: new FormControl(record.sbSpecialistEmail ?? null),
         },
         { updateOn: 'change' }
@@ -257,6 +288,7 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
  * Apply role-based enablement.
  * Call this AFTER enabling the form in edit mode.
  * This is where the role-based field enablement logic lives.
+ * this is not what makes a field required though - that is done in the component on transition actions
  * //PAY ATTENTION
  * this is what disables fields via css
  */
@@ -297,52 +329,50 @@ export function applyForecastRecordRolePermissions(
     setEnabled(form.controls.requirementsTitle, isRequirements || isContractingOffice);
     setEnabled(form.controls.requirement, isRequirements || isContractingOffice);
     setEnabled(form.controls.programLevel, isRequirements || isContractingOffice);
-
-    // Coordinator section
-    setEnabled(form.controls.smallBusinessSetAside, isCoordinator);
-    setEnabled(form.controls.smallBusinessProgram, isCoordinator);
-
-    setEnabled(form.controls.sbSpecialistFirstName, isCoordinator);
-    setEnabled(form.controls.sbSpecialistLastName, isCoordinator);
-    setEnabled(form.controls.sbSpecialistPhone, isCoordinator);
-    setEnabled(form.controls.sbSpecialistEmail, isCoordinator);
-
     // Value classification (default: Coordinator + Contracting Office)
     setEnabled(form.controls.dollarRange, isRequirements || isCoordinator || isContractingOffice);
     setEnabled(form.controls.naicsCode, isRequirements || isCoordinator || isContractingOffice);
-
     // Contracting Office section
-    setEnabled(form.controls.contractType, isContractingOffice);
-    setEnabled(form.controls.strategicSourcingVehicleUsed, isContractingOffice);
-    setEnabled(form.controls.strategicSourcingVehicle, isContractingOffice);
-    setEnabled(form.controls.typeOfAward, isContractingOffice);
+    setEnabled(form.controls.contractType, isRequirements || isContractingOffice);
+    setEnabled(form.controls.strategicSourcingVehicleUsed, isRequirements || isContractingOffice);
+    setEnabled(form.controls.strategicSourcingVehicle, isRequirements || isContractingOffice);
+    setEnabled(form.controls.typeOfAward, isRequirements || isContractingOffice);
 
     setEnabled(form.controls.competitive, isRequirements || isContractingOffice);
     setEnabled(form.controls.contractStatus, isRequirements || isContractingOffice);
+    // Fiscal year: keep with Requirements by default (change if needed)
+    setEnabled(form.controls.fiscalYear, isRequirements);
+    // Place of performance + POCs (Requirements by default)
+    setEnabled(form.controls.placeOfPerformanceCity, isRequirements || isContractingOffice);
+    setEnabled(form.controls.placeOfPerformanceState, isRequirements || isContractingOffice);
+    setEnabled(form.controls.primaryContactFirstName, isRequirements || isContractingOffice);
+    setEnabled(form.controls.primaryContactLastName, isRequirements || isContractingOffice);
+    setEnabled(form.controls.primaryContactPhone, isRequirements || isContractingOffice);
+    setEnabled(form.controls.primaryContactEmail, isRequirements || isContractingOffice);
+
+    //Contracting Role Section
     setEnabled(form.controls.incumbent, isContractingOffice);
     setEnabled(form.controls.contractNumber, isContractingOffice);
-
     setEnabled(form.controls.estimatedPopStart, isContractingOffice);
     setEnabled(form.controls.estimatedPopEnd, isContractingOffice);
     setEnabled(form.controls.anticipatedAwardDate, isContractingOffice);
     setEnabled(form.controls.estimatedSolicitationReleaseDate, isContractingOffice);
 
-    // Fiscal year: keep with Requirements by default (change if needed)
-    setEnabled(form.controls.fiscalYear, isRequirements);
-
-    // Place of performance + POCs (Requirements by default)
-    setEnabled(form.controls.placeOfPerformanceCity, isRequirements);
-    setEnabled(form.controls.placeOfPerformanceState, isRequirements);
-
-    setEnabled(form.controls.primaryContactFirstName, isRequirements);
-    setEnabled(form.controls.primaryContactLastName, isRequirements);
-    setEnabled(form.controls.primaryContactPhone, isRequirements);
-    setEnabled(form.controls.primaryContactEmail, isRequirements);
 
     setEnabled(form.controls.alternateContactFirstName, isRequirements);
     setEnabled(form.controls.alternateContactLastName, isRequirements);
     setEnabled(form.controls.alternateContactPhone, isRequirements);
     setEnabled(form.controls.alternateContactEmail, isRequirements);
+
+    // Coordinator section
+    setEnabled(form.controls.smallBusinessSetAside, isCoordinator);
+    setEnabled(form.controls.smallBusinessProgram, isCoordinator);
+    setEnabled(form.controls.sbSpecialistFirstName, isCoordinator);
+    setEnabled(form.controls.sbSpecialistLastName, isCoordinator);
+    setEnabled(form.controls.sbSpecialistPhone, isCoordinator);
+    setEnabled(form.controls.sbSpecialistEmail, isCoordinator);
+
+
 }
 
 /**
@@ -405,3 +435,25 @@ function maxWords(limit: number) {
         return words > limit ? { maxWords: { limit, actual: words } } : null;
     };
 }
+
+export function formatUsPhoneWithExt(raw: string): string {
+    if (!raw) return '';
+
+    // Split extension if user typed x / ext
+    const extMatch = raw.match(/(?:ext\.?|x)\s*(\d{1,6})$/i);
+    const ext = extMatch ? extMatch[1] : null;
+
+    // Remove all non-digits from main number
+    const digits = raw.replace(/\D/g, '').slice(0, 10);
+
+    let formatted = digits;
+
+    if (digits.length >= 4 && digits.length <= 6) {
+        formatted = `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    } else if (digits.length >= 7) {
+        formatted = `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+    }
+
+    return ext ? `${formatted} ext. ${ext}` : formatted;
+}
+

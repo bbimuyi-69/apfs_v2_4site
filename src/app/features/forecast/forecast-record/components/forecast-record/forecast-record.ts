@@ -28,6 +28,7 @@ import {
   applyForecastRecordRolePermissions,
   UserProfileLike,
   isCommentRequired,
+  formatUsPhoneWithExt,
 } from './forecast-record.form';
 
 import { createEmptyForecastRecord } from '../../models/forecast-record.factory';
@@ -439,7 +440,7 @@ export class ForecastRecordComponent {
   }
 
 
-  //this is the primary section of role based fields requried to move fromn state to state
+  //this is the primary section of role based fields required to move from state to state
   //PAY ATTENTION
   //this allows the form to move for4ward in the workflow only if these fields are filled out
   private getRoleRequiredControls(): Array<keyof ForecastRecordFormGroup['controls']> {
@@ -451,31 +452,44 @@ export class ForecastRecordComponent {
 
     if (role === 'Requirements' && (effectiveLane === 'Requirements' || effectiveLane === 'Draft')) {
       return [
-        'primaryContactFirstName',
-        'primaryContactLastName',
-        'primaryContactEmail',
-        //'primaryContactPhone',
 
         // ✅ Offices now required
         'requirementsOffice',
         'contractingOffice',
         //'coordinatorOffice',
 
-        // Value Classification now required
-        'dollarRange',
-        'naicsCode',
+        'primaryContactFirstName',
+        'primaryContactLastName',
+        'primaryContactEmail',
+        'primaryContactPhone',
         'requirementsTitle',
         'requirement',
         'programLevel',
+        // Value Classification now required
+        'dollarRange',
+        'naicsCode',
+
+
+
+        //Contracting Section fields now required in Requirements lane
+        'contractType',
+        'strategicSourcingVehicleUsed',
+        'strategicSourcingVehicle',
+        'typeOfAward',
+        'competitive',
+        'contractStatus',
+        'competitive',
+        'contractStatus',
+        'fiscalYear',
+        'estimatedPopStart',
+        'estimatedPopEnd',
+        'anticipatedAwardDate',
+        'estimatedSolicitationReleaseDate',
 
         // Place of Performance now required
         //'placeOfPerformanceCity',
         //'placeOfPerformanceState',
 
-        //Contracting Section fields now required in Requirements lane
-        'competitive',
-        'contractStatus',
-        'fiscalYear'
       ];
     }
 
@@ -498,8 +512,11 @@ export class ForecastRecordComponent {
       return [
         'smallBusinessSetAside',
         'smallBusinessProgram',
-        'dollarRange',
-        'naicsCode',
+        'sbSpecialistFirstName',
+        'sbSpecialistLastName',
+        'sbSpecialistPhone',
+        'sbSpecialistEmail',
+
       ];
     }
 
@@ -1472,4 +1489,58 @@ export class ForecastRecordComponent {
     return null;
   }
   //#endregion
+
+  //Field Validation Helpers like date formatting, phone formatting, etc.
+  private formatMmDdYyyy(raw: string): string {
+    if (!raw) return '';
+    const digits = raw.replace(/\D/g, '').slice(0, 8); // MMDDYYYY
+
+    const mm = digits.slice(0, 2);
+    const dd = digits.slice(2, 4);
+    const yyyy = digits.slice(4, 8);
+
+    let out = mm;
+    if (digits.length >= 3) out += '/' + dd;
+    if (digits.length >= 5) out += '/' + yyyy;
+
+    return out;
+  }
+
+  onDateInput(event: Event, controlName: string) {
+    const input = event.target as HTMLInputElement;
+    if (!this.form) return;
+    const ctrl = this.form.controls[controlName as keyof ForecastRecordFormGroup['controls']] as any;
+
+    const before = input.value;
+    const formatted = this.formatMmDdYyyy(before);
+
+    if (formatted !== before) {
+      ctrl.setValue(formatted || null, { emitEvent: false });
+      input.value = formatted;
+    }
+  }
+
+
+  onPhoneInput(event: Event, controlName: keyof ForecastRecordFormGroup['controls']) {
+    const input = event.target as HTMLInputElement;
+    const ctrl = this.form?.get(controlName as string) as any;
+
+    const start = input.selectionStart ?? input.value.length;
+    const before = input.value;
+
+    const formatted = formatUsPhoneWithExt(before);
+
+    if (formatted !== before) {
+      ctrl.setValue(formatted, { emitEvent: false });
+      input.value = formatted;
+
+      // Best-effort cursor restore
+      const delta = formatted.length - before.length;
+      const pos = Math.max(start + delta, 0);
+      input.setSelectionRange(pos, pos);
+    }
+  }
+
+
+
 }

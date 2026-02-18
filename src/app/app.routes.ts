@@ -134,5 +134,27 @@ export const routes: Routes = [
         data: { title: 'Forecast Dashboard' },
     },
 
+
+    {
+        path: 'admin/offices',
+        loadComponent: () =>
+            import('./features/admin/admin-offices/admin-offices')
+                .then(m => m.AdminOfficesComponent)
+    },
+    {
+        path: 'admin/offices/:id/edit',
+        loadComponent: () =>
+            import('./features/admin/admin-office-form/admin-office-form')
+                .then(m => m.AdminOfficeFormComponent)
+    },
+    {
+        path: 'admin/offices/new',
+        loadComponent: () =>
+            import('./features/admin/admin-office-form/admin-office-form')
+                .then(m => m.AdminOfficeFormComponent)
+    },
+
+
+
     { path: '**', redirectTo: 'welcome' },
 ];

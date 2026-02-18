@@ -18,6 +18,13 @@ type ApfsOrganization = { id: number; full_name: string };
 })
 export class RequestNewUserForm implements OnInit {
   requestNewUserForm!: FormGroup;
+  //  authService: any;
+
+
+
+  get isAdmin(): boolean {
+    return this.router.url.startsWith('/admin');
+  }
 
   users: User[] = [];
   submissionSuccess = false;
@@ -48,6 +55,8 @@ export class RequestNewUserForm implements OnInit {
   editingUserId: number | null = null;
   private readonly route = inject(ActivatedRoute);
 
+
+
   constructor(
     private fb: FormBuilder,
     private userService: UserService,
@@ -56,6 +65,9 @@ export class RequestNewUserForm implements OnInit {
     private dropdowns: ApfsDropdownsService,
     private orgService: ApfsOrganizationService
   ) { }
+
+
+
 
   ngOnInit(): void {
     console.log('[RequestNewUserForm] route id =', this.route.snapshot.paramMap.get('id'));
@@ -74,8 +86,8 @@ export class RequestNewUserForm implements OnInit {
       component: ['', Validators.required],
 
       role: ['', Validators.required],
-      office: ['', Validators.required],
-
+      office: [''],
+      //office: ['', Validators.required],
       isActive: [false],
     });
 
@@ -243,9 +255,15 @@ export class RequestNewUserForm implements OnInit {
       return;
     }
 
-    if (this.isEditMode) ctrl.disable({ emitEvent: false });
-    else ctrl.enable({ emitEvent: false });
+    // ✅ Only lock component during edit for non-admins
+    if (this.isEditMode && !this.isAdmin) {
+      ctrl.disable({ emitEvent: false });
+    } else {
+      ctrl.enable({ emitEvent: false });
+    }
   }
+
+
 
   private hydrateForEdit(u: User): void {
     this.isEditMode = true;

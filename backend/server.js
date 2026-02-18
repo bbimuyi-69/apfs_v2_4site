@@ -300,6 +300,20 @@ function getHistoryForRecord(db, forecastId) {
         .sort((a, b) => new Date(b.time) - new Date(a.time));
 }
 
+//Added helper for normalizing boolean values from various inputs (e.g., query params, request body)
+//02/13/2026
+//TBrown
+function toInt(v) {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+}
+
+function normalizeBool01(v, defaultVal = 1) {
+    if (v === 0 || v === "0" || v === false || v === "false") return 0;
+    if (v === 1 || v === "1" || v === true || v === "true") return 1;
+    return defaultVal;
+}
+
 
 
 // =========================
@@ -1034,6 +1048,241 @@ app.get(`${API_PREFIX}/public/apfs-organization/options`, (req, res) => {
 
     res.json(options);
 });
+
+
+// =============================
+// OFFICES (CRUD)
+// Table in db.json: "offices": []
+// Columns:
+// id, name, full_name, active, office_assignment_permissions_level_id, organization_id, aac_code
+// =============================
+
+// OPTIONS (public)
+// GET /public/offices/options?active=1&organizationId=2
+app.get(`${API_PREFIX}/public/offices/options`, (req, res) => {
+    const data = loadData();
+    const onlyActive = String(req.query.active ?? '') === '1';
+    const organizationId = Number(req.query.organizationId);
+
+    const rows = Array.isArray(data.offices) ? data.offices : [];
+
+    const options = rows
+        .map(r => ({
+            id: Number(r.id),
+            full_name: String(r.full_name ?? '').trim(),
+            active: Number(r.active) === 0 ? 0 : 1,
+            organization_id: Number(r.organization_id),
+        }))
+        .filter(o => Number.isFinite(o.id) && !!o.full_name)
+        .filter(o => !Number.isFinite(organizationId) || o.organization_id === organizationId)
+        .filter(o => !onlyActive || o.active === 1)
+        .sort((a, b) => a.full_name.localeCompare(b.full_name))
+        .map(o => ({ id: o.id, full_name: o.full_name })); // sanitize output
+
+    res.json(options);
+});
+
+
+// LIST
+// GET /offices?active=1&organizationId=2&search=acq
+app.get(`${API_PREFIX}/offices`, (req, res) => {
+    const data = loadData();
+    const onlyActive = String(req.query.active ?? '') === '1';
+    const organizationId = Number(req.query.organizationId);
+    const search = String(req.query.search ?? '').trim().toLowerCase();
+
+    const rows = Array.isArray(data.offices) ? data.offices : [];
+
+    const list = rows
+        .map(r => ({
+            id: Number(r.id),
+            name: String(r.name ?? '').trim(),
+            full_name: String(r.full_name ?? '').trim(),
+            active: Number(r.active) === 0 ? 0 : 1,
+            office_assignment_permissions_level_id: Number(r.office_assignment_permissions_level_id),
+            organization_id: Number(r.organization_id),
+            aac_code: String(r.aac_code ?? '').trim(),
+        }))
+        .filter(o => Number.isFinite(o.id) && !!o.name && !!o.full_name)
+        .filter(o => !Number.isFinite(organizationId) || o.organization_id === organizationId)
+        .filter(o => !onlyActive || o.active === 1)
+        .filter(o => {
+            if (!search) return true;
+            return (
+                o.name.toLowerCase().includes(search) ||
+                o.full_name.toLowerCase().includes(search) ||
+                (o.aac_code || '').toLowerCase().includes(search)
+            );
+        })
+        .sort((a, b) => a.full_name.localeCompare(b.full_name));
+
+    res.json(list);
+});
+
+
+// READ ONE
+// GET /offices/5
+app.get(`${API_PREFIX}/offices/:id`, (req, res) => {
+    const data = loadData();
+    const id = Number(req.params.id);
+
+    const rows = Array.isArray(data.offices) ? data.offices : [];
+    const found = rows.find(r => Number(r.id) === id);
+
+    if (!found) {
+        return res.status(404).json({ message: 'Office not found' });
+    }
+
+    const office = {
+        id: Number(found.id),
+        name: String(found.name ?? '').trim(),
+        full_name: String(found.full_name ?? '').trim(),
+        active: Number(found.active) === 0 ? 0 : 1,
+        office_assignment_permissions_level_id: Number(found.office_assignment_permissions_level_id),
+        organization_id: Number(found.organization_id),
+        aac_code: String(found.aac_code ?? '').trim(),
+    };
+
+    res.json(office);
+});
+
+
+// CREATE
+// POST /offices
+// body: { name, full_name, active?, office_assignment_permissions_level_id, organization_id, aac_code? }
+app.post(`${API_PREFIX}/offices`, (req, res) => {
+    const data = loadData();
+
+    if (!Array.isArray(data.offices)) data.offices = [];
+    const rows = data.offices;
+
+    const name = String(req.body?.name ?? '').trim();
+    const full_name = String(req.body?.full_name ?? '').trim();
+    const organization_id = Number(req.body?.organization_id);
+    const office_assignment_permissions_level_id = Number(req.body?.office_assignment_permissions_level_id);
+    const aac_code = String(req.body?.aac_code ?? '').trim();
+    const active = Number(req.body?.active) === 0 ? 0 : 1;
+
+    if (!name) return res.status(400).json({ message: 'name is required' });
+    if (!full_name) return res.status(400).json({ message: 'full_name is required' });
+    if (!Number.isFinite(organization_id)) return res.status(400).json({ message: 'organization_id is required' });
+    if (!Number.isFinite(office_assignment_permissions_level_id)) {
+        return res.status(400).json({ message: 'office_assignment_permissions_level_id is required' });
+    }
+
+    // prevent duplicates in same org by name (recommended)
+    const dupe = rows.some(r =>
+        Number(r.organization_id) === organization_id &&
+        String(r.name ?? '').trim().toLowerCase() === name.toLowerCase()
+    );
+    if (dupe) return res.status(409).json({ message: 'Office already exists in this organization' });
+
+    const nextId =
+        rows.reduce((max, r) => Math.max(max, Number(r.id) || 0), 0) + 1;
+
+    const created = {
+        id: nextId,
+        name,
+        full_name,
+        active,
+        office_assignment_permissions_level_id,
+        organization_id,
+        aac_code,
+    };
+
+    rows.push(created);
+    saveData(data);
+
+    res.status(201).json(created);
+});
+
+
+// UPDATE
+// PUT /offices/:id
+// body can include any fields: name, full_name, active, office_assignment_permissions_level_id, organization_id, aac_code
+app.put(`${API_PREFIX}/offices/:id`, (req, res) => {
+    const data = loadData();
+    const id = Number(req.params.id);
+
+    if (!Array.isArray(data.offices)) data.offices = [];
+    const rows = data.offices;
+
+    const idx = rows.findIndex(r => Number(r.id) === id);
+    if (idx === -1) return res.status(404).json({ message: 'Office not found' });
+
+    const current = rows[idx];
+
+    const name = req.body?.name != null ? String(req.body.name).trim() : String(current.name ?? '').trim();
+    const full_name = req.body?.full_name != null ? String(req.body.full_name).trim() : String(current.full_name ?? '').trim();
+
+    const organization_id = req.body?.organization_id != null ? Number(req.body.organization_id) : Number(current.organization_id);
+    const office_assignment_permissions_level_id =
+        req.body?.office_assignment_permissions_level_id != null
+            ? Number(req.body.office_assignment_permissions_level_id)
+            : Number(current.office_assignment_permissions_level_id);
+
+    const aac_code = req.body?.aac_code != null ? String(req.body.aac_code).trim() : String(current.aac_code ?? '').trim();
+
+    const active =
+        req.body?.active != null
+            ? (Number(req.body.active) === 0 ? 0 : 1)
+            : (Number(current.active) === 0 ? 0 : 1);
+
+    if (!name) return res.status(400).json({ message: 'name is required' });
+    if (!full_name) return res.status(400).json({ message: 'full_name is required' });
+    if (!Number.isFinite(organization_id)) return res.status(400).json({ message: 'organization_id is required' });
+    if (!Number.isFinite(office_assignment_permissions_level_id)) {
+        return res.status(400).json({ message: 'office_assignment_permissions_level_id is required' });
+    }
+
+    // prevent duplicates in same org by name (excluding self)
+    const conflict = rows.some(r =>
+        Number(r.id) !== id &&
+        Number(r.organization_id) === organization_id &&
+        String(r.name ?? '').trim().toLowerCase() === name.toLowerCase()
+    );
+    if (conflict) return res.status(409).json({ message: 'Office already exists in this organization' });
+
+    const updated = {
+        ...current,
+        id,
+        name,
+        full_name,
+        active,
+        office_assignment_permissions_level_id,
+        organization_id,
+        aac_code,
+    };
+
+    rows[idx] = updated;
+    saveData(data);
+
+    res.json(updated);
+});
+
+
+// SOFT DELETE (Deactivate)
+// DELETE /offices/:id
+app.delete(`${API_PREFIX}/offices/:id`, (req, res) => {
+    const data = loadData();
+    const id = Number(req.params.id);
+
+    if (!Array.isArray(data.offices)) data.offices = [];
+    const rows = data.offices;
+
+    const idx = rows.findIndex(r => Number(r.id) === id);
+    if (idx === -1) return res.status(404).json({ message: 'Office not found' });
+
+    rows[idx] = {
+        ...rows[idx],
+        active: 0
+    };
+
+    saveData(data);
+
+    res.json({ message: 'Office deactivated', id });
+});
+
 
 
 // =========================

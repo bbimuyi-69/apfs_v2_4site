@@ -6,6 +6,7 @@ import { User } from '../../core/models/user.model';
 
 @Injectable({ providedIn: 'root' })
 export class UserService {
+  currentUser: any;
   constructor(private http: HttpClient) { }
 
   // Base API URL (server)

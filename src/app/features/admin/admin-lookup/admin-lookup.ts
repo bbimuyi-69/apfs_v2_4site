@@ -23,4 +23,8 @@ export class AdminLookup {
     this.router.navigateByUrl('/admin/lookups');
   }
 
+  goOffices(): void {
+    this.router.navigateByUrl('/admin/offices');
+  }
+
 }

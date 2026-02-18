@@ -1,0 +1,81 @@
+<div class="page">
+    <div class="head">
+        <div>
+            <h1 class="title">Office Management</h1>
+            <p class="subtitle">View and manage office assignments.</p>
+        </div>
+
+        <div class="actions">
+            <a class="btn secondary" routerLink="/admin">Back</a>
+
+            <button class="btn secondary" type="button" (click)="load()" [disabled]="isLoading">
+                Refresh
+            </button>
+
+            <a class="btn" routerLink="/admin/offices/new">
+                Add Office
+            </a>
+        </div>
+    </div>
+
+    <div class="controls">
+        <label class="label">Search</label>
+
+        <div class="search-row">
+            <input type="text" [formControl]="q" placeholder="Name, full name, or AAC…" />
+
+            <button type="button" class="btn secondary" (click)="clearSearch()" [disabled]="!q.value">
+                Clear
+            </button>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+        <table class="table" *ngIf="!isLoading">
+            <thead>
+                <tr>
+                    <th>Full Name</th>
+                    <th>AAC</th>
+                    <th class="center">Perm Level</th>
+                    <th class="center">Active</th>
+                    <th class="center"></th>
+                </tr>
+            </thead>
+
+            <tbody *ngIf="filteredRows.length; else empty">
+                <tr *ngFor="let r of filteredRows">
+                    <td class="strong">{{ r.full_name }}</td>
+                    <td class="mono">{{ r.aac_code }}</td>
+
+                    <td class="center">
+                        <span class="pill">
+                            {{ r.office_assignment_permissions_level_id }}
+                        </span>
+                    </td>
+
+                    <td class="center">
+                        <span class="pill" [class.ok]="r.active === 1" [class.off]="r.active !== 1">
+                            {{ r.active === 1 ? 'Yes' : 'No' }}
+                        </span>
+                    </td>
+
+                    <td class="center">
+                        <a class="btn secondary" [routerLink]="['/admin/offices', r.id, 'edit']">
+                            Edit
+                        </a>
+
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <ng-template #empty>
+            <div class="empty">
+                <div class="empty-title">No offices found</div>
+                <div class="empty-sub">
+                    Add an office or adjust your search.
+                </div>
+            </div>
+        </ng-template>
+    </div>
+</div>

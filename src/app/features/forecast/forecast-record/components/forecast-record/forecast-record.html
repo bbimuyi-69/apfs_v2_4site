@@ -110,20 +110,19 @@
 
                 <div class="grid-2">
                     <div class="field">
-                        <label>APFS Number</label>
+                        <label>4SITE Number</label>
                         <input type="text" formControlName="apfsNumber"
                             placeholder="Automatically Generated On Creation" />
-                        <div class="hint">This is assigned by the APFS Application.</div>
+                        <div class="hint">This is assigned by the 4SITE Application.</div>
                     </div>
+
+
 
                     <!-- ✅ Component is auth-driven + disabled in TS -->
                     <div class="field">
                         <label>Component</label>
-                        <select formControlName="component">
-                            <option value="" disabled>Select…</option>
-                            <option value="CBP">CBP</option>
-                            <option value="HQ">HQ</option>
-                        </select>
+                        <input type="text" formControlName="component"
+                            placeholder="{{ form?.get('component')?.value || '—' }}" />
                         <div class="hint">Set from your user profile (read-only).</div>
                     </div>
                 </div>
@@ -180,7 +179,10 @@
 
                         <div class="field" [class.is-invalid]="isInvalid('primaryContactPhone')">
                             <label>Primary Contact Phone Number <span class="req">*</span></label>
-                            <input type="text" formControlName="primaryContactPhone" />
+                            <input type="tel" inputmode="tel" autocomplete="tel" formControlName="primaryContactPhone"
+                                placeholder="(203) 555-1234" (input)="onPhoneInput($event, 'primaryContactPhone')"
+                                (blur)="onPhoneInput($event, 'primaryContactPhone')" />
+
                             <div class="hint">Enter the phone number of the primary contact.</div>
                             <div class="error" *ngIf="showError('primaryContactPhone','required')">
                                 Primary Contact Phone Number is required.
@@ -236,7 +238,7 @@
                         </div>
 
                         <div class="field" [class.is-invalid]="isInvalid('coordinatorOffice')">
-                            <label>APFS Coordinator Office <span class="req">*</span></label>
+                            <label>4SITE Coordinator Office <span class="req">*</span></label>
                             <select formControlName="coordinatorOffice">
                                 <option value="">Select…</option>
                                 <option *ngFor="let o of coordinatorOfficeOptions; trackBy: trackByValue"
@@ -245,10 +247,12 @@
                                 </option>
                             </select>
                             <div class="error" *ngIf="showError('coordinatorOffice','required')">
-                                APFS Coordinator office is required.
+                                4SITE Coordinator office is required.
                             </div>
                         </div>
                     </div>
+
+
                 </div>
                 <!-- #endregion Offices (All 3 required) -->
 
@@ -284,62 +288,8 @@
                     <div class="hint">A program level can be selected from the drop down menu if it applies.</div>
                     <div class="error" *ngIf="showError('programLevel','required')">Program level is required.</div>
                 </div>
-                <!-- #endregion Requirements Fields -->
-            </section>
-            <!-- #endregion Requirements (Owned by Requirements) -->
 
-            <!-- #region Small Business (Owned by APFS Coordinator) -->
-            <section class="sec" id="sec-small-business" [class.readonly]="isEditMode && !canEditCoordinatorSection">
-                <div class="sec-h">
-                    <div class="sec-title">
-                        Small Business <span class="sec-sub">Owned by APFS Coordinator</span>
-                    </div>
-
-                    <div class="sec-meta">
-                        <span *ngIf="isEditMode && !canEditCoordinatorSection" class="pill ro">Read-only</span>
-                        <span *ngIf="canEditCoordinatorSection" class="pill ok">Editable</span>
-                    </div>
-                </div>
-
-                <div class="grid-2">
-                    <div class="field" [class.is-invalid]="isInvalid('smallBusinessSetAside')">
-                        <label>Small business set aside <span class="req">*</span></label>
-                        <select formControlName="smallBusinessSetAside">
-                            <option value="">N/A</option>
-                        </select>
-                        <div class="hint">This field is updated by the APFS Coordinator.</div>
-                        <div class="error" *ngIf="showError('smallBusinessSetAside','required')">This field is required.
-                        </div>
-                    </div>
-
-                    <div class="field" [class.is-invalid]="isInvalid('smallBusinessProgram')">
-                        <label>Small business program <span class="req">*</span></label>
-                        <select formControlName="smallBusinessProgram">
-                            <option value="">----------</option>
-                        </select>
-                        <div class="hint">This field is updated by the APFS Coordinator.</div>
-                        <div class="error" *ngIf="showError('smallBusinessProgram','required')">This field is required.
-                        </div>
-                    </div>
-                </div>
-            </section>
-            <!-- #endregion Small Business (Owned by APFS Coordinator) -->
-
-            <!-- #region Value Classification (Coordinator / Contracting) -->
-            <section class="sec" id="sec-value-classification"
-                [class.readonly]="isEditMode && !canEditClassificationSection">
-                <div class="sec-h">
-                    <div class="sec-title">
-                        Value Classification
-                        <span class="sec-sub">Owned by APFS Coordinator / Contracting Office</span>
-                    </div>
-
-                    <div class="sec-meta">
-                        <span *ngIf="isEditMode && !canEditClassificationSection" class="pill ro">Read-only</span>
-                        <span *ngIf="canEditClassificationSection" class="pill ok">Editable</span>
-                    </div>
-                </div>
-
+                <!-- #region Dollar Range / NAICS Code -->
                 <div class="grid-2">
                     <div class="field" [class.is-invalid]="isInvalid('dollarRange')">
                         <label>Dollar range <span class="req">*</span></label>
@@ -351,7 +301,8 @@
                         </select>
 
                         <div class="hint">Select the dollar range for the total estimated value.</div>
-                        <div class="error" *ngIf="showError('dollarRange','required')">Dollar range is required.</div>
+                        <div class="error" *ngIf="showError('dollarRange','required')">Dollar range is required.
+                        </div>
                     </div>
 
                     <div class="field" [class.is-invalid]="isInvalid('naicsCode')">
@@ -365,32 +316,7 @@
                         <div class="error" *ngIf="showError('naicsCode','required')">NAICS Code is required.</div>
                     </div>
                 </div>
-            </section>
-            <!-- #endregion Value Classification (Coordinator / Contracting) -->
-
-            <!-- #region Contracting Office (Owned by Contracting Office) -->
-            <section class="sec" id="sec-contracting" [class.readonly]="isEditMode && !canEditContractingSection">
-                <div class="sec-h">
-                    <div class="sec-title">
-                        Contracting Office <span class="sec-sub">Owned by Requirements / Contracting Office</span>
-                    </div>
-
-                    <div class="sec-meta">
-                        <span *ngIf="!isEditMode" class="pill ro">
-                            Read-only
-                        </span>
-
-                        <!-- Edit mode, but user cannot edit this section -->
-                        <span *ngIf="isEditMode && !canEditContractingSection" class="pill ro">
-                            Read-only
-                        </span>
-
-                        <!-- Edit mode and user can edit -->
-                        <span *ngIf="isEditMode && canEditContractingSection" class="pill ok">
-                            Editable
-                        </span>
-                    </div>
-                </div>
+                <!-- #endregion Requirements Fields -->
 
                 <!-- #region Contracting Selects -->
                 <div class="grid-2">
@@ -404,7 +330,7 @@
                         <div class="hint">This field is updated by the Contracting Officer.</div>
                         <div class="error" *ngIf="showError('contractType','required')">Contract type is required.</div>
                     </div>
-
+                    <!-- TODO This needs to drive the Strategic Sourcing Vehicle-->
                     <div class="field" [class.is-invalid]="isInvalid('strategicSourcingVehicleUsed')">
                         <label>Will a strategic sourcing vehicle be used? <span class="req">*</span></label>
                         <select formControlName="strategicSourcingVehicleUsed">
@@ -482,8 +408,41 @@
 
                 </div>
                 <!-- #endregion Contracting Selects -->
+            </section>
+            <!-- #endregion Requirements (Owned by Requirements) -->
+
+
+
+
+
+            <!-- #region Contracting Office (Owned by Contracting Office) -->
+            <section class="sec" id="sec-contracting" [class.readonly]="isEditMode && !canEditContractingSection">
+                <div class="sec-h">
+                    <div class="sec-title">
+                        Contracting Office <span class="sec-sub">Owned by Contracting Office</span>
+                    </div>
+
+                    <div class="sec-meta">
+                        <span *ngIf="!isEditMode" class="pill ro">
+                            Read-only
+                        </span>
+
+                        <!-- Edit mode, but user cannot edit this section -->
+                        <span *ngIf="isEditMode && !canEditContractingSection" class="pill ro">
+                            Read-only
+                        </span>
+
+                        <!-- Edit mode and user can edit -->
+                        <span *ngIf="isEditMode && canEditContractingSection" class="pill ok">
+                            Editable
+                        </span>
+                    </div>
+                </div>
+
+
 
                 <!-- #region Contracting Text Inputs -->
+                <!-- incumbent/contractNumber -->
                 <div class="grid-2">
                     <div class="field">
                         <label>Incumbent</label>
@@ -497,9 +456,214 @@
                         <div class="hint">Notate the Contract Number.</div>
                     </div>
                 </div>
+
+
+
+
+                <div class="grid-2">
+                    <div class="field" [class.is-invalid]="isInvalid('estimatedPopStart')">
+                        <label>
+                            Estimated period of performance start <span class="req">*</span>
+                        </label>
+
+                        <input type="text" inputmode="numeric" formControlName="estimatedPopStart"
+                            placeholder="MM/DD/YYYY" (input)="onDateInput($event, 'estimatedPopStart')"
+                            (blur)="onDateInput($event, 'estimatedPopStart')" />
+
+                        <div class="hint">
+                            Enter the date using MM/DD/YYYY format.
+                        </div>
+
+                        <div class="error" *ngIf="showError('estimatedPopStart','required')">
+                            This field is required.
+                        </div>
+
+                        <div class="error" *ngIf="showError('estimatedPopStart','pattern')">
+                            Please use MM/DD/YYYY.
+                        </div>
+                    </div>
+
+                    <div class="field" [class.is-invalid]="isInvalid('estimatedPopEnd')">
+                        <label>
+                            Estimated period of performance end <span class="req">*</span>
+                        </label>
+
+                        <input type="text" inputmode="numeric" formControlName="estimatedPopEnd"
+                            placeholder="MM/DD/YYYY" (input)="onDateInput($event, 'estimatedPopEnd')"
+                            (blur)="onDateInput($event, 'estimatedPopEnd')" />
+
+                        <div class="hint">
+                            Enter the date using MM/DD/YYYY format.
+                        </div>
+
+                        <div class="error" *ngIf="showError('estimatedPopEnd','required')">
+                            This field is required.
+                        </div>
+
+                        <div class="error" *ngIf="showError('estimatedPopEnd','pattern')">
+                            Please use MM/DD/YYYY.
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="grid-2">
+                    <div class="field" [class.is-invalid]="isInvalid('estimatedSolicitationReleaseDate')">
+                        <label>
+                            Estimated Solicitation Release Date <span class="req">*</span>
+                        </label>
+
+                        <input type="text" inputmode="numeric" formControlName="estimatedSolicitationReleaseDate"
+                            placeholder="MM/DD/YYYY" (input)="onDateInput($event, 'estimatedSolicitationReleaseDate')"
+                            (blur)="onDateInput($event, 'estimatedSolicitationReleaseDate')" />
+
+                        <div class="hint">
+                            Enter the date using MM/DD/YYYY format.
+                        </div>
+
+                        <div class="error" *ngIf="showError('estimatedSolicitationReleaseDate','required')">
+                            This field is required.
+                        </div>
+
+                        <div class="error" *ngIf="showError('estimatedSolicitationReleaseDate','pattern')">
+                            Please use MM/DD/YYYY.
+                        </div>
+                    </div>
+
+                    <div class="field" [class.is-invalid]="isInvalid('anticipatedAwardDate')">
+                        <label>
+                            Anticipated award date <span class="req">*</span>
+                        </label>
+
+                        <input type="text" inputmode="numeric" formControlName="anticipatedAwardDate"
+                            placeholder="MM/DD/YYYY" (input)="onDateInput($event, 'anticipatedAwardDate')"
+                            (blur)="onDateInput($event, 'anticipatedAwardDate')" />
+
+                        <div class="hint">
+                            Enter the date using MM/DD/YYYY format.
+                        </div>
+
+                        <div class="error" *ngIf="showError('anticipatedAwardDate','required')">
+                            This field is required.
+                        </div>
+
+                        <div class="error" *ngIf="showError('anticipatedAwardDate','pattern')">
+                            Please use MM/DD/YYYY.
+                        </div>
+                    </div>
+                </div>
+
                 <!-- #endregion Contracting Text Inputs -->
             </section>
             <!-- #endregion Contracting Office (Owned by Contracting Office) -->
+
+            <!-- #region Small Business (Owned by APFS Coordinator) -->
+            <section class="sec" id="sec-small-business" [class.readonly]="isEditMode && !canEditCoordinatorSection">
+                <div class="sec-h">
+                    <div class="sec-title">
+                        Small Business <span class="sec-sub">Owned by 4SITE Coordinator</span>
+                    </div>
+
+                    <div class="sec-meta">
+                        <span *ngIf="isEditMode && !canEditCoordinatorSection" class="pill ro">Read-only</span>
+                        <span *ngIf="canEditCoordinatorSection" class="pill ok">Editable</span>
+                    </div>
+                </div>
+                <!-- smallBusinessSetAside/smallBusinessProgram -->
+                <div class="grid-2">
+                    <div class="field" [class.is-invalid]="isInvalid('smallBusinessSetAside')">
+                        <label>Small business set aside <span class="req">*</span></label>
+                        <select formControlName="smallBusinessSetAside">
+                            <option value="N/A">N/A</option>
+                            <option value="Partial">Partial</option>
+                            <option value="Full">Full</option>
+                        </select>
+                        <div class="hint">This field is updated by the 4SITE Coordinator.</div>
+                        <div class="error" *ngIf="showError('smallBusinessSetAside','required')">This field is required.
+                        </div>
+                    </div>
+
+                    <div class="field" [class.is-invalid]="isInvalid('smallBusinessProgram')">
+                        <label>Small business program <span class="req">*</span></label>
+                        <select formControlName="smallBusinessProgram">
+                            <option value="8(a)">8(a)</option>
+                            <option value="HUBZone">HUBZone</option>
+                            <option value="SDVOSB">SDVOSB</option>
+                            <option value="WOSB">WOSB</option>
+                            <option value="None">None</option>
+                            <option value="Other">Other</option>
+
+                        </select>
+                        <div class="hint">This field is updated by the 4SITE Coordinator.</div>
+                        <div class="error" *ngIf="showError('smallBusinessProgram','required')">This field is required.
+                        </div>
+                    </div>
+                </div>
+                <!-- sbSpecialistFirstName/sbSpecialistLastName -->
+                <div class="grid-2">
+                    <div class="field" [class.is-invalid]="isInvalid('sbSpecialistFirstName')">
+                        <label>Small Business Specialist/4SITE Coordinator First Name <span class="req">*</span></label>
+                        <input type="text" formControlName="sbSpecialistFirstName" />
+                        <div class="hint">Enter the first name of the Small Business Specialist/4SITE Coordinator POC
+                            for
+                            this anticipated requirement in the text box provided.</div>
+                        <div class="error" *ngIf="showError('sbSpecialistFirstName','required')">This field is required.
+                        </div>
+                    </div>
+
+                    <div class="field" [class.is-invalid]="isInvalid('sbSpecialistLastName')">
+                        <label>Small Business Specialist/4SITE Coordinator Last Name<span class="req">*</span></label>
+                        <input type="text" formControlName="sbSpecialistLastName" />
+                        <div class="hint">Enter the last name of the Small Business Specialist/4SITE Coordinator POC for
+                            this anticipated requirement in the text box provided.</div>
+                        <div class="error" *ngIf="showError('sbSpecialistLastName','required')">This field is required.
+                        </div>
+                    </div>
+                </div>
+                <!-- sbSpecialistPhone/sbSpecialistEmail -->
+                <div class="grid-2">
+                    <div class="field" [class.is-invalid]="isInvalid('sbSpecialistPhone')">
+                        <label>
+                            Small Business Specialist/4SITE Coordinator Phone <span class="req">*</span>
+                        </label>
+
+                        <input type="tel" inputmode="tel" autocomplete="tel" formControlName="sbSpecialistPhone"
+                            placeholder="(203) 555-1234 ext. 1234"
+                            (input)="onPhoneInput($event, 'sbSpecialistPhone')" />
+
+
+                        <div id="sbSpecialistPhoneHint" class="hint">
+                            Enter the phone number of the Small Business Specialist/4SITE Coordinator POC for this
+                            anticipated requirement.
+                            Format: (203) 555-1234 ext. 1234.
+                        </div>
+
+                        <div class="error" *ngIf="showError('sbSpecialistPhone','required')">
+                            This field is required.
+                        </div>
+
+                        <div class="error" *ngIf="showError('sbSpecialistPhone','pattern')">
+                            Please use the format: (203) 555-1234 ext. 1234
+                        </div>
+                    </div>
+
+
+                    <div class="field" [class.is-invalid]="isInvalid('sbSpecialistEmail')">
+                        <label>Small Business Specialist/APFS Coordinator Email<span class="req">*</span></label>
+                        <input type="text" formControlName="sbSpecialistEmail" />
+                        <div class="hint">Enter the email address of the Small Business Specialist/4SITE Coordinator POC
+                            for this anticipated requirement in the text box provided.</div>
+                        <div class="error" *ngIf="showError('sbSpecialistEmail','required')">This field is required.
+                        </div>
+                    </div>
+                </div>
+
+
+
+
+
+            </section>
+            <!-- #endregion Small Business (Owned by APFS Coordinator) -->
 
             <!-- #region Bottom Actions -->
             <div class="apfs-actions">
