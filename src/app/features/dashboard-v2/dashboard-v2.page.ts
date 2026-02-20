@@ -1,6 +1,7 @@
 import { Component, ChangeDetectorRef, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
 
 import { TopbarV2Component } from './components/topbar/topbar.component';
 import { NavRailComponent } from './components/nav-rail/nav-rail.component';
@@ -17,11 +18,14 @@ import { DashboardFilters, StatusCount } from './models/dashboard-v2.models';
 
 import { ForecastWorkflowLane } from '../forecast/forecast-record/models/forecast-record.enums';
 
+type ForecastView = 'claimed' | 'office' | 'activity';
+
 @Component({
   selector: 'app-dashboard-v2',
   standalone: true,
   imports: [
     CommonModule,
+    HttpClientModule,
     TopbarV2Component,
     NavRailComponent,
     StatusCardsComponent,
@@ -36,7 +40,8 @@ import { ForecastWorkflowLane } from '../forecast/forecast-record/models/forecas
 export class DashboardV2Page implements OnInit {
   constructor(
     private auth: AuthService,
-    private forecastService: ForecastRecordService,
+    private forecastService: ForecastRecordService, // (kept for now; not used for the 3 new views yet)
+    private http: HttpClient,
     private cdr: ChangeDetectorRef,
     private router: Router,
   ) { }
@@ -44,6 +49,10 @@ export class DashboardV2Page implements OnInit {
   // Core state
   readonly rows = signal<ForecastRecord[]>([]);
   readonly selected = signal<ForecastRecord | null>(null);
+
+  // View state (Claimed default)
+  readonly currentView = signal<ForecastView>('claimed');
+  readonly isLoading = signal<boolean>(false);
 
   // Header/user
   readonly env = signal<'DEV' | 'TEST' | 'PROD'>('DEV');
@@ -88,17 +97,47 @@ export class DashboardV2Page implements OnInit {
       this.roleLabel.set(roles[0] ?? 'User');
     }
 
-    this.refresh();
+    // ✅ Default dashboard view: Claimed
+    this.loadView('claimed');
   }
 
+  /**
+   * Reload current view
+   */
   refresh(): void {
-    this.forecastService.list().subscribe({
-      next: (rows) => {
-        this.rows.set(Array.isArray(rows) ? rows : []);
+    this.loadView(this.currentView());
+  }
+
+  /**
+   * Called by your dashboard buttons (Claimed / Office / Activity)
+   */
+  setView(view: ForecastView): void {
+    if (this.currentView() === view) return;
+
+    // optional: close drawer when changing views
+    this.selected.set(null);
+
+    this.loadView(view);
+  }
+
+  /**
+   * Backend-driven list loading.
+   * Expects: GET /api/forecast-records/{claimed|office|activity} -> { rows, total }
+   */
+  private loadView(view: ForecastView): void {
+    this.isLoading.set(true);
+    this.currentView.set(view);
+
+    this.http.get<{ rows: ForecastRecord[]; total: number }>(`/api/forecast-records/${view}`).subscribe({
+      next: (res) => {
+        const rows = Array.isArray(res?.rows) ? res.rows : [];
+        this.rows.set(rows);
+        this.isLoading.set(false);
         this.cdr.detectChanges();
       },
       error: () => {
         this.rows.set([]);
+        this.isLoading.set(false);
         this.cdr.detectChanges();
       },
     });
@@ -149,7 +188,6 @@ export class DashboardV2Page implements OnInit {
 
   /**
    * ✅ Counts by workflow lane (your 5 states)
-   * NOTE: StatusCount.status is typed in your models; if it expects string, enum values are strings, so fine.
    */
   readonly statusCounts = computed<StatusCount[]>(() => {
     const list = this.rows();
@@ -181,11 +219,13 @@ export class DashboardV2Page implements OnInit {
       const q = f.q.toLowerCase();
       list = list.filter(r =>
         String(r.apfsNumber ?? '').toLowerCase().includes(q) ||
-        String(r.requirementsTitle ?? '').toLowerCase().includes(q) ||
-        String(r.component ?? '').toLowerCase().includes(q)
+        String((r as any).requirementsTitle ?? '').toLowerCase().includes(q) ||
+        String((r as any).component ?? '').toLowerCase().includes(q)
       );
     }
 
+    // Note: even though the default view is "claimed", keeping these filter toggles is still fine
+    // (they won't break anything; they just further narrow the list).
     if (f.mineClaimed && myId) {
       list = list.filter(r => String((r as any).assignedToUserId ?? '') === myId);
     }

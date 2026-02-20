@@ -83,6 +83,57 @@ function fullName(u) {
     return n || u?.email || 'Unknown User';
 }
 
+// =========================
+// FORECAST SECURITY HELPERS
+// =========================
+
+function isSuperAdmin(user) {
+    return (user?.role || '').trim().toLowerCase() === 'super admin';
+}
+
+function getVisibleForecastRecords(user, records) {
+    const rows = Array.isArray(records) ? records : [];
+    if (isSuperAdmin(user)) return rows;
+    return rows.filter((r) => r.component === user.component);
+}
+
+function canAccessForecastRecord(user, record) {
+    if (!user || !record) return false;
+    if (isSuperAdmin(user)) return true;
+    return record.component === user.component;
+}
+
+function requireForecastAccess(req, res, me, record) {
+    if (!canAccessForecastRecord(me, record)) {
+        return res.status(403).json({ message: 'Forbidden' });
+    }
+    return null;
+}
+
+function buildLatestActivityMap(db) {
+    const history = Array.isArray(db.recordHistory) ? db.recordHistory : [];
+    const latestByForecastId = new Map(); // forecast_id -> time (ISO)
+
+    for (const h of history) {
+        if (Number(h.latest) !== 1) continue;
+        latestByForecastId.set(Number(h.forecast_id), h.time);
+    }
+    return latestByForecastId;
+}
+
+function getLastActivityTime(record, latestByForecastId) {
+    return (
+        latestByForecastId.get(Number(record.id)) ||
+        record.updatedAt ||
+        record.createdAt ||
+        ''
+    );
+}
+
+function normOffice(v) {
+    return String(v ?? '').trim().toLowerCase();
+}
+
 // =========================   
 
 // =========================
@@ -359,13 +410,114 @@ app.get(`${API_PREFIX}/auth/me`, (req, res) => {
 
 // =========================
 
-// LIST
-app.get(`${API_PREFIX}/forecast-records`, (req, res) => {
+//Helper to parse boolean query parameters (e.g., ?force=true)
+// =========================
+// SECURITY HELPERS
+// =========================
+
+// CLAIMED BY ME
+app.get(`${API_PREFIX}/forecast-records/claimed`, (req, res) => {
     const db = loadData();
     const me = getCurrentUser(req, db);
     if (!me) return res.status(401).json({ message: 'Not authenticated' });
 
-    const rows = (db.forecastRecords || []).filter((r) => r.component === me.component);
+    const visible = getVisibleForecastRecords(me, db.forecastRecords || []);
+    const myId = String(me.id);
+
+    const rows = visible.filter(r => String(r.assignedToUserId ?? '') === myId);
+
+    res.json({ rows, total: rows.length });
+});
+
+// OFFICE-RELATED (e.g., for office-specific queues)
+app.get(`${API_PREFIX}/forecast-records/office`, (req, res) => {
+    const db = loadData();
+    const me = getCurrentUser(req, db);
+    if (!me) return res.status(401).json({ message: 'Not authenticated' });
+
+    const all = db.forecastRecords || [];
+    const visible = getVisibleForecastRecords(me, all); // ✅ visible is defined here
+
+    console.log('[OFFICE VIEW] me:', {
+        id: me.id,
+        email: me.email,
+        office: me.office,
+        component: me.component,
+        role: me.role
+    });
+
+    console.log('[OFFICE VIEW] counts:', {
+        all: all.length,
+        visible: visible.length
+    });
+
+    console.log('[OFFICE VIEW] sample visible office fields:', visible.slice(0, 5).map(r => ({
+        id: r.id,
+        component: r.component,
+        requirementsOffice: r.requirementsOffice,
+        contractingOffice: r.contractingOffice,
+        coordinatorOffice: r.coordinatorOffice,
+    })));
+
+    const myOffice = String(me.office ?? '').trim().toLowerCase();
+
+    const rows = visible.filter(r => {
+        const reqOffice = String(r.requirementsOffice ?? '').trim().toLowerCase();
+        const conOffice = String(r.contractingOffice ?? '').trim().toLowerCase();
+        const coordOffice = String(r.coordinatorOffice ?? '').trim().toLowerCase();
+
+        return reqOffice === myOffice || conOffice === myOffice || coordOffice === myOffice;
+    });
+
+    console.log('[OFFICE VIEW] matched rows:', rows.length);
+
+    res.json({ rows, total: rows.length });
+});
+
+// RECENT ACTIVITY (SORTED BY LAST HISTORY ENTRY)
+app.get(`${API_PREFIX}/forecast-records/activity`, (req, res) => {
+    const db = loadData();
+    const me = getCurrentUser(req, db);
+    if (!me) return res.status(401).json({ message: 'Not authenticated' });
+
+    const visible = getVisibleForecastRecords(me, db.forecastRecords || []);
+
+    const latestByForecastId = buildLatestActivityMap(db);
+
+    const rows = [...visible].sort((a, b) => {
+        const aT = getLastActivityTime(a, latestByForecastId);
+        const bT = getLastActivityTime(b, latestByForecastId);
+        return new Date(bT) - new Date(aT);
+    });
+
+    const limit = Number(req.query.limit);
+    const finalRows = Number.isFinite(limit) && limit > 0 ? rows.slice(0, limit) : rows;
+
+    res.json({ rows: finalRows, total: finalRows.length });
+});
+
+// LIST
+app.get(`${API_PREFIX}/forecast-records`, (req, res) => {
+    const db = loadData();
+    const me = getCurrentUser(req, db);
+
+    if (!me) {
+        return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    console.log(
+        'GET /forecast-records - user:',
+        me.email,
+        'role:',
+        me.role,
+        'component:',
+        me.component
+    );
+
+    const allRecords = db.forecastRecords || [];
+
+    const rows = getVisibleForecastRecords(me, allRecords);
+
     res.json({ rows, total: rows.length });
 });
 
@@ -375,10 +527,21 @@ app.get(`${API_PREFIX}/forecast-records/:id`, (req, res) => {
     const me = getCurrentUser(req, db);
     if (!me) return res.status(401).json({ message: 'Not authenticated' });
 
+    console.log(
+        'GET /forecast-records/:id - user:',
+        me.email,
+        'role:',
+        me.role,
+        'component:',
+        me.component
+    );
+
     const id = Number(req.params.id);
     const record = (db.forecastRecords || []).find((r) => Number(r.id) === id);
     if (!record) return res.status(404).json({ error: 'Not found' });
-    if (record.component !== me.component) return res.status(403).json({ message: 'Forbidden' });
+
+    const blocked = requireForecastAccess(req, res, me, record);
+    if (blocked) return;
 
     const history = getHistoryForRecord(db, id);
     res.json({ ...record, history });
@@ -439,11 +602,12 @@ app.put(`${API_PREFIX}/forecast-records/:id`, (req, res) => {
     if (idx === -1) return res.status(404).json({ message: 'Not found' });
 
     const existing = db.forecastRecords[idx];
-    if (existing.component !== me.component) return res.status(403).json({ message: 'Forbidden' });
+
+    const blocked = requireForecastAccess(req, res, me, existing);
+    if (blocked) return;
 
     const now = new Date().toISOString();
 
-    // client can update editable fields, but server protects core fields
     const updated = {
         ...existing,
         ...req.body,
@@ -468,33 +632,17 @@ app.put(`${API_PREFIX}/forecast-records/:id`, (req, res) => {
     db.forecastRecords[idx] = updated;
     saveData(db);
 
-    // Optional: add history row for "Updated" (commented out for now)
-    // clearLatestHistoryFlag(db, id);
-    // db.recordHistory.push(
-    //   makeHistoryRow({
-    //     forecastId: id,
-    //     user: me,
-    //     comment: 'Updated',
-    //     assignmentDisplay: updated.assignedToName ?? null,
-    //     assignmentId: updated.assignedToUserId ?? null,
-    //     previousStateId: laneOrderKey(existing.workflowStatus ?? existing.status),
-    //     newStateId: laneOrderKey(updated.workflowStatus ?? updated.status),
-    //     latest: true,
-    //   })
-    // );
-    // saveData(db);
-
     res.json({ ...updated, history: getHistoryForRecord(db, id) });
 });
 
 
 // TRANSITION
 app.post(`${API_PREFIX}/forecast-records/:id/transition`, (req, res) => {
-
     console.group('[TRANSITION]');
     console.log('recordId:', req.params.id);
     console.log('x-user-id:', req.header('x-user-id'));
     console.log('body:', req.body);
+
     const db = loadData();
     const me = getCurrentUser(req, db);
     if (!me) return res.status(401).json({ message: 'Not authenticated' });
@@ -502,7 +650,9 @@ app.post(`${API_PREFIX}/forecast-records/:id/transition`, (req, res) => {
     const id = Number(req.params.id);
     const r = (db.forecastRecords || []).find((x) => Number(x.id) === id);
     if (!r) return res.status(404).json({ message: 'Not found' });
-    if (r.component !== me.component) return res.status(403).json({ message: 'Forbidden' });
+
+    const blocked = requireForecastAccess(req, res, me, r);
+    if (blocked) return;
 
     const from = r.workflowStatus;
     const to = String(req.body?.to ?? '').trim();
@@ -540,7 +690,9 @@ app.post(`${API_PREFIX}/forecast-records/:id/reject`, (req, res) => {
     const id = Number(req.params.id);
     const r = (db.forecastRecords || []).find((x) => Number(x.id) === id);
     if (!r) return res.status(404).json({ message: 'Not found' });
-    if (r.component !== me.component) return res.status(403).json({ message: 'Forbidden' });
+
+    const blocked = requireForecastAccess(req, res, me, r);
+    if (blocked) return;
 
     const prev = previousLaneValue(r.workflowStatus);
     if (!prev) return res.status(409).json({ message: 'Cannot reject' });
@@ -586,14 +738,15 @@ app.post(`${API_PREFIX}/forecast-records/:id/claim`, (req, res) => {
     if (idx === -1) return res.status(404).json({ error: 'Forecast record not found' });
 
     const existing = db.forecastRecords[idx];
-    if (existing.component !== me.component) return res.status(403).json({ message: 'Forbidden' });
+
+    const blocked = requireForecastAccess(req, res, me, existing);
+    if (blocked) return;
 
     const requesterId = req.body?.userId ?? null;
     const force = !!req.body?.force;
 
     if (!requesterId) return res.status(400).json({ error: 'userId is required' });
 
-    // Trust user from DB
     const user = (db.users || []).find((u) => String(u.id) === String(requesterId));
     if (!user || user.isActive === false) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -602,12 +755,10 @@ app.post(`${API_PREFIX}/forecast-records/:id/claim`, (req, res) => {
     const currentAssignee = existing.assignedToUserId ? String(existing.assignedToUserId) : null;
     const meId = String(user.id);
 
-    // Idempotent
     if (currentAssignee && currentAssignee === meId) {
         return res.json({ ...existing, history: getHistoryForRecord(db, id) });
     }
 
-    // Taken by someone else and not forcing
     if (currentAssignee && currentAssignee !== meId && !force) {
         return res.status(409).json({
             error: 'Forecast record already claimed',
@@ -625,7 +776,6 @@ app.post(`${API_PREFIX}/forecast-records/:id/claim`, (req, res) => {
         updatedAt: now,
     };
 
-    // history
     clearLatestHistoryFlag(db, id);
     db.recordHistory.push(
         makeHistoryRow({
@@ -657,14 +807,15 @@ app.post(`${API_PREFIX}/forecast-records/:id/unclaim`, (req, res) => {
     if (idx === -1) return res.status(404).json({ error: 'Forecast record not found' });
 
     const existing = db.forecastRecords[idx];
-    if (existing.component !== me.component) return res.status(403).json({ message: 'Forbidden' });
+
+    const blocked = requireForecastAccess(req, res, me, existing);
+    if (blocked) return;
 
     const requesterId = req.body?.userId ?? null;
     const force = !!req.body?.force;
 
     const currentAssignee = existing.assignedToUserId ? String(existing.assignedToUserId) : null;
 
-    // If assigned and caller isn't assignee, block unless force
     if (currentAssignee && !force && requesterId && String(currentAssignee) !== String(requesterId)) {
         return res.status(403).json({ error: 'Only the assignee can unclaim this record' });
     }
@@ -699,6 +850,11 @@ app.post(`${API_PREFIX}/forecast-records/:id/unclaim`, (req, res) => {
     res.json({ ...unclaimed, history: getHistoryForRecord(db, id) });
 });
 
+app.post(`${API_PREFIX}/forecast-records/:id/unassign`, (req, res) => {
+    req.url = req.url.replace('/unassign', '/unclaim');
+    app._router.handle(req, res);
+});
+
 // OPTIONAL: alias if your client uses /unassign
 app.post(`${API_PREFIX}/forecast-records/:id/unassign`, (req, res) => {
     // call the same handler by rewriting the URL to /unclaim
@@ -708,18 +864,23 @@ app.post(`${API_PREFIX}/forecast-records/:id/unassign`, (req, res) => {
 
 //Delete Record
 app.delete(`${API_PREFIX}/forecast-records/:id`, (req, res) => {
+    const db = loadData();
+    const me = getCurrentUser(req, db);
+    if (!me) return res.status(401).json({ message: 'Not authenticated' });
+
     const id = Number(req.params.id);
     const userId = req.query.userId != null ? Number(req.query.userId) : null;
     const force = String(req.query.force).toLowerCase() === 'true';
 
-    const data = loadData();
-    const rec = data.forecastRecords.find(r => Number(r.id) === id);
-
+    const rec = (db.forecastRecords || []).find((r) => Number(r.id) === id);
     if (!rec) return res.status(404).json({ message: 'Record not found' });
+
+    const blocked = requireForecastAccess(req, res, me, rec);
+    if (blocked) return;
 
     const assigned = rec.assignedToUserId != null ? Number(rec.assignedToUserId) : null;
 
-    // if assigned to someone else, block
+    // if assigned to someone else, block (super admin can still be blocked here unless force logic says otherwise)
     if (assigned != null && userId != null && assigned !== userId) {
         return res.status(403).json({ message: 'Only assignee can delete' });
     }
@@ -729,14 +890,14 @@ app.delete(`${API_PREFIX}/forecast-records/:id`, (req, res) => {
         return res.status(409).json({ message: 'Force delete required for assigned record' });
     }
 
-    data.forecastRecords = data.forecastRecords.filter(r => Number(r.id) !== id);
+    db.forecastRecords = (db.forecastRecords || []).filter((r) => Number(r.id) !== id);
 
-    // optional: history entry
-    clearLatestHistoryFlag(data, id);
-    data.recordHistory.push(
+    clearLatestHistoryFlag(db, id);
+    db.recordHistory = Array.isArray(db.recordHistory) ? db.recordHistory : [];
+    db.recordHistory.push(
         makeHistoryRow({
             forecastId: id,
-            user: getCurrentUser(req, data),
+            user: me,
             comment: force ? 'Force deleted record' : 'Deleted record',
             assignmentDisplay: rec.assignedToName ?? null,
             assignmentId: rec.assignedToUserId ?? null,
@@ -746,8 +907,7 @@ app.delete(`${API_PREFIX}/forecast-records/:id`, (req, res) => {
         })
     );
 
-
-    saveData(data);
+    saveData(db);
     return res.json({ ok: true });
 });
 

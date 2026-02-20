@@ -25,6 +25,19 @@
       <!-- <app-dashboard-filters [filters]="filters()" (filtersChange)="onFiltersChange($event)"></app-dashboard-filters> -->
 
       <!-- Records table -->
+      <div class="dashboard-toggle">
+        <button [class.active]="currentView() === 'claimed'" (click)="setView('claimed')">
+          My Claimed
+        </button>
+
+        <button [class.active]="currentView() === 'office'" (click)="setView('office')">
+          My Office
+        </button>
+
+        <button [class.active]="currentView() === 'activity'" (click)="setView('activity')">
+          Recent Activity
+        </button>
+      </div>
       <app-records-table [rows]="filteredRows()" (rowClick)="openRecord($event)"></app-records-table>
 
 
