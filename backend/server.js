@@ -1367,7 +1367,7 @@ app.get(`${API_PREFIX}/public/offices/options`, (req, res) => {
         .filter(o => !Number.isFinite(organizationId) || o.organization_id === organizationId)
         .filter(o => !onlyActive || o.active === 1);
 
-    console.log('[public/offices/options] mapped sample', options.slice(0, 5));
+    console.log('[public/offices/options] mapped sample', options.slice(0, 15));
 
     // ✅ role filter (if provided and recognized)
     if (roleLevel != null) {
@@ -1376,13 +1376,22 @@ app.get(`${API_PREFIX}/public/offices/options`, (req, res) => {
 
     options = options
         .sort((a, b) => a.full_name.localeCompare(b.full_name))
-        .map(o => ({ id: o.id, full_name: o.full_name })); // sanitize output
+        .map(o => ({ id: o.id, full_name: o.full_name, organization_id: o.organization_id, office_assignment_permissions_level_id: o.level_id })); // sanitize output
     console.log('[public/offices/options] after filters', {
         onlyActive,
         organizationId,
         roleLevel,
-        count: options.length
+        count: options.length,
+        distinctLevels: Array.from(new Set(options.map(o => o.office_assignment_permissions_level_id))),
+        sample: options.slice(0, 15).map(o => ({
+            id: o.id,
+            full_name: o.full_name,
+            organization_id: o.organization_id,
+            level: o.office_assignment_permissions_level_id,
+        }))
     });
+
+    //tap(rows => console.log('[officeOptions$ rows]', rows))
     res.json(options);
 });
 

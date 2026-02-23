@@ -993,6 +993,7 @@ app.delete(`${API_PREFIX}/forecast-records/:id`, (req, res) => {
 // =========================
 // APFS ORGANIZATION TREE
 // =========================
+
 app.get(`${API_PREFIX}/apfs-organization/tree`, (req, res) => {
     const data = loadData();
     const onlyActive = String(req.query.active ?? '') === '1';
@@ -1079,26 +1080,30 @@ app.get(`${API_PREFIX}/apfs-organization/tree`, (req, res) => {
     res.json(roots);
 });
 
-// GET all by admin role and component
-// GET org tree scoped to current admin's component
+// =========================
+// APFS ORGANIZATION TREE (SCOPED)
+// - Admin: returns ONLY their component subtree (single node)
+// - Super Admin: returns ALL organizations (array of root nodes)
+// =========================
 app.get(`${API_PREFIX}/apfs-organization/tree/scoped`, (req, res) => {
     const db = loadData();
 
     const me = getCurrentUser(req, db);
     if (!me) return res.status(401).json({ error: 'Unauthorized' });
 
-    // Only Admins should use this (optional: allow APFS Coordinator too if you want)
-    if (String(me.role) !== 'Admin') {
+    // Role gates (use your helpers; avoids brittle string compares)
+    const isSA = typeof isSuperAdmin === 'function' ? isSuperAdmin(me) : false;
+    const isAdminRole = String(me.role || '').trim().toLowerCase() === 'admin';
+
+    // Only Admin / Super Admin
+    if (!isAdminRole && !isSA) {
         return res.status(403).json({ error: 'Forbidden' });
     }
 
-    const myComponent = String(me.component || '').trim();
-    if (!myComponent) return res.status(400).json({ error: 'Missing user component' });
-
     const onlyActive = String(req.query.active ?? '') === '1';
-
     const rows = Array.isArray(db.apfs_organization) ? db.apfs_organization : [];
 
+    // Normalize rows
     const normalized = rows
         .map(r => ({
             id: Number(r.id),
@@ -1114,20 +1119,11 @@ app.get(`${API_PREFIX}/apfs-organization/tree/scoped`, (req, res) => {
         .filter(r => Number.isFinite(r.id))
         .filter(r => !onlyActive || r.active === 1);
 
-    // Find the component root node (match acronym first, then name)
-    const root = normalized.find(r => String(r.acronym).trim() === myComponent)
-        ?? normalized.find(r => String(r.name).trim() === myComponent);
-
-    if (!root) {
-        // if component doesn't map to an org root, return empty tree instead of 404
-        return res.json([]);
-    }
-
     // Build byId map
     const byId = new Map();
     for (const r of normalized) byId.set(r.id, { ...r, children: [] });
 
-    // Attach children
+    // Attach children + collect roots
     const roots = [];
     for (const node of byId.values()) {
         if (node.parent_id !== null && byId.has(node.parent_id)) {
@@ -1137,30 +1133,50 @@ app.get(`${API_PREFIX}/apfs-organization/tree/scoped`, (req, res) => {
         }
     }
 
-    // Sort recursively (same as before)
+    // Sort recursively
     const sortTree = (nodes) => {
         nodes.sort((a, b) => {
             const fa = (a.full_name || '').toLowerCase();
             const fb = (b.full_name || '').toLowerCase();
             if (fa < fb) return -1;
             if (fa > fb) return 1;
+
             const na = (a.name || '').toLowerCase();
             const nb = (b.name || '').toLowerCase();
             const c = na.localeCompare(nb);
             if (c !== 0) return c;
+
             return a.id - b.id;
         });
         for (const n of nodes) sortTree(n.children);
     };
 
-    // Return ONLY the subtree rooted at the admin's component org
+    // ✅ Super Admin sees EVERYTHING (full forest)
+    if (isSA) {
+        sortTree(roots);
+        return res.json(roots); // array of root nodes
+        // If you prefer one consistent shape, change to: return res.json({ roots });
+    }
+
+    // ✅ Admin sees ONLY their component subtree
+    const myComponent = String(me.component || '').trim();
+    if (!myComponent) return res.status(400).json({ error: 'Missing user component' });
+
+    // Find the component root node (match acronym first, then name)
+    const root =
+        normalized.find(r => String(r.acronym).trim() === myComponent) ??
+        normalized.find(r => String(r.name).trim() === myComponent);
+
+    if (!root) return res.json([]); // component doesn't map to an org root
+
     const scopedRoot = byId.get(root.id);
     if (!scopedRoot) return res.json([]);
 
     sortTree(scopedRoot.children);
 
-    res.json(scopedRoot); // single node (component root + children)
+    return res.json(scopedRoot); // single node (component root + children)
 });
+
 
 // GET by id
 app.get(`${API_PREFIX}/apfs-organization/:id`, (req, res) => {
@@ -1351,7 +1367,7 @@ app.get(`${API_PREFIX}/public/offices/options`, (req, res) => {
         .filter(o => !Number.isFinite(organizationId) || o.organization_id === organizationId)
         .filter(o => !onlyActive || o.active === 1);
 
-    console.log('[public/offices/options] mapped sample', options.slice(0, 5));
+    console.log('[public/offices/options] mapped sample', options.slice(0, 15));
 
     // ✅ role filter (if provided and recognized)
     if (roleLevel != null) {
@@ -1360,13 +1376,22 @@ app.get(`${API_PREFIX}/public/offices/options`, (req, res) => {
 
     options = options
         .sort((a, b) => a.full_name.localeCompare(b.full_name))
-        .map(o => ({ id: o.id, full_name: o.full_name })); // sanitize output
+        .map(o => ({ id: o.id, full_name: o.full_name, organization_id: o.organization_id, office_assignment_permissions_level_id: o.level_id })); // sanitize output
     console.log('[public/offices/options] after filters', {
         onlyActive,
         organizationId,
         roleLevel,
-        count: options.length
+        count: options.length,
+        distinctLevels: Array.from(new Set(options.map(o => o.office_assignment_permissions_level_id))),
+        sample: options.slice(0, 15).map(o => ({
+            id: o.id,
+            full_name: o.full_name,
+            organization_id: o.organization_id,
+            level: o.office_assignment_permissions_level_id,
+        }))
     });
+
+    //tap(rows => console.log('[officeOptions$ rows]', rows))
     res.json(options);
 });
 

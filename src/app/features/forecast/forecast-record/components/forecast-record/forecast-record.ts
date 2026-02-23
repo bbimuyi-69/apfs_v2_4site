@@ -17,8 +17,10 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { combineLatest, of, EMPTY } from 'rxjs';
+import { combineLatest, of, EMPTY, map, shareReplay, tap } from 'rxjs';
+
 import { catchError, switchMap, timeout } from 'rxjs/operators';
+
 
 import { ForecastWorkflowLane } from '../../models/forecast-record.enums';
 
@@ -34,6 +36,7 @@ import {
 import { createEmptyForecastRecord } from '../../models/forecast-record.factory';
 import { ForecastRecord } from '../../models/forecast-record.model';
 import { ForecastRecordService } from '../../services/forecast-record.service';
+
 
 import {
   APFS_COMPETITIVE,
@@ -53,6 +56,8 @@ import {
 } from '../../models/forecast-record.lookups';
 
 import { AuthService } from '../../../../../auth/auth.service';
+import { ApfsOfficeService } from '../../../../../core/services/apfs-offices.service';
+
 //#endregion
 
 //#region Record History View Model
@@ -104,6 +109,7 @@ export class ForecastRecordComponent {
   private readonly service = inject(ForecastRecordService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly auth = inject(AuthService);
+  private readonly officeSvc = inject(ApfsOfficeService);
 
   hasSavedRecord = false; // ✅ HERE to track if we have saved at least once
   saveSuccessMessage = false;
@@ -128,24 +134,49 @@ export class ForecastRecordComponent {
   readonly fiscalYears = APFS_FISCAL_YEARS;
   readonly stateOptions = US_STATES_WITH_NA;
 
-  // ✅ New: Office dropdown options (simple v1)
-  readonly requirementsOfficeOptions: OptionItem[] = [
-    { value: 'Program Office', label: 'Program Office' },
-    { value: 'Requirements Division', label: 'Requirements Division' },
-    { value: 'Mission Support', label: 'Mission Support' },
-  ];
+  private get myOrganizationId(): number | null {
+    const u: any = (this.auth as any).user ?? (this.auth as any).session?.user ?? null;
+    const raw = u?.organization_id ?? u?.organizationId ?? null;
+    const n = raw != null ? Number(raw) : null;
+    return Number.isFinite(n) ? n : null;
+  }
 
-  readonly contractingOfficeOptions: OptionItem[] = [
-    { value: 'Procurement Office', label: 'Procurement Office' },
-    { value: 'Contracting Division', label: 'Contracting Division' },
-    { value: 'Acquisition Directorate', label: 'Acquisition Directorate' },
-  ];
+  // ✅ Offices from API (loaded once)
+  private readonly officeOptions$ = this.officeSvc.getPublicOptions({
+    active: 1,
+    organizationId: this.myOrganizationId ?? undefined
+  }).pipe(shareReplay(1));
 
-  readonly coordinatorOfficeOptions: OptionItem[] = [
-    { value: 'APFS PMO', label: 'APFS PMO' },
-    { value: 'Enterprise Governance', label: 'Enterprise Governance' },
-    { value: 'APFS Coordination Cell', label: 'APFS Coordination Cell' },
-  ];
+  readonly requirementsOfficeOptions$ = this.officeOptions$.pipe(
+    map(rows =>
+      rows
+        .filter(r => r.office_assignment_permissions_level_id === 1)
+        .map(r => ({
+          value: r.full_name,
+          label: r.full_name
+        }))
+    )
+  );
+
+  readonly contractingOfficeOptions$ = this.officeOptions$.pipe(
+    map(rows =>
+      rows
+        .filter(r => r.office_assignment_permissions_level_id === 2)
+        .map(r => ({ value: r.full_name, label: r.full_name }))
+    )
+  );
+
+  readonly coordinatorOfficeOptions$ = this.officeOptions$.pipe(
+    map(rows =>
+      rows
+        .filter(r => r.office_assignment_permissions_level_id === 3)
+        .map(r => ({ value: r.full_name, label: r.full_name }))
+    )
+  );
+
+
+
+
 
   //Constants for sectional scrolling
   private readonly SECTION_IDS = [
@@ -464,7 +495,7 @@ export class ForecastRecordComponent {
         'primaryContactPhone',
         'requirementsTitle',
         'requirement',
-        'programLevel',
+        //'programLevel',
         // Value Classification now required
         'dollarRange',
         'naicsCode',
@@ -487,8 +518,8 @@ export class ForecastRecordComponent {
         'estimatedSolicitationReleaseDate',
 
         // Place of Performance now required
-        //'placeOfPerformanceCity',
-        //'placeOfPerformanceState',
+        'placeOfPerformanceCity',
+        'placeOfPerformanceState',
 
       ];
     }
@@ -722,6 +753,36 @@ export class ForecastRecordComponent {
   private focusAfterAction(): void {
     // placeholder utility if you want to focus a known element after actions
   }
+
+  private wireStrategicSourcingVehicleToggle(): void {
+
+    if (!this.form) return;
+
+    const usedCtrl = this.form.get('strategicSourcingVehicleUsed');
+    const vehicleCtrl = this.form.get('strategicSourcingVehicle');
+
+    if (!usedCtrl || !vehicleCtrl) return;
+
+    const apply = (v: unknown) => {
+      const isYes = String(v ?? '').toUpperCase() === 'YES';
+
+      console.log('[SSV toggle] strategicSourcingVehicleUsed:', v);
+
+      if (isYes) {
+        vehicleCtrl.enable({ emitEvent: false });
+      } else {
+        // clear + lock when NO/TBD/blank
+        vehicleCtrl.setValue('', { emitEvent: false }); // or null if you prefer
+        vehicleCtrl.disable({ emitEvent: false });
+      }
+    };
+
+    // initial state (important on edit/load)
+    apply(usedCtrl.value);
+
+    // reactive
+    usedCtrl.valueChanges.subscribe(apply);
+  }
   //#endregion
 
   //#region User Profile + Hydration
@@ -824,7 +885,9 @@ export class ForecastRecordComponent {
     // ✅ lock component from auth (read-only)
     this.lockComponentFromAuth();
 
+
     this.applyAccessState();
+    this.wireStrategicSourcingVehicleToggle();
     this.hydratePrimaryContactFromProfile();
     this.isLoading = true;
     this.flushView();
@@ -853,6 +916,7 @@ export class ForecastRecordComponent {
             this.lockComponentFromAuth();
 
             this.applyAccessState();
+            this.wireStrategicSourcingVehicleToggle();
             this.hydratePrimaryContactFromProfile();
             this.flushView();
 
@@ -889,6 +953,7 @@ export class ForecastRecordComponent {
         this.lockComponentFromAuth();
 
         this.applyAccessState();
+        this.wireStrategicSourcingVehicleToggle();
         this.hydratePrimaryContactFromProfile();
         this.isLoading = false;
         this.flushView();
@@ -1111,6 +1176,7 @@ export class ForecastRecordComponent {
         this.lockComponentFromAuth();
         this.hydrateOfficeFromProfile();
         this.applyAccessState();
+        this.wireStrategicSourcingVehicleToggle();
         this.hydratePrimaryContactFromProfile();
 
         this.isLoading = false;
@@ -1353,6 +1419,7 @@ export class ForecastRecordComponent {
           this.hydrateOfficeFromProfile();
 
           this.applyAccessState();
+          this.wireStrategicSourcingVehicleToggle();
           this.hydratePrimaryContactFromProfile();
 
           this.form.controls.transitionComment.setValue('', { emitEvent: false });
@@ -1458,6 +1525,7 @@ export class ForecastRecordComponent {
         this.hydrateOfficeFromProfile();
 
         this.applyAccessState();
+        this.wireStrategicSourcingVehicleToggle();
         this.hydratePrimaryContactFromProfile();
         this.isLoading = false;
         this.flushView();

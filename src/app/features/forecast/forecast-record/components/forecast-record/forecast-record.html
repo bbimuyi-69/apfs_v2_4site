@@ -212,8 +212,7 @@
                         <div class="field" [class.is-invalid]="isInvalid('requirementsOffice')">
                             <label>Requirements Office <span class="req">*</span></label>
                             <select formControlName="requirementsOffice">
-                                <option value="">Select…</option>
-                                <option *ngFor="let o of requirementsOfficeOptions; trackBy: trackByValue"
+                                <option *ngFor="let o of (requirementsOfficeOptions$ | async); trackBy: trackByValue"
                                     [value]="o.value">
                                     {{ o.label }}
                                 </option>
@@ -226,8 +225,7 @@
                         <div class="field" [class.is-invalid]="isInvalid('contractingOffice')">
                             <label>Contracting Office <span class="req">*</span></label>
                             <select formControlName="contractingOffice">
-                                <option value="">Select…</option>
-                                <option *ngFor="let o of contractingOfficeOptions; trackBy: trackByValue"
+                                <option *ngFor="let o of (contractingOfficeOptions$ | async); trackBy: trackByValue"
                                     [value]="o.value">
                                     {{ o.label }}
                                 </option>
@@ -240,8 +238,7 @@
                         <div class="field" [class.is-invalid]="isInvalid('coordinatorOffice')">
                             <label>4SITE Coordinator Office <span class="req">*</span></label>
                             <select formControlName="coordinatorOffice">
-                                <option value="">Select…</option>
-                                <option *ngFor="let o of coordinatorOfficeOptions; trackBy: trackByValue"
+                                <option *ngFor="let o of (coordinatorOfficeOptions$ | async); trackBy: trackByValue"
                                     [value]="o.value">
                                     {{ o.label }}
                                 </option>
@@ -265,6 +262,11 @@
                     <div class="error" *ngIf="showError('requirementsTitle','required')">
                         Requirements title is required.
                     </div>
+                    <div class="error" *ngIf="showError('requirementsTitle','maxWords')">Requirements title exceeds 255
+                        words.</div>
+                    <div class="error" *ngIf="showError('requirementsTitle','invalidCharacters')">
+                        Requirements title contains invalid characters.
+                    </div>
                 </div>
 
                 <div class="field" [class.is-invalid]="isInvalid('requirement')">
@@ -272,29 +274,22 @@
                     <textarea rows="6" formControlName="requirement"></textarea>
                     <div class="hint">
                         Provide descriptive text detailing the requirements for the anticipated opportunity. Limit word
-                        count to 500.
+                        count to 600.
                     </div>
                     <div class="error" *ngIf="showError('requirement','required')">Requirement is required.</div>
-                    <div class="error" *ngIf="showError('requirement','maxWords')">Requirement exceeds 500 words.</div>
+                    <div class="error" *ngIf="showError('requirement','maxWords')">Requirement exceeds 600 words.</div>
+                    <div class="error" *ngIf="showError('requirement','invalidCharacters')">
+                        Requirement contains invalid characters.
+                    </div>
                 </div>
 
-                <div class="field" [class.is-invalid]="isInvalid('programLevel')">
-                    <label>Program level <span class="req">*</span></label>
-                    <select formControlName="programLevel">
-                        <option *ngFor="let o of programLevels; trackBy: trackByValue" [value]="o.value">
-                            {{ o.label }}
-                        </option>
-                    </select>
-                    <div class="hint">A program level can be selected from the drop down menu if it applies.</div>
-                    <div class="error" *ngIf="showError('programLevel','required')">Program level is required.</div>
-                </div>
 
                 <!-- #region Dollar Range / NAICS Code -->
                 <div class="grid-2">
                     <div class="field" [class.is-invalid]="isInvalid('dollarRange')">
                         <label>Dollar range <span class="req">*</span></label>
                         <select formControlName="dollarRange">
-                            <option value="">Select…</option>
+
                             <option *ngFor="let o of dollarRanges; trackBy: trackByValue" [value]="o.value">
                                 {{ o.label }}
                             </option>
@@ -444,10 +439,20 @@
                 <!-- #region Contracting Text Inputs -->
                 <!-- incumbent/contractNumber -->
                 <div class="grid-2">
-                    <div class="field">
-                        <label>Incumbent</label>
+
+
+                    <div class="field" [class.is-invalid]="isInvalid('incumbent')">
+                        <label>Incumbent <span class="req">*</span></label>
                         <input type="text" formControlName="incumbent" />
                         <div class="hint">Identify the incumbent.</div>
+                        <div class="error" *ngIf="showError('incumbent','required')">
+                            Incumbent is required.
+                        </div>
+                        <div class="error" *ngIf="showError('incumbent','maxWords')">Incumbent exceeds 100 characters.
+                        </div>
+                        <div class="error" *ngIf="showError('incumbent','invalidCharacters')">
+                            Incumbent contains invalid characters.
+                        </div>
                     </div>
 
                     <div class="field">
@@ -553,6 +558,58 @@
                     </div>
                 </div>
 
+                <!--Place Of Performance-->
+                <div class="grid-2">
+                    <div class="field" [class.is-invalid]="isInvalid('placeOfPerformanceCity')">
+                        <label>
+                            Place of Performance City <span class="req">*</span>
+                        </label>
+
+                        <input type="text" inputmode="numeric" formControlName="placeOfPerformanceCity"
+                            placeholder="Enter City" />
+
+                        <div class="hint">
+                            Enter the city name.
+                        </div>
+
+                        <div class="error" *ngIf="showError('placeOfPerformanceCity','required')">
+                            This field is required.
+                        </div>
+
+                        <div class="error" *ngIf="showError('placeOfPerformanceCity','pattern')">
+                            Please enter a valid city name.
+                        </div>
+                    </div>
+
+                    <div class="field" [class.is-invalid]="isInvalid('placeOfPerformanceState')">
+                        <label>
+                            Place of Performance State <span class="req">*</span>
+                        </label>
+
+                        <select formControlName="placeOfPerformanceState">
+                            <option *ngFor="let o of stateOptions; trackBy: trackByValue" [value]="o.value">
+                                {{ o.label }}
+                            </option>
+                        </select>
+
+                        <div class="hint">
+                            Select the state where the work is anticipated to be performed. If there are multiple cities
+                            and states, choose "Not Applicable" for the state, enter "Multiple" in the city field and
+                            list the locations in the requirement description field.
+                        </div>
+
+
+
+                        <div class="error" *ngIf="showError('placeOfPerformanceState','required')">
+                            This field is required.
+                        </div>
+
+                        <div class="error" *ngIf="showError('placeOfPerformanceState','pattern')">
+                            Please enter a valid state.
+                        </div>
+                    </div>
+                </div>
+
                 <!-- #endregion Contracting Text Inputs -->
             </section>
             <!-- #endregion Contracting Office (Owned by Contracting Office) -->
@@ -574,9 +631,10 @@
                     <div class="field" [class.is-invalid]="isInvalid('smallBusinessSetAside')">
                         <label>Small business set aside <span class="req">*</span></label>
                         <select formControlName="smallBusinessSetAside">
-                            <option value="N/A">N/A</option>
-                            <option value="Partial">Partial</option>
-                            <option value="Full">Full</option>
+                            <option *ngFor="let o of smallBusinessSetAsideOptions; trackBy: trackByValue"
+                                [value]="o.value">
+                                {{ o.label }}
+                            </option>
                         </select>
                         <div class="hint">This field is updated by the 4SITE Coordinator.</div>
                         <div class="error" *ngIf="showError('smallBusinessSetAside','required')">This field is required.
@@ -586,13 +644,10 @@
                     <div class="field" [class.is-invalid]="isInvalid('smallBusinessProgram')">
                         <label>Small business program <span class="req">*</span></label>
                         <select formControlName="smallBusinessProgram">
-                            <option value="8(a)">8(a)</option>
-                            <option value="HUBZone">HUBZone</option>
-                            <option value="SDVOSB">SDVOSB</option>
-                            <option value="WOSB">WOSB</option>
-                            <option value="None">None</option>
-                            <option value="Other">Other</option>
-
+                            <option *ngFor="let o of smallBusinessProgramOptions; trackBy: trackByValue"
+                                [value]="o.value">
+                                {{ o.label }}
+                            </option>
                         </select>
                         <div class="hint">This field is updated by the 4SITE Coordinator.</div>
                         <div class="error" *ngIf="showError('smallBusinessProgram','required')">This field is required.
@@ -649,7 +704,7 @@
 
 
                     <div class="field" [class.is-invalid]="isInvalid('sbSpecialistEmail')">
-                        <label>Small Business Specialist/APFS Coordinator Email<span class="req">*</span></label>
+                        <label>Small Business Specialist/4SITE Coordinator Email<span class="req">*</span></label>
                         <input type="text" formControlName="sbSpecialistEmail" />
                         <div class="hint">Enter the email address of the Small Business Specialist/4SITE Coordinator POC
                             for this anticipated requirement in the text box provided.</div>

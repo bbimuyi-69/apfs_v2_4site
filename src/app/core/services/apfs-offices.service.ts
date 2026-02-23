@@ -49,7 +49,7 @@ export class ApfsOfficeService {
         organizationId?: number;
         role?: string;
         search?: string;
-    }): Observable<{ id: number; full_name: string }[]> {
+    }): Observable<{ id: number; full_name: string, organization_id: number, office_assignment_permissions_level_id: number; }[]> {
 
         let httpParams = new HttpParams();
 
@@ -69,7 +69,7 @@ export class ApfsOfficeService {
             httpParams = httpParams.set('search', params.search);
         }
 
-        return this.http.get<{ id: number; full_name: string }[]>(
+        return this.http.get<{ id: number; full_name: string; organization_id: number; office_assignment_permissions_level_id: number; }[]>(
             `${this.baseUrl}/public/offices/options`,
             { params: httpParams }
         );

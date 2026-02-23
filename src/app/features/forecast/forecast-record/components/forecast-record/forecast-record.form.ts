@@ -16,10 +16,13 @@ import {
     FormGroup,
     ValidationErrors,
     Validators,
+    ValidatorFn
 } from '@angular/forms';
 
 import { ForecastRecord } from '../../models/forecast-record.model';
 import { ForecastWorkflowLane } from '../../models/forecast-record.enums';
+import { ApfsOfficeService } from 'src/app/core/services/apfs-offices.service';
+
 
 /** --- Comment required rule: all transitions except Draft → Requirements --- */
 type Transition = { from: ForecastWorkflowLane; to: ForecastWorkflowLane };
@@ -53,7 +56,7 @@ export type ForecastRecordFormGroup = FormGroup<{
     requirementsTitle: FormControl<string>;
     requirement: FormControl<string>;
 
-    programLevel: FormControl<string | null>;
+    //    programLevel: FormControl<string | null>;
 
     /** APFS Coordinator updated fields */
     smallBusinessSetAside: FormControl<string | null>;
@@ -162,15 +165,15 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
 
             requirementsTitle: new FormControl(record.requirementsTitle ?? '', {
                 nonNullable: true,
-                validators: [Validators.required, Validators.maxLength(200)],
+                validators: [Validators.required, Validators.maxLength(255), noSpecialCharactersValidator()],
             }),
 
             requirement: new FormControl(record.requirement ?? '', {
                 nonNullable: true,
-                validators: [Validators.required, maxWords(500)],
+                validators: [Validators.required, Validators.maxLength(600), noSpecialCharactersValidator()],
             }),
 
-            programLevel: new FormControl(record.programLevel ?? null),
+            //programLevel: new FormControl(record.programLevel ?? null),
 
             /** APFS Coordinator updated fields (role toggled later) */
             smallBusinessSetAside: new FormControl(record.smallBusinessSetAside ?? null),
@@ -189,7 +192,11 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
             competitive: new FormControl(record.competitive ?? null),
             contractStatus: new FormControl(record.contractStatus ?? null),
 
-            incumbent: new FormControl(record.incumbent ?? null),
+            incumbent: new FormControl(record.incumbent ?? '', {
+                nonNullable: true,
+                validators: [Validators.required, Validators.maxLength(100), noSpecialCharactersValidator()],
+            }),
+
             contractNumber: new FormControl(record.contractNumber ?? null),
 
             fiscalYear: new FormControl(record.fiscalYear ?? null),
@@ -328,7 +335,7 @@ export function applyForecastRecordRolePermissions(
     // Requirements section
     setEnabled(form.controls.requirementsTitle, isRequirements || isContractingOffice);
     setEnabled(form.controls.requirement, isRequirements || isContractingOffice);
-    setEnabled(form.controls.programLevel, isRequirements || isContractingOffice);
+    //setEnabled(form.controls.programLevel, isRequirements || isContractingOffice);
     // Value classification (default: Coordinator + Contracting Office)
     setEnabled(form.controls.dollarRange, isRequirements || isCoordinator || isContractingOffice);
     setEnabled(form.controls.naicsCode, isRequirements || isCoordinator || isContractingOffice);
@@ -455,5 +462,19 @@ export function formatUsPhoneWithExt(raw: string): string {
     }
 
     return ext ? `${formatted} ext. ${ext}` : formatted;
+}
+
+export function noSpecialCharactersValidator(): ValidatorFn {
+    // Allow letters, numbers, space, and common punctuation
+    const regex = /^[a-zA-Z0-9\s.,\-()'"/:&]*$/;
+
+    return (control: AbstractControl): ValidationErrors | null => {
+        const value = control.value;
+        if (!value) return null;
+
+        return regex.test(value)
+            ? null
+            : { invalidCharacters: true };
+    };
 }
 
