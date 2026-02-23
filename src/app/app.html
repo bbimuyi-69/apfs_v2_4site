@@ -20,7 +20,7 @@
           <li><a routerLink="/about" routerLinkActive="active">About</a></li>
           <li><a routerLink="/contact" routerLinkActive="active">Contact Us</a></li>
 
-          <li *ngIf="auth.isAdmin">
+          <li *ngIf="auth.isAdmin||auth.isSuperAdmin">
             <a routerLink="/admin" routerLinkActive="active">
               System Administration
             </a>

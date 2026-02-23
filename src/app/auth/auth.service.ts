@@ -36,6 +36,12 @@ export class AuthService {
     return this.user?.role === 'Admin';
   }
 
+  /** System Administration access */
+  get isSuperAdmin(): boolean {
+    // matches your db.json user role: "Super Admin"
+    return this.user?.role === 'Super Admin';
+  }
+
 
   /**
    * DEV login:

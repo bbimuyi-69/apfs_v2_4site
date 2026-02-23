@@ -48,7 +48,7 @@
       "employeeType": "Federal Employee",
       "component": "DHS HQ",
       "organization_id": 71,
-      "role": "Super Admin",
+      "role": "Admin",
       "office": "OCIO",
       "isActive": true
     },
@@ -284,6 +284,32 @@
       "organization_id": 71,
       "role": "Requirements",
       "office": "Requirements Division",
+      "isActive": true
+    },
+    {
+      "id": 1771614541021,
+      "firstName": "Super",
+      "lastName": "Man",
+      "title": "Super Admin HQ",
+      "email": "supman@hq.dhs.gov",
+      "employeeType": "Federal Employee",
+      "component": "DHS HQ",
+      "organization_id": 71,
+      "role": "Super Admin",
+      "office": "OCIO",
+      "isActive": true
+    },
+    {
+      "id": 1771623167190,
+      "firstName": "TEST",
+      "lastName": "DELETE",
+      "title": "TEST OFFICE USER",
+      "email": "TEST@HQ.DHS.GOV",
+      "employeeType": "Federal Employee",
+      "component": "DHS HQ",
+      "organization_id": 71,
+      "role": "Requirements",
+      "office": "DHS HQ CPO",
       "isActive": true
     }
   ],
@@ -2722,7 +2748,7 @@
       "name": "Central CCG",
       "full_name": "DHS HQ/NPPD/FPS/Central CCG",
       "active": 1,
-      "office_assignment_permissions_level_id": 71,
+      "office_assignment_permissions_level_id": 1,
       "organization_id": 71,
       "aac_code": "FPS-CCG-C"
     },
@@ -2731,7 +2757,7 @@
       "name": "East CCG",
       "full_name": "DHS HQ/NPPD/FPS/East CCG",
       "active": 1,
-      "office_assignment_permissions_level_id": 71,
+      "office_assignment_permissions_level_id": 2,
       "organization_id": 71,
       "aac_code": "FPS-CCG-E"
     },
@@ -2739,8 +2765,8 @@
       "id": 6,
       "name": "West CCG",
       "full_name": "DHS HQ/NPPD/FPS/West CCG",
-      "active": 0,
-      "office_assignment_permissions_level_id": 71,
+      "active": 1,
+      "office_assignment_permissions_level_id": 3,
       "organization_id": 71,
       "aac_code": "FPS-CCG-W"
     },
@@ -2748,10 +2774,19 @@
       "id": 7,
       "name": "Test Office",
       "full_name": "CBP Test office",
-      "active": 0,
+      "active": 1,
       "office_assignment_permissions_level_id": 2,
       "organization_id": 1769110293236,
       "aac_code": "CBP-test"
+    },
+    {
+      "id": 8,
+      "name": "Office of Acquisition",
+      "full_name": "DHS HQ CPO",
+      "active": 1,
+      "office_assignment_permissions_level_id": 1,
+      "organization_id": 71,
+      "aac_code": "HQ_CPO"
     }
   ]
 }

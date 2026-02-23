@@ -25,23 +25,37 @@
         </div>
 
         <div class="card">
-            <h2 class="card-title">Lookup Tables</h2>
+            <h2 class="card-title">Organizational Management</h2>
             <div class="card-body">
-                Maintain picklists like NAICS codes, set-asides, dollar ranges, and offices.
+                Create, activate/deactivate Organizations.
             </div>
-            <button class="btn" type="button" (click)="goLookups()">Open</button>
+            <button class="btn" type="button" (click)="goOrganizations()">Open</button>
         </div>
 
-        <div class="card muted">
-            <h2 class="card-title">System Settings</h2>
+        <div class="card">
+            <h2 class="card-title">Office Management</h2>
             <div class="card-body">
-                Coming soon: workflow rules, feature flags, maintenance mode.
+                Create, activate/deactivate Offices.
             </div>
-            <button class="btn secondary" type="button" disabled>Coming soon</button>
+            <button class="btn" type="button" (click)="goOffices()">Open</button>
         </div>
     </div>
 
-    <div class="note">
-        <strong>Tip:</strong> This is a shell page. Next we’ll add <em>/admin/users</em> and <em>/admin/lookups</em>.
+    <p></p>
+
+    <div class="card-grid" *ngIf="auth.isSuperAdmin">
+
+        <div class="card">
+            <h2 class="card-title">Picklist Managment
+
+            </h2>
+            <div class="card-body">
+                Activate/deactivate various Picklist Values.
+            </div>
+            <button class="btn" type="button" (click)="goPicklists()">Open</button>
+        </div>
     </div>
+
+
+
 </div>

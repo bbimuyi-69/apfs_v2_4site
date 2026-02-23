@@ -27,16 +27,52 @@ export class ApfsOfficeService {
 
         let httpParams = new HttpParams();
 
-        if (params?.active != null)
-            //httpParams = httpParams.set('active', String(params.active));
+        if (params?.active != null) {
+            httpParams = httpParams.set('active', String(params.active));
+        }
 
-            if (params?.organizationId != null)
-                httpParams = httpParams.set('organizationId', String(params.organizationId));
+        if (params?.organizationId != null) {
+            httpParams = httpParams.set('organization_id', String(params.organizationId)); // 👈 snake_case for backend
+        }
 
-        if (params?.search)
+        if (params?.search) {
             httpParams = httpParams.set('search', params.search);
+        }
 
-        return this.http.get<OfficeRow[]>(`${this.baseUrl}/offices`, { params: httpParams });
+        return this.http.get<OfficeRow[]>(`${this.baseUrl}/offices`, {
+            params: httpParams
+        });
+    }
+
+    getPublicOptions(params?: {
+        active?: number;
+        organizationId?: number;
+        role?: string;
+        search?: string;
+    }): Observable<{ id: number; full_name: string }[]> {
+
+        let httpParams = new HttpParams();
+
+        if (params?.active != null) {
+            httpParams = httpParams.set('active', String(params.active));
+        }
+
+        if (params?.organizationId != null) {
+            httpParams = httpParams.set('organizationId', String(params.organizationId));
+        }
+
+        if (params?.role) {
+            httpParams = httpParams.set('role', params.role);
+        }
+
+        if (params?.search) {
+            httpParams = httpParams.set('search', params.search);
+        }
+
+        return this.http.get<{ id: number; full_name: string }[]>(
+            `${this.baseUrl}/public/offices/options`,
+            { params: httpParams }
+        );
     }
 
     get(id: number) {

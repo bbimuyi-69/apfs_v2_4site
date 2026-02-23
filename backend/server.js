@@ -1,6 +1,3 @@
-// server.js (cleaned up / drop-in)
-// CommonJS-friendly
-
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
@@ -10,7 +7,15 @@ const API_PREFIX = '/api';
 const PORT = 3000;
 
 const app = express();
+const APFS_DEBUG = process.env.APFS_DEBUG === '1';
 
+if (APFS_DEBUG) {
+    app.use((req, res, next) => {
+        console.log('[APFS HIT]', new Date().toISOString(), req.method, req.originalUrl);
+        console.log('[AUTH CHECK before routes]', req.method, req.originalUrl, 'authHeader:', req.headers.authorization);
+        next();
+    });
+}
 // =========================
 // MIDDLEWARE
 // =========================
@@ -41,14 +46,21 @@ function emptyDb() {
 
 function loadData() {
     if (!fs.existsSync(DB_FILE)) return emptyDb();
+
     const raw = fs.readFileSync(DB_FILE, 'utf8').trim();
     if (!raw) return emptyDb();
 
     const data = JSON.parse(raw);
+
     if (!data.users) data.users = [];
     if (!data.forecastRecords) data.forecastRecords = [];
     if (!data.recordHistory) data.recordHistory = [];
     if (!data.apfs_organization) data.apfs_organization = [];
+
+    // ✅ ADD THESE
+    if (!data.offices) data.offices = [];
+    //if (!data.lookupTables) data.lookupTables = {}; // only if you use it elsewhere
+
     return data;
 }
 
@@ -87,8 +99,35 @@ function fullName(u) {
 // FORECAST SECURITY HELPERS
 // =========================
 
+function getRoleSet(user) {
+    const set = new Set();
+
+    if (user?.role) set.add(String(user.role).trim().toLowerCase());
+
+    if (Array.isArray(user?.roles)) {
+        for (const r of user.roles) set.add(String(r).trim().toLowerCase());
+    }
+
+    if (user?.is_super_admin === true) set.add('super admin');
+
+    return set;
+}
+
+function isAdmin(user) {
+    const roles = getRoleSet(user);
+    return roles.has('admin');
+}
+
 function isSuperAdmin(user) {
-    return (user?.role || '').trim().toLowerCase() === 'super admin';
+    const roles = getRoleSet(user);
+
+    // accept common variants
+    return (
+        roles.has('super admin') ||
+        roles.has('superadmin') ||
+        roles.has('super_admin') ||
+        roles.has('super-admin')
+    );
 }
 
 function getVisibleForecastRecords(user, records) {
@@ -132,6 +171,46 @@ function getLastActivityTime(record, latestByForecastId) {
 
 function normOffice(v) {
     return String(v ?? '').trim().toLowerCase();
+}
+
+function scopeOfficesToUser(offices, user) {
+    if (!user) return [];
+    if (isSuperAdmin(user)) return offices;
+
+    // Admin rule: only offices for their org
+    if (isAdmin(user)) {
+        const orgId = user.organization_id;
+        return offices.filter(o => Number(o.organization_id) === Number(orgId));
+    }
+
+    // default: safest behavior (or tailor for other roles)
+    return [];
+}
+
+//Logging helper
+function dbg(...args) {
+    if (APFS_DEBUG) console.log('[APFS DEBUG]', ...args);
+}
+
+function summarizeOrgCounts(rows) {
+    const counts = new Map();
+    for (const r of rows) {
+        const k = String(r?.organization_id);
+        counts.set(k, (counts.get(k) || 0) + 1);
+    }
+    // top 10 orgs by count
+    return [...counts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+}
+
+function requireCurrentUser(req, res, db) {
+    const me = getCurrentUser(req, db);
+    if (!me) {
+        res.status(401).json({ message: 'Unauthorized' });
+        return null;
+    }
+    return me;
 }
 
 // =========================   
@@ -850,10 +929,6 @@ app.post(`${API_PREFIX}/forecast-records/:id/unclaim`, (req, res) => {
     res.json({ ...unclaimed, history: getHistoryForRecord(db, id) });
 });
 
-app.post(`${API_PREFIX}/forecast-records/:id/unassign`, (req, res) => {
-    req.url = req.url.replace('/unassign', '/unclaim');
-    app._router.handle(req, res);
-});
 
 // OPTIONAL: alias if your client uses /unassign
 app.post(`${API_PREFIX}/forecast-records/:id/unassign`, (req, res) => {
@@ -918,6 +993,7 @@ app.delete(`${API_PREFIX}/forecast-records/:id`, (req, res) => {
 // =========================
 // APFS ORGANIZATION TREE
 // =========================
+
 app.get(`${API_PREFIX}/apfs-organization/tree`, (req, res) => {
     const data = loadData();
     const onlyActive = String(req.query.active ?? '') === '1';
@@ -1004,26 +1080,30 @@ app.get(`${API_PREFIX}/apfs-organization/tree`, (req, res) => {
     res.json(roots);
 });
 
-// GET all by admin role and component
-// GET org tree scoped to current admin's component
+// =========================
+// APFS ORGANIZATION TREE (SCOPED)
+// - Admin: returns ONLY their component subtree (single node)
+// - Super Admin: returns ALL organizations (array of root nodes)
+// =========================
 app.get(`${API_PREFIX}/apfs-organization/tree/scoped`, (req, res) => {
     const db = loadData();
 
     const me = getCurrentUser(req, db);
     if (!me) return res.status(401).json({ error: 'Unauthorized' });
 
-    // Only Admins should use this (optional: allow APFS Coordinator too if you want)
-    if (String(me.role) !== 'Admin') {
+    // Role gates (use your helpers; avoids brittle string compares)
+    const isSA = typeof isSuperAdmin === 'function' ? isSuperAdmin(me) : false;
+    const isAdminRole = String(me.role || '').trim().toLowerCase() === 'admin';
+
+    // Only Admin / Super Admin
+    if (!isAdminRole && !isSA) {
         return res.status(403).json({ error: 'Forbidden' });
     }
 
-    const myComponent = String(me.component || '').trim();
-    if (!myComponent) return res.status(400).json({ error: 'Missing user component' });
-
     const onlyActive = String(req.query.active ?? '') === '1';
-
     const rows = Array.isArray(db.apfs_organization) ? db.apfs_organization : [];
 
+    // Normalize rows
     const normalized = rows
         .map(r => ({
             id: Number(r.id),
@@ -1039,20 +1119,11 @@ app.get(`${API_PREFIX}/apfs-organization/tree/scoped`, (req, res) => {
         .filter(r => Number.isFinite(r.id))
         .filter(r => !onlyActive || r.active === 1);
 
-    // Find the component root node (match acronym first, then name)
-    const root = normalized.find(r => String(r.acronym).trim() === myComponent)
-        ?? normalized.find(r => String(r.name).trim() === myComponent);
-
-    if (!root) {
-        // if component doesn't map to an org root, return empty tree instead of 404
-        return res.json([]);
-    }
-
     // Build byId map
     const byId = new Map();
     for (const r of normalized) byId.set(r.id, { ...r, children: [] });
 
-    // Attach children
+    // Attach children + collect roots
     const roots = [];
     for (const node of byId.values()) {
         if (node.parent_id !== null && byId.has(node.parent_id)) {
@@ -1062,30 +1133,50 @@ app.get(`${API_PREFIX}/apfs-organization/tree/scoped`, (req, res) => {
         }
     }
 
-    // Sort recursively (same as before)
+    // Sort recursively
     const sortTree = (nodes) => {
         nodes.sort((a, b) => {
             const fa = (a.full_name || '').toLowerCase();
             const fb = (b.full_name || '').toLowerCase();
             if (fa < fb) return -1;
             if (fa > fb) return 1;
+
             const na = (a.name || '').toLowerCase();
             const nb = (b.name || '').toLowerCase();
             const c = na.localeCompare(nb);
             if (c !== 0) return c;
+
             return a.id - b.id;
         });
         for (const n of nodes) sortTree(n.children);
     };
 
-    // Return ONLY the subtree rooted at the admin's component org
+    // ✅ Super Admin sees EVERYTHING (full forest)
+    if (isSA) {
+        sortTree(roots);
+        return res.json(roots); // array of root nodes
+        // If you prefer one consistent shape, change to: return res.json({ roots });
+    }
+
+    // ✅ Admin sees ONLY their component subtree
+    const myComponent = String(me.component || '').trim();
+    if (!myComponent) return res.status(400).json({ error: 'Missing user component' });
+
+    // Find the component root node (match acronym first, then name)
+    const root =
+        normalized.find(r => String(r.acronym).trim() === myComponent) ??
+        normalized.find(r => String(r.name).trim() === myComponent);
+
+    if (!root) return res.json([]); // component doesn't map to an org root
+
     const scopedRoot = byId.get(root.id);
     if (!scopedRoot) return res.json([]);
 
     sortTree(scopedRoot.children);
 
-    res.json(scopedRoot); // single node (component root + children)
+    return res.json(scopedRoot); // single node (component root + children)
 });
+
 
 // GET by id
 app.get(`${API_PREFIX}/apfs-organization/:id`, (req, res) => {
@@ -1224,121 +1315,194 @@ app.get(`${API_PREFIX}/public/offices/options`, (req, res) => {
     const onlyActive = String(req.query.active ?? '') === '1';
     const organizationId = Number(req.query.organizationId);
 
+    const roleRaw = String(req.query.role ?? '').trim().toLowerCase();
+
+    // normalize role -> level id (tolerant)
+    const roleToLevel = (role) => {
+        if (!role) return null;
+
+        // normalize whitespace
+        const r = role.replace(/\s+/g, ' ').trim();
+
+        // fuzzy contains matching
+        if (r.includes('require')) return 1;
+        if (r.includes('contract')) return 2;
+        if (r.includes('coordinator')) return 3;
+
+        return null;
+    };
+
+    const roleLevel = roleToLevel(roleRaw);
+    console.log('[public/offices/options] role debug:', { roleRaw, roleLevel });
+
     const rows = Array.isArray(data.offices) ? data.offices : [];
 
-    const options = rows
+    console.log('[public/offices/options] FULL offices array:\n',
+        JSON.stringify(rows, null, 2)
+    );
+    console.log('[public/offices/options] totals', {
+        rows: rows.length,
+        sampleOrgIds: Array.from(new Set(rows.slice(0, 20).map(r => r.organization_id))).slice(0, 10),
+        sampleActive: Array.from(new Set(rows.slice(0, 20).map(r => r.active))).slice(0, 10),
+        sampleLevels: Array.from(new Set(rows.slice(0, 20).map(r => r.office_assignment_permissions_level_id))).slice(0, 10),
+    });
+
+
+    const sample = rows.filter(r => Number(r.organization_id) === 71).slice(0, 5);
+    console.log('[public/offices/options] raw org 71 sample:', sample.map(r => ({
+        id: r.id,
+        organization_id: r.organization_id,
+        office_assignment_permissions_level_id: r.office_assignment_permissions_level_id,
+        keys: Object.keys(r)
+    })));
+    let options = rows
         .map(r => ({
             id: Number(r.id),
             full_name: String(r.full_name ?? '').trim(),
             active: Number(r.active) === 0 ? 0 : 1,
             organization_id: Number(r.organization_id),
+            level_id: Number(r.office_assignment_permissions_level_id),
         }))
         .filter(o => Number.isFinite(o.id) && !!o.full_name)
         .filter(o => !Number.isFinite(organizationId) || o.organization_id === organizationId)
-        .filter(o => !onlyActive || o.active === 1)
+        .filter(o => !onlyActive || o.active === 1);
+
+    console.log('[public/offices/options] mapped sample', options.slice(0, 5));
+
+    // ✅ role filter (if provided and recognized)
+    if (roleLevel != null) {
+        options = options.filter(o => o.level_id === roleLevel);
+    }
+
+    options = options
         .sort((a, b) => a.full_name.localeCompare(b.full_name))
         .map(o => ({ id: o.id, full_name: o.full_name })); // sanitize output
-
+    console.log('[public/offices/options] after filters', {
+        onlyActive,
+        organizationId,
+        roleLevel,
+        count: options.length
+    });
     res.json(options);
 });
 
 
+// =========================
+// OFFICES
+// =========================
+
 // LIST
-// GET /offices?active=1&organizationId=2&search=acq
+// GET /api/offices?active=1&search=acq
 app.get(`${API_PREFIX}/offices`, (req, res) => {
-    const data = loadData();
-    const onlyActive = String(req.query.active ?? '') === '1';
-    const organizationId = Number(req.query.organizationId);
-    const search = String(req.query.search ?? '').trim().toLowerCase();
+    const db = loadData();
+    const offices = Array.isArray(db.offices) ? db.offices : [];
 
-    const rows = Array.isArray(data.offices) ? data.offices : [];
+    const me = requireCurrentUser(req, res, db);
+    if (!me) return;
 
-    const list = rows
-        .map(r => ({
-            id: Number(r.id),
-            name: String(r.name ?? '').trim(),
-            full_name: String(r.full_name ?? '').trim(),
-            active: Number(r.active) === 0 ? 0 : 1,
-            office_assignment_permissions_level_id: Number(r.office_assignment_permissions_level_id),
-            organization_id: Number(r.organization_id),
-            aac_code: String(r.aac_code ?? '').trim(),
-        }))
-        .filter(o => Number.isFinite(o.id) && !!o.name && !!o.full_name)
-        .filter(o => !Number.isFinite(organizationId) || o.organization_id === organizationId)
-        .filter(o => !onlyActive || o.active === 1)
-        .filter(o => {
-            if (!search) return true;
-            return (
-                o.name.toLowerCase().includes(search) ||
-                o.full_name.toLowerCase().includes(search) ||
-                (o.aac_code || '').toLowerCase().includes(search)
-            );
-        })
-        .sort((a, b) => a.full_name.localeCompare(b.full_name));
+    let scoped = scopeOfficesToUser(offices, me);
 
-    res.json(list);
-});
-
-
-// READ ONE
-// GET /offices/5
-app.get(`${API_PREFIX}/offices/:id`, (req, res) => {
-    const data = loadData();
-    const id = Number(req.params.id);
-
-    const rows = Array.isArray(data.offices) ? data.offices : [];
-    const found = rows.find(r => Number(r.id) === id);
-
-    if (!found) {
-        return res.status(404).json({ message: 'Office not found' });
+    // Optional filters
+    if (req.query.active !== undefined) {
+        const active = Number(req.query.active);
+        if (active === 0 || active === 1) {
+            scoped = scoped.filter(o => Number(o.active) === active);
+        }
     }
 
-    const office = {
-        id: Number(found.id),
-        name: String(found.name ?? '').trim(),
-        full_name: String(found.full_name ?? '').trim(),
-        active: Number(found.active) === 0 ? 0 : 1,
-        office_assignment_permissions_level_id: Number(found.office_assignment_permissions_level_id),
-        organization_id: Number(found.organization_id),
-        aac_code: String(found.aac_code ?? '').trim(),
-    };
+    // ✅ ADD THIS
+    const orgRaw = req.query.organization_id ?? req.query.organizationId;
+    if (orgRaw !== undefined) {
+        const orgId = Number(orgRaw);
+        if (Number.isFinite(orgId)) {
+            scoped = scoped.filter(o => Number(o.organization_id) === orgId);
+        }
+    }
 
-    res.json(office);
+    if (req.query.search) {
+        const q = String(req.query.search).trim().toLowerCase();
+        scoped = scoped.filter(o => {
+            const name = String(o.name ?? '').toLowerCase();
+            const full = String(o.full_name ?? '').toLowerCase();
+            const aac = String(o.aac_code ?? '').toLowerCase();
+            return name.includes(q) || full.includes(q) || aac.includes(q);
+        });
+    }
+
+    res.json(scoped);
 });
 
+// READ ONE
+// GET /api/offices/:id
+app.get(`${API_PREFIX}/offices/:id`, (req, res) => {
+    const db = loadData();
+    const offices = Array.isArray(db.offices) ? db.offices : [];
+
+    const me = requireCurrentUser(req, res, db);
+    if (!me) return;
+
+    const id = Number(req.params.id);
+    const office = offices.find(o => Number(o.id) === id);
+    if (!office) return res.status(404).json({ message: 'Office not found' });
+
+    if (isSuperAdmin(me)) return res.json(office);
+
+    if (isAdmin(me) && Number(office.organization_id) === Number(me.organization_id)) {
+        return res.json(office);
+    }
+
+    return res.status(403).json({ message: 'Forbidden' });
+});
 
 // CREATE
-// POST /offices
-// body: { name, full_name, active?, office_assignment_permissions_level_id, organization_id, aac_code? }
+// POST /api/offices
+// body: { name, full_name, active?, office_assignment_permissions_level_id, organization_id?, aac_code? }
 app.post(`${API_PREFIX}/offices`, (req, res) => {
-    const data = loadData();
+    const db = loadData();
+    if (!Array.isArray(db.offices)) db.offices = [];
+    const rows = db.offices;
 
-    if (!Array.isArray(data.offices)) data.offices = [];
-    const rows = data.offices;
+    const me = requireCurrentUser(req, res, db);
+    if (!me) return;
 
     const name = String(req.body?.name ?? '').trim();
     const full_name = String(req.body?.full_name ?? '').trim();
-    const organization_id = Number(req.body?.organization_id);
+    const requestedOrgId = Number(req.body?.organization_id);
     const office_assignment_permissions_level_id = Number(req.body?.office_assignment_permissions_level_id);
     const aac_code = String(req.body?.aac_code ?? '').trim();
     const active = Number(req.body?.active) === 0 ? 0 : 1;
 
     if (!name) return res.status(400).json({ message: 'name is required' });
     if (!full_name) return res.status(400).json({ message: 'full_name is required' });
-    if (!Number.isFinite(organization_id)) return res.status(400).json({ message: 'organization_id is required' });
     if (!Number.isFinite(office_assignment_permissions_level_id)) {
         return res.status(400).json({ message: 'office_assignment_permissions_level_id is required' });
     }
 
-    // prevent duplicates in same org by name (recommended)
+    // Org scope enforcement
+    let organization_id;
+
+    if (isSuperAdmin(me)) {
+        organization_id = requestedOrgId;
+        if (!Number.isFinite(organization_id)) {
+            return res.status(400).json({ message: 'organization_id is required' });
+        }
+    } else if (isAdmin(me)) {
+        if (!Number.isFinite(Number(me.organization_id))) {
+            return res.status(403).json({ message: 'Admin user missing organization assignment' });
+        }
+        organization_id = Number(me.organization_id); // force it
+    } else {
+        return res.status(403).json({ message: 'Forbidden' });
+    }
+
+    // Prevent duplicates in same org by name
     const dupe = rows.some(r =>
-        Number(r.organization_id) === organization_id &&
+        Number(r.organization_id) === Number(organization_id) &&
         String(r.name ?? '').trim().toLowerCase() === name.toLowerCase()
     );
     if (dupe) return res.status(409).json({ message: 'Office already exists in this organization' });
 
-    const nextId =
-        rows.reduce((max, r) => Math.max(max, Number(r.id) || 0), 0) + 1;
+    const nextId = rows.reduce((max, r) => Math.max(max, Number(r.id) || 0), 0) + 1;
 
     const created = {
         id: nextId,
@@ -1351,99 +1515,82 @@ app.post(`${API_PREFIX}/offices`, (req, res) => {
     };
 
     rows.push(created);
-    saveData(data);
+    saveData(db);
 
     res.status(201).json(created);
 });
 
-
 // UPDATE
-// PUT /offices/:id
-// body can include any fields: name, full_name, active, office_assignment_permissions_level_id, organization_id, aac_code
+// PUT /api/offices/:id
 app.put(`${API_PREFIX}/offices/:id`, (req, res) => {
-    const data = loadData();
+    const db = loadData();
+    if (!Array.isArray(db.offices)) db.offices = [];
+    const rows = db.offices;
+
+    const me = requireCurrentUser(req, res, db);
+    if (!me) return;
+
     const id = Number(req.params.id);
-
-    if (!Array.isArray(data.offices)) data.offices = [];
-    const rows = data.offices;
-
-    const idx = rows.findIndex(r => Number(r.id) === id);
+    const idx = rows.findIndex(o => Number(o.id) === id);
     if (idx === -1) return res.status(404).json({ message: 'Office not found' });
 
-    const current = rows[idx];
+    const existing = rows[idx];
 
-    const name = req.body?.name != null ? String(req.body.name).trim() : String(current.name ?? '').trim();
-    const full_name = req.body?.full_name != null ? String(req.body.full_name).trim() : String(current.full_name ?? '').trim();
+    if (!isSuperAdmin(me)) {
+        if (!isAdmin(me)) return res.status(403).json({ message: 'Forbidden' });
 
-    const organization_id = req.body?.organization_id != null ? Number(req.body.organization_id) : Number(current.organization_id);
-    const office_assignment_permissions_level_id =
-        req.body?.office_assignment_permissions_level_id != null
-            ? Number(req.body.office_assignment_permissions_level_id)
-            : Number(current.office_assignment_permissions_level_id);
+        if (Number(existing.organization_id) !== Number(me.organization_id)) {
+            return res.status(403).json({ message: 'Forbidden' });
+        }
 
-    const aac_code = req.body?.aac_code != null ? String(req.body.aac_code).trim() : String(current.aac_code ?? '').trim();
-
-    const active =
-        req.body?.active != null
-            ? (Number(req.body.active) === 0 ? 0 : 1)
-            : (Number(current.active) === 0 ? 0 : 1);
-
-    if (!name) return res.status(400).json({ message: 'name is required' });
-    if (!full_name) return res.status(400).json({ message: 'full_name is required' });
-    if (!Number.isFinite(organization_id)) return res.status(400).json({ message: 'organization_id is required' });
-    if (!Number.isFinite(office_assignment_permissions_level_id)) {
-        return res.status(400).json({ message: 'office_assignment_permissions_level_id is required' });
+        // Prevent org move attempts
+        if ('organization_id' in req.body && Number(req.body.organization_id) !== Number(existing.organization_id)) {
+            return res.status(403).json({ message: 'Cannot change organization_id' });
+        }
     }
 
-    // prevent duplicates in same org by name (excluding self)
-    const conflict = rows.some(r =>
-        Number(r.id) !== id &&
-        Number(r.organization_id) === organization_id &&
-        String(r.name ?? '').trim().toLowerCase() === name.toLowerCase()
-    );
-    if (conflict) return res.status(409).json({ message: 'Office already exists in this organization' });
-
     const updated = {
-        ...current,
-        id,
-        name,
-        full_name,
-        active,
-        office_assignment_permissions_level_id,
-        organization_id,
-        aac_code,
+        ...existing,
+        ...req.body,
+        id: existing.id,
+        // ensure Admin can't slip it in via spread
+        organization_id: existing.organization_id,
     };
 
     rows[idx] = updated;
-    saveData(data);
+    saveData(db);
 
     res.json(updated);
 });
 
-
 // SOFT DELETE (Deactivate)
-// DELETE /offices/:id
+// DELETE /api/offices/:id
 app.delete(`${API_PREFIX}/offices/:id`, (req, res) => {
-    const data = loadData();
+    const db = loadData();
+    if (!Array.isArray(db.offices)) db.offices = [];
+    const rows = db.offices;
+
+    const me = requireCurrentUser(req, res, db);
+    if (!me) return;
+
     const id = Number(req.params.id);
-
-    if (!Array.isArray(data.offices)) data.offices = [];
-    const rows = data.offices;
-
     const idx = rows.findIndex(r => Number(r.id) === id);
     if (idx === -1) return res.status(404).json({ message: 'Office not found' });
 
-    rows[idx] = {
-        ...rows[idx],
-        active: 0
-    };
+    const existing = rows[idx];
 
-    saveData(data);
+    if (!isSuperAdmin(me)) {
+        if (!isAdmin(me)) return res.status(403).json({ message: 'Forbidden' });
+        if (Number(existing.organization_id) !== Number(me.organization_id)) {
+            return res.status(403).json({ message: 'Forbidden' });
+        }
+    }
+
+    rows[idx] = { ...existing, active: 0 };
+    saveData(db);
 
     res.json({ message: 'Office deactivated', id });
 });
-
-
 
 // =========================
 // START SERVER

@@ -19,8 +19,17 @@ export class AdminHome {
     this.router.navigateByUrl('/admin/users');
   }
 
-  
-  goLookups(): void {
-    this.router.navigateByUrl('/admin/lookups');
+
+  goOrganizations(): void {
+    this.router.navigateByUrl('/admin/organization');
+  }
+
+
+  goOffices(): void {
+    this.router.navigateByUrl('/admin/offices');
+  }
+
+  goPicklists(): void {
+    this.router.navigateByUrl('/admin/picklists');
   }
 }

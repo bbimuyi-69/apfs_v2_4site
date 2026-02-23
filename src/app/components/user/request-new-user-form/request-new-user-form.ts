@@ -6,6 +6,7 @@ import { UserService } from '../../../core/services/user.service';
 import { User } from '../../../core/models/user.model';
 import { ApfsDropdownsService } from '../../../core/services/apfs-dropdowns.service';
 import { ApfsOrganizationService } from '../../../core/services/apfs-organization.service';
+import { ApfsOfficeService, OfficeRow } from '../../../core/services/apfs-offices.service';
 
 type ApfsOrganization = { id: number; full_name: string };
 
@@ -63,7 +64,8 @@ export class RequestNewUserForm implements OnInit {
     private cdr: ChangeDetectorRef,
     private router: Router,
     private dropdowns: ApfsDropdownsService,
-    private orgService: ApfsOrganizationService
+    private orgService: ApfsOrganizationService,
+    private officeService: ApfsOfficeService
   ) { }
 
 
@@ -130,22 +132,14 @@ export class RequestNewUserForm implements OnInit {
     const reloadOfficesIfReady = () => {
       const component = String(this.requestNewUserForm.get('component')!.value || '').trim();
       const role = String(this.requestNewUserForm.get('role')!.value || '').trim();
+
       if (!component || !role) {
         clearOffice();
         return;
       }
 
-      this.dropdowns.getOfficesForComponentRole(component, role).subscribe((offices: string[]) => {
-        this.officeOptions = offices ?? [];
-
-        // If current office no longer valid, clear it
-        const currentOffice = this.requestNewUserForm.get('office')!.value;
-        if (!this.officeOptions.includes(currentOffice)) {
-          this.requestNewUserForm.get('office')!.setValue('');
-        }
-      });
+      this.loadOfficesForSelection();
     };
-
     // 1) employeeType -> roles (and reset downstream)
     this.requestNewUserForm.get('employeeType')!.valueChanges.subscribe((employeeType: string) => {
       clearRole();
@@ -245,6 +239,46 @@ export class RequestNewUserForm implements OnInit {
     });
   }
 
+  private loadOfficesForSelection(): void {
+    const component = String(this.requestNewUserForm.get('component')?.value || '').trim();
+    const role = String(this.requestNewUserForm.get('role')?.value || '').trim();
+
+    if (!component || !role) {
+      this.officeOptions = [];
+      this.requestNewUserForm.get('office')?.setValue('');
+      return;
+    }
+
+    const organizationId = this.orgIdByName.get(component);
+    if (!Number.isFinite(organizationId as any)) {
+      this.officeOptions = [];
+      this.requestNewUserForm.get('office')?.setValue('');
+      return;
+    }
+
+    // 1) fetch active office options for org
+    this.officeService.getPublicOptions({ organizationId, active: 1, role }).subscribe({
+      next: (options) => {
+        this.officeOptions = (options ?? [])
+          .map(o => String(o?.full_name ?? '').trim())
+          .filter(Boolean);
+
+        const currentOffice = String(this.requestNewUserForm.get('office')?.value || '').trim();
+        if (currentOffice && !this.officeOptions.includes(currentOffice)) {
+          this.requestNewUserForm.get('office')?.setValue('');
+        }
+
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error loading offices:', err);
+        this.officeOptions = [];
+        this.requestNewUserForm.get('office')?.setValue('');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
   private updateComponentEnabled(): void {
     const ctrl = this.requestNewUserForm.get('component');
     if (!ctrl) return;
@@ -300,14 +334,8 @@ export class RequestNewUserForm implements OnInit {
       });
     }
 
-    if (component && role) {
-      this.dropdowns.getOfficesForComponentRole(component, role).subscribe((offices: string[]) => {
-        this.officeOptions = offices ?? [];
-        if (office && this.officeOptions.includes(office)) {
-          this.requestNewUserForm.get('office')!.setValue(office, { emitEvent: false });
-        }
-        this.cdr.detectChanges();
-      });
+    if (component) {
+      this.loadOfficesForSelection();
     }
   }
 
@@ -345,13 +373,8 @@ export class RequestNewUserForm implements OnInit {
       });
     }
 
-    if (component && role) {
-      this.dropdowns.getOfficesForComponentRole(component, role).subscribe((offices) => {
-        this.officeOptions = offices ?? [];
-        if (office && this.officeOptions.includes(office)) {
-          this.requestNewUserForm.get('office')!.setValue(office, { emitEvent: false });
-        }
-      });
+    if (component) {
+      this.loadOfficesForSelection();
     }
 
     this.updateComponentEnabled();
