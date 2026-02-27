@@ -45,3 +45,9 @@
   font-weight: 600;
   color: var(--muted);
 }
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}

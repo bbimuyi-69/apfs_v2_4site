@@ -4,7 +4,8 @@ const fs = require('fs');
 const path = require('path');
 
 const API_PREFIX = '/api';
-const PORT = 3000;
+const PORT = Number(process.env.PORT || process.env.WEBSITES_PORT || 3000);
+const HOST = '0.0.0.0';
 
 const app = express();
 const APFS_DEBUG = process.env.APFS_DEBUG === '1';
@@ -13,6 +14,8 @@ if (APFS_DEBUG) {
     app.use((req, res, next) => {
         console.log('[APFS HIT]', new Date().toISOString(), req.method, req.originalUrl);
         console.log('[AUTH CHECK before routes]', req.method, req.originalUrl, 'authHeader:', req.headers.authorization);
+        console.log('[APFS] APFS_DEBUG=', APFS_DEBUG ? '1' : '0');
+        console.log('[APFS] env PORT=', process.env.PORT, 'WEBSITES_PORT=', process.env.WEBSITES_PORT);
         next();
     });
 }
@@ -32,7 +35,18 @@ app.use((req, res, next) => {
 // JSON DB HELPERS
 // =========================
 
-const DB_FILE = path.join(__dirname, 'db.json');
+// Detect Azure App Service
+const IS_AZURE = !!process.env.WEBSITE_SITE_NAME || !!process.env.WEBSITE_INSTANCE_ID;
+
+// Azure persistent storage is under /home
+// Local dev should keep db.json next to backend/server.js
+const DATA_DIR = IS_AZURE ? '/home/apfs-data' : __dirname;
+
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+
+const DB_FILE = path.join(DATA_DIR, 'db.json');
+
+console.log('[APFS] DB_FILE =', DB_FILE);
 
 function emptyDb() {
     return {
@@ -362,7 +376,7 @@ function generateApfsNumber({ component }) {
     const fy = getFiscalYear();
     const comp = normalizeComponentCode(component);
     const rand = Math.floor(1000 + Math.random() * 9000);
-    return `APFS-${fy}-${comp}-${rand}`;
+    return `4SITE-${fy}-${comp}-${rand}`;
 }
 
 function normalizeLane(raw) {
@@ -1605,7 +1619,6 @@ app.delete(`${API_PREFIX}/offices/:id`, (req, res) => {
 // START SERVER
 // =========================
 
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log('Press Ctrl+C to stop the server');
+app.listen(PORT, HOST, () => {
+    console.log(`[APFS] listening on http://${HOST}:${PORT}`);
 });

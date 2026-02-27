@@ -12,12 +12,10 @@
 
 .thead {
   display: grid;
-  grid-template-columns: 160px 2.2fr 140px 120px 140px 160px 160px;
+  grid-template-columns: 160px minmax(120px, 1.5fr) minmax(100px, 1fr) 120px minmax(140px, 1fr) 140px 140px;
   padding: 10px 12px;
-
   background: var(--surface-2);
   border-bottom: 1px solid var(--border);
-
   font-size: var(--text-xs);
   letter-spacing: 0.6px;
   text-transform: uppercase;
@@ -25,22 +23,23 @@
   font-weight: 900;
 }
 
+
 .tbody {
   display: block;
 }
 
 .tr {
   display: grid;
-  grid-template-columns: 160px minmax(0, 2.2fr) 140px 120px 140px 160px 160px;
+  grid-template-columns: 160px minmax(120px, 1.5fr) minmax(100px, 1fr) 120px minmax(140px, 1fr) 140px 140px;
   padding: 12px;
   align-items: center;
-
   border-bottom: 1px solid var(--border);
   background: var(--surface);
   cursor: pointer;
 }
 
 .tr>div {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
