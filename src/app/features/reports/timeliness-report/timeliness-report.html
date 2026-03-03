@@ -1,0 +1,136 @@
+<div class="apfs-report">
+    <h1 class="apfs-title">Timeliness Report</h1>
+    <div class="apfs-subtitle">Press “Filter Report” to generate the report.</div>
+
+    <!-- Blue header + description panel -->
+    <section class="apfs-panel">
+        <div class="apfs-panel__hdr">Timeliness Report</div>
+        <div class="apfs-panel__body">
+            This report shows how much time prior to their anticipated award date records are published, and may be
+            filtered based on the selected components, offices, date range or fiscal year. If none of the filter
+            criteria are selected, the report will return results based on all records in APFS. The results will return
+            a bar chart showing the percentage of records published after the award date and within 3, 6, 9, 12 and more
+            than a year of the anticipated award date. Hyperlinks are provided to lists of the individual records in
+            each range, the results are downloadable as CSV, Excel and PDF. The Excel provides the most detailed
+            results, while the PDF and CSV mirror what is available on the screen. Once the report is run the criteria
+            can be updated by clicking on the "Show Filters" button, changing the desired criteria, and clicking the
+            "Filter Report" button. Clicking "Home" or the APFS Icon will return you to the Dashboard.
+        </div>
+    </section>
+
+    <!-- FILTERS -->
+    <section class="apfs-section" *ngIf="showFilters">
+        <h2 class="apfs-h2">Filters</h2>
+
+        <div class="apfs-note">All filter fields are optional. Use commas for multiple values.</div>
+
+        <div class="apfs-form">
+            <label class="apfs-label">Component</label>
+            <input class="apfs-input" [(ngModel)]="componentsText" name="componentsText"
+                placeholder="e.g. DHS HQ, CBP" />
+
+            <label class="apfs-label">Requirements Office</label>
+            <input class="apfs-input" [(ngModel)]="requirementsOfficesText" name="requirementsOfficesText"
+                placeholder="e.g. DHS HQ CPO, CBP Office of Acquisition" />
+
+            <label class="apfs-label">Fiscal Year</label>
+            <input class="apfs-input" [(ngModel)]="fiscalYearsText" name="fiscalYearsText"
+                placeholder="e.g. 2026, 2025" />
+
+            <div class="apfs-actions">
+                <button class="apfs-btn apfs-btn--primary" type="button" (click)="run()">
+                    Filter Report ▼
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- RESULTS -->
+    <section class="apfs-section" *ngIf="(summary$ | async) as s">
+        <div class="apfs-toolbar">
+            <div class="apfs-toolbar__left">
+                <button class="apfs-btn apfs-btn--ghost" type="button" (click)="downloadCsv(s)">
+                    CSV
+                </button>
+                <button class="apfs-btn apfs-btn--ghost" type="button" (click)="downloadExcel(s)">
+                    Excel
+                </button>
+                <button class="apfs-btn apfs-btn--ghost" type="button" (click)="downloadPdf(s)">
+                    PDF
+                </button>
+                <button class="apfs-btn apfs-btn--ghost" type="button" (click)="toggleFilters()">
+                    {{ showFilters ? 'Hide Filters' : 'Show Filters' }} ▼
+                </button>
+            </div>
+
+            <div class="apfs-alert apfs-alert--success" *ngIf="lastRan">
+                Report Updated
+                <span class="apfs-alert__x" (click)="lastRan=false" role="button" aria-label="Close">×</span>
+            </div>
+        </div>
+
+        <h2 class="apfs-h2">Results</h2>
+        <div class="apfs-divider"></div>
+
+        <div class="apfs-result" *ngFor="let k of bucketKeys">
+            <div class="apfs-result__label">
+                {{ bucketLabel(k) }}:
+                <strong>{{ s.buckets[k].count }}</strong>
+                <a class="apfs-link" href="javascript:void(0)" (click)="openBucket(k, s)">
+                    ( click here to view list )
+                </a>
+            </div>
+
+            <div class="apfs-bar">
+                <div class="apfs-chip" [style.background]="bucketColor(k)">
+                    {{ s.buckets[k].percentOfPublished }}%
+                </div>
+
+                <div class="apfs-track">
+                    <div class="apfs-fill" [style.background]="bucketColor(k)"
+                        [style.width.%]="s.buckets[k].percentOfPublished">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- BUCKET LIST DRAWER / MODAL -->
+    <div class="apfs-drawer__backdrop" *ngIf="drawerOpen" (click)="closeDrawer()">
+        <section class="apfs-drawer" (click)="$event.stopPropagation()">
+            <div class="apfs-drawer__hdr">
+                <div class="apfs-drawer__title">{{ drawerTitle }}</div>
+                <button class="apfs-drawer__close" type="button" aria-label="Close" (click)="closeDrawer()">×</button>
+            </div>
+
+            <div class="apfs-drawer__body">
+                <table class="apfs-drawer__table">
+                    <thead>
+                        <tr>
+                            <th>APFS Number</th>
+                            <th>Component</th>
+                            <th>Offices</th>
+                            <th>Anticipated Award Date</th>
+                            <th>Published Date</th>
+                        </tr>
+                    </thead>
+
+                    <tbody *ngIf="drawerRows.length; else noRows">
+                        <tr *ngFor="let r of drawerRows">
+                            <td>{{ r.apfsNumber }}</td>
+                            <td>{{ r.component }}</td>
+                            <td>{{ r.office }}</td>
+                            <td>{{ r.anticipatedAwardDate }}</td>
+                            <td>{{ r.publishedDate }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <ng-template #noRows>
+                    <div class="apfs-drawer__empty">No Records to Display.</div>
+                </ng-template>
+            </div>
+        </section>
+    </div>
+</div>

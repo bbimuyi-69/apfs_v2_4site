@@ -16,6 +16,7 @@ import { ForecastListComponent } from './features/forecast/forecast-list/forecas
 import { ForecastRecordComponent } from './features/forecast/forecast-record/components/forecast-record/forecast-record';
 import { RejectCommentComponent } from './features/forecast/forecast-record/components/reject-comment/reject-comment';
 import { ForwardCommentComponent } from './features/forecast/forecast-record/components/forward-comment/forward-comment';
+import { TimelinessReportComponent } from './features/reports/timeliness-report/timeliness-report';
 
 
 
@@ -153,6 +154,13 @@ export const routes: Routes = [
             import('./features/admin/admin-office-form/admin-office-form')
                 .then(m => m.AdminOfficeFormComponent)
     },
+    {
+        path: 'reports/timeliness-report',
+        loadComponent: () =>
+            import('./features/reports/timeliness-report/timeliness-report')
+                .then(m => m.TimelinessReportComponent)
+    },
+
 
 
 

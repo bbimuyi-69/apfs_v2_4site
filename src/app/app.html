@@ -20,15 +20,50 @@
           <li><a routerLink="/about" routerLinkActive="active">About</a></li>
           <li><a routerLink="/contact" routerLinkActive="active">Contact Us</a></li>
 
+          <li *ngIf="auth.isLoggedIn">
+            <a routerLink="/dashboard-v2" routerLinkActive="active">Dashboard</a>
+          </li>
+
           <li *ngIf="auth.isAdmin||auth.isSuperAdmin">
             <a routerLink="/admin" routerLinkActive="active">
               System Administration
             </a>
           </li>
 
-          <li *ngIf="auth.isLoggedIn">
-            <a routerLink="/dashboard-v2" routerLinkActive="active">Dashboard</a>
+          <li class="dropdown" *ngIf="auth.isLoggedIn" [class.active]="dropdowns.reports">
+            <button type="button" class="dropdown-toggle" (click)="toggleDropdown('reports', $event)"
+              [attr.aria-expanded]="dropdowns.reports" aria-controls="menu-reports">
+              📊 Reports
+              <span class="caret" [class.open]="dropdowns.reports"></span>
+            </button>
+
+            <ul id="menu-reports" class="dropdown-menu" *ngIf="dropdowns.reports" (click)="$event.stopPropagation()">
+
+              <!-- Everyone logged in -->
+              <li>
+                <a routerLink="/reports/timeliness-report" (click)="closeDropdowns()">
+                  Timeliness Report
+                </a>
+              </li>
+
+              <!-- Admin + Super Admin -->
+              <li *ngIf="auth.user?.role === 'Admin' || auth.user?.role === 'Super Admin'">
+                <a routerLink="/reports/forecast-summary" (click)="closeDropdowns()">
+                  Forecast Summary Report
+                </a>
+              </li>
+
+              <!-- Super Admin only -->
+              <li *ngIf="auth.user?.role === 'Super Admin'">
+                <a routerLink="/reports/office-performance" (click)="closeDropdowns()">
+                  Office Performance Report
+                </a>
+              </li>
+
+            </ul>
           </li>
+
+
 
           <!-- Government Users -->
           <li class="dropdown" [class.active]="dropdowns.government">

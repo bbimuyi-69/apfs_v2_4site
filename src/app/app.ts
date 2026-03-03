@@ -7,7 +7,7 @@ import { Header } from './core/layout/header/header';
 import { AuthService } from './auth/auth.service';
 import { ThemeService } from './core/Theme/theme.service';
 
-type DropdownKey = 'government' | 'documentation';
+type DropdownKey = 'government' | 'documentation' | 'reports';
 
 @Component({
   selector: 'app-root',
@@ -33,6 +33,7 @@ export class App {
   dropdowns: Record<DropdownKey, boolean> = {
     government: false,
     documentation: false,
+    reports: false,
   };
 
   constructor() {
@@ -76,6 +77,7 @@ export class App {
   closeDropdowns(): void {
     this.dropdowns.government = false;
     this.dropdowns.documentation = false;
+    this.dropdowns.reports = false;
   }
 
   @HostListener('document:click', ['$event'])
