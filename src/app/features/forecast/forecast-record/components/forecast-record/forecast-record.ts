@@ -17,11 +17,8 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { combineLatest, of, EMPTY, map, shareReplay, tap } from 'rxjs';
-
-import { catchError, switchMap, timeout } from 'rxjs/operators';
-
-
+import { combineLatest, of, EMPTY, map, shareReplay, tap, Observable } from 'rxjs';
+import { catchError, switchMap, timeout, startWith } from 'rxjs/operators';
 import { ForecastWorkflowLane } from '../../models/forecast-record.enums';
 
 import {
@@ -174,10 +171,6 @@ export class ForecastRecordComponent {
     )
   );
 
-
-
-
-
   //Constants for sectional scrolling
   private readonly SECTION_IDS = [
     '#sec-record-info',
@@ -218,6 +211,9 @@ export class ForecastRecordComponent {
     canApproveSend: false,
     canDelete: false,
   };
+
+  // ✅ NAICS typeahead results (safe default)
+  filteredNaicsCodes$: Observable<OptionItem[]> = of([]);
   //#endregion
 
   //#region History Drawer State
@@ -352,12 +348,46 @@ export class ForecastRecordComponent {
 
     return r === 'contracting' || r === 'contracting office';
   }
+
+
+  //This is new for claiming to edit Tbrown 03/03/2026
+  private get claimedByMe(): boolean {
+    const assigned = Number(this.record?.assignedToUserId ?? 0);
+    const me = Number(this.userProfile?.id ?? 0);
+
+    return assigned > 0 && assigned === me;
+  }
+
+  private get mustClaimFirst(): boolean {
+    return !this.record?.assignedToUserId;
+  }
+
+  get editLockMessage(): string | null {
+    if (!this.isEditMode) return null;
+
+    if (this.mustClaimFirst) {
+      return 'Claim this record to begin editing.';
+    }
+
+    if (!this.claimedByMe) {
+      return `This record is currently claimed by ${this.record?.assignedToName}.`;
+    }
+
+    return null;
+  }
+  //End This is new for claiming to edit
+
+
   //PAY ATTENTION
   //This is better loging for being lane aware and can being ediatble by multiple roles
   get canEditRequirementsSection(): boolean {
     if (!this.isEditMode) return false;
 
+    // ✅ NEW: must be claimed by the current user
+    if (!this.claimedByMe) return false;
+
     const lane = this.normalizeRailStatus(this.workflowStatus);
+
     if (lane === 'Draft') {
       return this.hasEditRightsFor('Requirements');
     }
@@ -499,8 +529,6 @@ export class ForecastRecordComponent {
         // Value Classification now required
         'dollarRange',
         'naicsCode',
-
-
 
         //Contracting Section fields now required in Requirements lane
         'contractType',
@@ -873,12 +901,38 @@ export class ForecastRecordComponent {
 
   //#endregion
 
+  //#region NAICS Typeahead
+  private filterNaics(value: string | null): OptionItem[] {
+    const search = (value ?? '').toLowerCase();
+
+    return this.naicsCodes.filter(n =>
+      String(n.value ?? '').toLowerCase().includes(search) ||
+      String(n.label ?? '').toLowerCase().includes(search)
+    );
+  }
+
+  private wireNaicsTypeahead(): void {
+    if (!this.form) return;
+
+    const ctrl = this.form.get('naicsCode');
+    if (!ctrl) return;
+
+    this.filteredNaicsCodes$ = ctrl.valueChanges.pipe(
+      startWith(ctrl.value ?? ''),
+      map(v => this.filterNaics((v as any) ?? ''))
+    );
+  }
+
+  openNaics = false;
+  //#endregion
+
   //#region Lifecycle
   ngOnInit(): void {
     this.userProfile = this.extractUserProfileFromAuth();
-
+    console.log(this.userProfile)
     // initial shell
     this.form = buildForecastRecordForm(createEmptyForecastRecord());
+    this.wireNaicsTypeahead();
     this.hasSavedRecord = true;
     this.submitted = false;
 
@@ -889,6 +943,7 @@ export class ForecastRecordComponent {
     this.applyAccessState();
     this.wireStrategicSourcingVehicleToggle();
     this.hydratePrimaryContactFromProfile();
+    this.hydrateOfficeFromProfile(); // 👈 ADD THIS
     this.isLoading = true;
     this.flushView();
 
@@ -910,6 +965,7 @@ export class ForecastRecordComponent {
             this.isLoading = false;
 
             this.form = buildForecastRecordForm(createEmptyForecastRecord());
+            this.wireNaicsTypeahead();
             this.submitted = false;
 
             // ✅ lock component from auth
@@ -918,6 +974,7 @@ export class ForecastRecordComponent {
             this.applyAccessState();
             this.wireStrategicSourcingVehicleToggle();
             this.hydratePrimaryContactFromProfile();
+            this.hydrateOfficeFromProfile();   // ✅ ADD THIS
             this.flushView();
 
             return EMPTY;
@@ -947,6 +1004,7 @@ export class ForecastRecordComponent {
         this.userProfile = this.extractUserProfileFromAuth();
 
         this.form = buildForecastRecordForm(record ?? createEmptyForecastRecord());
+        this.wireNaicsTypeahead();
         this.submitted = false;
 
         // ✅ lock component from auth
@@ -955,11 +1013,20 @@ export class ForecastRecordComponent {
         this.applyAccessState();
         this.wireStrategicSourcingVehicleToggle();
         this.hydratePrimaryContactFromProfile();
+        this.hydrateOfficeFromProfile();
         this.isLoading = false;
         this.flushView();
       });
   }
   //#endregion
+
+
+
+
+  selectNaics(option: { value: string; label: string }) {
+    this.form?.get('naicsCode')?.setValue(option.value);
+    this.openNaics = false;
+  }
 
   //#region Save / Submit
   onSaveDraft(): void {
@@ -1077,7 +1144,6 @@ export class ForecastRecordComponent {
     });
   }
 
-
   logInvalidControls(): void {
     if (!this.form) return;
 
@@ -1171,6 +1237,7 @@ export class ForecastRecordComponent {
 
         // rebuild form so workflowStatus reflects server truth
         this.form = buildForecastRecordForm(updated);
+        this.wireNaicsTypeahead();
         this.submitted = false;
 
         this.lockComponentFromAuth();
@@ -1413,6 +1480,7 @@ export class ForecastRecordComponent {
           this.record = updated;
 
           this.form = buildForecastRecordForm(updated);
+          this.wireNaicsTypeahead();
           this.submitted = false;
 
           this.lockComponentFromAuth();
@@ -1519,6 +1587,7 @@ export class ForecastRecordComponent {
         this.record = updated;
 
         this.form = buildForecastRecordForm(updated);
+        this.wireNaicsTypeahead();
         this.submitted = false;
 
         this.lockComponentFromAuth();

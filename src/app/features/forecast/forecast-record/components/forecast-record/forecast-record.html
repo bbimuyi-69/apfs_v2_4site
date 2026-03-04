@@ -96,6 +96,9 @@
             <!-- #region Record Info (System Managed) -->
             <section class="sec" id="sec-record-info">
                 <div class="sec-h">
+                    <div class="hint" *ngIf="editLockMessage">
+                        {{ editLockMessage }}
+                    </div>
                     <div class="sec-title">
                         Record Info <span class="sec-sub">System managed</span>
                     </div>
@@ -209,17 +212,13 @@
                     </div>-->
 
                     <div class="grid-3">
-                        <div class="field" [class.is-invalid]="isInvalid('requirementsOffice')">
-                            <label>Requirements Office <span class="req">*</span></label>
-                            <select formControlName="requirementsOffice">
-                                <option *ngFor="let o of (requirementsOfficeOptions$ | async); trackBy: trackByValue"
-                                    [value]="o.value">
-                                    {{ o.label }}
-                                </option>
-                            </select>
-                            <div class="error" *ngIf="showError('requirementsOffice','required')">
-                                Requirements office is required.
-                            </div>
+                        <div class="field">
+                            <label>Requirements Office</label>
+
+                            <input type="text" formControlName="requirementsOffice"
+                                placeholder="{{ form?.get('requirementsOffice')?.value || '—' }}" readonly />
+
+                            <div class="hint">Set from your user profile (read-only).</div>
                         </div>
 
                         <div class="field" [class.is-invalid]="isInvalid('contractingOffice')">
@@ -300,16 +299,46 @@
                         </div>
                     </div>
 
-                    <div class="field" [class.is-invalid]="isInvalid('naicsCode')">
-                        <label>NAICS Code <span class="req">*</span></label>
-                        <select formControlName="naicsCode">
-                            <option *ngFor="let o of naicsCodes; trackBy: trackByValue" [value]="o.value">
-                                {{ o.label }}
-                            </option>
-                        </select>
-                        <div class="hint">Enter a NAICS Code that pertains to the anticipated opportunity.</div>
-                        <div class="error" *ngIf="showError('naicsCode','required')">NAICS Code is required.</div>
+                    <div class="field field--autocomplete" [class.is-invalid]="isInvalid('naicsCode')">
+                        <label for="naicsCode">
+                            NAICS Code <span class="req">*</span>
+                        </label>
+
+                        <div class="autocomplete">
+                            <input id="naicsCode" type="text" class="input" formControlName="naicsCode"
+                                placeholder="Search code or description..." autocomplete="off"
+                                (focus)="openNaics = true" [attr.aria-invalid]="isInvalid('naicsCode')"
+                                aria-describedby="naicsHint naicsError" />
+
+                            <!-- Dropdown -->
+                            <ng-container *ngIf="openNaics">
+                                <div class="dropdown" *ngIf="(filteredNaicsCodes$ | async)?.length">
+                                    <div class="dropdown-option" *ngFor="let o of filteredNaicsCodes$ | async"
+                                        (click)="selectNaics(o)">
+                                        <span class="code">{{ o.value }}</span>
+                                        <span class="divider">—</span>
+                                        <span class="label">{{ o.label }}</span>
+                                    </div>
+                                </div>
+                            </ng-container>
+                        </div>
+
+                        <!-- Hint -->
+                        <div id="naicsHint" class="hint" *ngIf="!isInvalid('naicsCode')">
+                            Select the primary industry classification for this requirement.
+                        </div>
+
+                        <!-- Errors -->
+                        <div id="naicsError" class="error" *ngIf="showError('naicsCode','required')">
+                            NAICS Code is required.
+                        </div>
+
+                        <div class="error" *ngIf="showError('naicsCode','pattern')">
+                            NAICS Code must be a valid 2–6 digit code.
+                        </div>
                     </div>
+
+
                 </div>
                 <!-- #endregion Requirements Fields -->
 

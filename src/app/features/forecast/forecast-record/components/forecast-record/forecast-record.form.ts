@@ -323,7 +323,7 @@ export function applyForecastRecordRolePermissions(
     hardDisable(form.controls.component);
 
     // ✅ Offices — editable only in Draft/Requirements by Requirements role
-    setEnabled(form.controls.requirementsOffice, canEditOffices);
+    hardDisable(form.controls.requirementsOffice);
     setEnabled(form.controls.contractingOffice, canEditOffices);
     setEnabled(form.controls.coordinatorOffice, canEditOffices);
 
