@@ -1,9 +1,7 @@
 <a class="nav-link" routerLink="/dashboard-v2" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">🧭
   Overview</a>
 <a class="nav-link" routerLink="/forecast" routerLinkActive="active">📄 Forecast</a>
-<a class="nav-link disabled" aria-disabled="true" tabindex="-1">
-  📊 Analytics
-</a>
+
 
 
 <a *ngIf="showNewRequest" class="nav-link nav-cta" routerLink="/forecast/new" routerLinkActive="active">

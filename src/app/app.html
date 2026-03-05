@@ -17,7 +17,6 @@
             </a>
           </li>
 
-          <li><a routerLink="/about" routerLinkActive="active">About</a></li>
           <li><a routerLink="/contact" routerLinkActive="active">Contact Us</a></li>
 
           <li *ngIf="auth.isLoggedIn">
@@ -65,23 +64,9 @@
 
 
 
-          <!-- Government Users -->
-          <li class="dropdown" [class.active]="dropdowns.government">
-            <button type="button" class="dropdown-toggle" (click)="toggleDropdown('government', $event)"
-              [attr.aria-expanded]="dropdowns.government" aria-controls="menu-government">
-              🏛️ Government Users
-              <span class="caret" [class.open]="dropdowns.government"></span>
-            </button>
-
-            <ul id="menu-government" class="dropdown-menu" *ngIf="dropdowns.government"
-              (click)="$event.stopPropagation()">
-              <li><a routerLink="/rob" (click)="closeDropdowns()">Government Access</a></li>
-              <li><a routerLink="/request-new-user" (click)="closeDropdowns()">Request Account</a></li>
-            </ul>
-          </li>
 
           <!-- Documentation -->
-          <li class="dropdown" [class.active]="dropdowns.documentation">
+          <li *ngIf="auth.user" class="dropdown" [class.active]="dropdowns.documentation">
             <button type="button" class="dropdown-toggle" (click)="toggleDropdown('documentation', $event)"
               [attr.aria-expanded]="dropdowns.documentation" aria-controls="menu-docs">
               📘 Documentation
@@ -89,7 +74,17 @@
             </button>
 
             <ul id="menu-docs" class="dropdown-menu" *ngIf="dropdowns.documentation" (click)="$event.stopPropagation()">
-              <li><a routerLink="/apfs-tutorial" (click)="closeDropdowns()">APFS Tutorial</a></li>
+              <li>
+                <a [href]="documentationLink.href" target="_blank" rel="noopener noreferrer" (click)="closeDropdowns()">
+                  {{ documentationLink.label }} (PDF)
+                </a>
+              </li>
+
+              <li>
+                <a routerLink="/apfs-tutorial" (click)="closeDropdowns()">
+                  APFS Tutorial
+                </a>
+              </li>
             </ul>
           </li>
 

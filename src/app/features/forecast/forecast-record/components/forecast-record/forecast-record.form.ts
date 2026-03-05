@@ -301,19 +301,25 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
  */
 export function applyForecastRecordRolePermissions(
     form: ForecastRecordFormGroup,
-    profile: UserProfileLike | null | undefined
+    profile: UserProfileLike | null | undefined,
+    opts?: { claimedByMe?: boolean }
 ): void {
     const role = (profile?.role ?? '').trim().toLowerCase();
     const isRequirements = role === 'requirements';
     const isContractingOffice = role === 'contracting office' || role === 'contracting';
     const isCoordinator = role === 'apfs coordinator';
+    const isAdmin = role === 'admin' || role.includes('admin');
+
+    // ✅ Claim gate: if the record is not claimed by the current user, lock everything down.
+    // Note: Admin/Super Admin still must claim (per your rule).
+    const claimedByMe = opts?.claimedByMe !== false; // default true for backwards compatibility
 
     // ---- Offices edit window ----
     const lane = form.controls.workflowStatus.value;
     const officesEditableWindow =
         lane === ForecastWorkflowLane.Draft || lane === ForecastWorkflowLane.Requirements || lane === ForecastWorkflowLane.Contracting;
 
-    const canEditOffices = isRequirements || isContractingOffice && officesEditableWindow;
+    const canEditOffices = isAdmin || isRequirements || (isContractingOffice && officesEditableWindow);
 
     // System-managed fields always disabled
     hardDisable(form.controls.apfsNumber);
@@ -321,6 +327,15 @@ export function applyForecastRecordRolePermissions(
 
     // ✅ Component is system-set from auth; keep it disabled always here too.
     hardDisable(form.controls.component);
+
+    // ✅ Claim lock: if not claimed-by-me, force the entire form (except system fields) into read-only.
+    if (!claimedByMe) {
+        Object.keys(form.controls).forEach((k) => {
+            if (k === 'apfsNumber' || k === 'workflowStatus' || k === 'component') return;
+            hardDisable((form.controls as any)[k]);
+        });
+        return;
+    }
 
     // ✅ Offices — editable only in Draft/Requirements by Requirements role
     hardDisable(form.controls.requirementsOffice);
@@ -332,52 +347,80 @@ export function applyForecastRecordRolePermissions(
     // (If you render it only inside an action panel, it’s fine to leave enabled always.)
     setEnabled(form.controls.transitionComment, true);
 
+    // Lane gating: keep validation aligned to the workflow lane.
+    // Admin/Super Admin can bypass role restrictions, but NOT lane restrictions (so validation stays in-lane).
+    const laneStr = String(lane ?? '').trim().toLowerCase();
+
+    const isDraftLane = lane === ForecastWorkflowLane.Draft;
+    const isRequirementsLane = lane === ForecastWorkflowLane.Draft || lane === ForecastWorkflowLane.Requirements;
+    const isContractingLane = lane === ForecastWorkflowLane.Contracting;
+
+    // Some enum builds don't include a Coordinator member. We keep lane-gating robust by
+    // matching on the string value (e.g. 'Coordinator' or 'APFS Coordinator').
+    const isCoordinatorLane = laneStr.includes('coordinator');
+
+    // Requirements fields are editable:
+    // - in Draft/Requirements by Requirements (or Admin)
+    // - in Contracting by Contracting Office (or Admin) — matches your rail behavior
+    const canEditRequirementsFields =
+        (isRequirementsLane && (isAdmin || isRequirements)) ||
+        (isContractingLane && (isAdmin || isContractingOffice));
+
+    const canEditContractingFields =
+        isContractingLane && (isAdmin || isContractingOffice);
+
+    const canEditCoordinatorFields =
+        isCoordinatorLane && (isAdmin || isCoordinator);
+
     // Requirements section
-    setEnabled(form.controls.requirementsTitle, isRequirements || isContractingOffice);
-    setEnabled(form.controls.requirement, isRequirements || isContractingOffice);
-    //setEnabled(form.controls.programLevel, isRequirements || isContractingOffice);
-    // Value classification (default: Coordinator + Contracting Office)
-    setEnabled(form.controls.dollarRange, isRequirements || isCoordinator || isContractingOffice);
-    setEnabled(form.controls.naicsCode, isRequirements || isCoordinator || isContractingOffice);
-    // Contracting Office section
-    setEnabled(form.controls.contractType, isRequirements || isContractingOffice);
-    setEnabled(form.controls.strategicSourcingVehicleUsed, isRequirements || isContractingOffice);
-    setEnabled(form.controls.strategicSourcingVehicle, isRequirements || isContractingOffice);
-    setEnabled(form.controls.typeOfAward, isRequirements || isContractingOffice);
+    setEnabled(form.controls.requirementsTitle, canEditRequirementsFields);
+    setEnabled(form.controls.requirement, canEditRequirementsFields);
+    //setEnabled(form.controls.programLevel, canEditRequirementsFields);
 
-    setEnabled(form.controls.competitive, isRequirements || isContractingOffice);
-    setEnabled(form.controls.contractStatus, isRequirements || isContractingOffice);
-    // Fiscal year: keep with Requirements by default (change if needed)
-    setEnabled(form.controls.fiscalYear, isRequirements);
-    // Place of performance + POCs (Requirements by default)
-    setEnabled(form.controls.placeOfPerformanceCity, isRequirements || isContractingOffice);
-    setEnabled(form.controls.placeOfPerformanceState, isRequirements || isContractingOffice);
-    setEnabled(form.controls.primaryContactFirstName, isRequirements || isContractingOffice);
-    setEnabled(form.controls.primaryContactLastName, isRequirements || isContractingOffice);
-    setEnabled(form.controls.primaryContactPhone, isRequirements || isContractingOffice);
-    setEnabled(form.controls.primaryContactEmail, isRequirements || isContractingOffice);
+    // Value classification (Requirements-owned)
+    setEnabled(form.controls.dollarRange, canEditRequirementsFields);
+    setEnabled(form.controls.naicsCode, canEditRequirementsFields);
 
-    //Contracting Role Section
-    setEnabled(form.controls.incumbent, isContractingOffice);
-    setEnabled(form.controls.contractNumber, isContractingOffice);
-    setEnabled(form.controls.estimatedPopStart, isContractingOffice);
-    setEnabled(form.controls.estimatedPopEnd, isContractingOffice);
-    setEnabled(form.controls.anticipatedAwardDate, isContractingOffice);
-    setEnabled(form.controls.estimatedSolicitationReleaseDate, isContractingOffice);
+    // Fiscal year (Requirements-owned)
+    setEnabled(form.controls.fiscalYear, isRequirementsLane && (isAdmin || isRequirements));
 
+    // Place of performance + POCs (Requirements-owned)
+    setEnabled(form.controls.placeOfPerformanceCity, canEditRequirementsFields);
+    setEnabled(form.controls.placeOfPerformanceState, canEditRequirementsFields);
+    setEnabled(form.controls.primaryContactFirstName, canEditRequirementsFields);
+    setEnabled(form.controls.primaryContactLastName, canEditRequirementsFields);
+    setEnabled(form.controls.primaryContactPhone, canEditRequirementsFields);
+    setEnabled(form.controls.primaryContactEmail, canEditRequirementsFields);
 
-    setEnabled(form.controls.alternateContactFirstName, isRequirements);
-    setEnabled(form.controls.alternateContactLastName, isRequirements);
-    setEnabled(form.controls.alternateContactPhone, isRequirements);
-    setEnabled(form.controls.alternateContactEmail, isRequirements);
+    // Alternate POC (Requirements-owned)
+    setEnabled(form.controls.alternateContactFirstName, isRequirementsLane && (isAdmin || isRequirements));
+    setEnabled(form.controls.alternateContactLastName, isRequirementsLane && (isAdmin || isRequirements));
+    setEnabled(form.controls.alternateContactPhone, isRequirementsLane && (isAdmin || isRequirements));
+    setEnabled(form.controls.alternateContactEmail, isRequirementsLane && (isAdmin || isRequirements));
 
-    // Coordinator section
-    setEnabled(form.controls.smallBusinessSetAside, isCoordinator);
-    setEnabled(form.controls.smallBusinessProgram, isCoordinator);
-    setEnabled(form.controls.sbSpecialistFirstName, isCoordinator);
-    setEnabled(form.controls.sbSpecialistLastName, isCoordinator);
-    setEnabled(form.controls.sbSpecialistPhone, isCoordinator);
-    setEnabled(form.controls.sbSpecialistEmail, isCoordinator);
+    // Contracting Office section (Contracting-owned)
+    setEnabled(form.controls.contractType, canEditContractingFields);
+    setEnabled(form.controls.strategicSourcingVehicleUsed, canEditContractingFields);
+    setEnabled(form.controls.strategicSourcingVehicle, canEditContractingFields);
+    setEnabled(form.controls.typeOfAward, canEditContractingFields);
+    setEnabled(form.controls.competitive, canEditContractingFields);
+    setEnabled(form.controls.contractStatus, canEditContractingFields);
+
+    // Contracting Role Section (Contracting-owned)
+    setEnabled(form.controls.incumbent, canEditContractingFields);
+    setEnabled(form.controls.contractNumber, canEditContractingFields);
+    setEnabled(form.controls.estimatedPopStart, canEditContractingFields);
+    setEnabled(form.controls.estimatedPopEnd, canEditContractingFields);
+    setEnabled(form.controls.anticipatedAwardDate, canEditContractingFields);
+    setEnabled(form.controls.estimatedSolicitationReleaseDate, canEditContractingFields);
+
+    // Coordinator section (Coordinator-owned)
+    setEnabled(form.controls.smallBusinessSetAside, canEditCoordinatorFields);
+    setEnabled(form.controls.smallBusinessProgram, canEditCoordinatorFields);
+    setEnabled(form.controls.sbSpecialistFirstName, canEditCoordinatorFields);
+    setEnabled(form.controls.sbSpecialistLastName, canEditCoordinatorFields);
+    setEnabled(form.controls.sbSpecialistPhone, canEditCoordinatorFields);
+    setEnabled(form.controls.sbSpecialistEmail, canEditCoordinatorFields);
 
 
 }

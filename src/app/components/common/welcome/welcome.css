@@ -83,6 +83,25 @@
     margin-left: 5px;
 }
 
+.welcome-actions {
+    margin-top: 20px;
+}
+
+.btn-request-account {
+    display: inline-block;
+    padding: 10px 18px;
+    border-radius: var(--radius-md);
+    background: var(--brand-blue);
+    color: #fff;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-request-account:hover {
+    background: #094a6f;
+}
+
 
 /* Responsive */
 @media (max-width: 900px) {

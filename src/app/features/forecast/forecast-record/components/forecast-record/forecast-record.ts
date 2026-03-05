@@ -343,6 +343,9 @@ export class ForecastRecordComponent {
   private hasEditRightsFor(role: 'Requirements' | 'Contracting Office' | 'APFS Coordinator'): boolean {
     const r = (this.userProfile?.role ?? '').trim().toLowerCase();
 
+    // ✅ Admin/Super Admin: can edit any section at any time (claim still enforced elsewhere)
+    if (r === 'admin' || r.includes('admin')) return true;
+
     if (role === 'Requirements') return r === 'requirements';
     if (role === 'APFS Coordinator') return r === 'apfs coordinator' || r.includes('coordinator');
 
@@ -354,7 +357,6 @@ export class ForecastRecordComponent {
   private get claimedByMe(): boolean {
     const assigned = Number(this.record?.assignedToUserId ?? 0);
     const me = Number(this.userProfile?.id ?? 0);
-
     return assigned > 0 && assigned === me;
   }
 
@@ -377,14 +379,22 @@ export class ForecastRecordComponent {
   }
   //End This is new for claiming to edit
 
+  private get isAdminOrSuperAdmin(): boolean {
+    const r = (this.userProfile?.role ?? '').trim().toLowerCase();
+    return r === 'admin' || r.includes('admin');
+  }
+
 
   //PAY ATTENTION
   //This is better loging for being lane aware and can being ediatble by multiple roles
   get canEditRequirementsSection(): boolean {
     if (!this.isEditMode) return false;
 
-    // ✅ NEW: must be claimed by the current user
+    // ✅ Must be claimed by the current user (admins included)
     if (!this.claimedByMe) return false;
+
+    // ✅ Admin/Super Admin can edit any section at any time
+    if (this.isAdminOrSuperAdmin) return true;
 
     const lane = this.normalizeRailStatus(this.workflowStatus);
 
@@ -403,13 +413,22 @@ export class ForecastRecordComponent {
     return false;
   }
   get canEditCoordinatorSection(): boolean {
-    return this.isEditMode && this.hasEditRightsFor('APFS Coordinator');
+    if (!this.isEditMode) return false;
+    if (!this.claimedByMe) return false;
+    if (this.isAdminOrSuperAdmin) return true;
+    return this.hasEditRightsFor('APFS Coordinator');
   }
 
   //PAY ATTENTION
   //This is better loging for being lane aware and can being ediatble by multiple roles
   get canEditContractingSection(): boolean {
     if (!this.isEditMode) return false;
+
+    // ✅ Must be claimed by the current user (admins included)
+    if (!this.claimedByMe) return false;
+
+    // ✅ Admin/Super Admin can edit any section at any time
+    if (this.isAdminOrSuperAdmin) return true;
 
     const lane = this.normalizeRailStatus(this.workflowStatus);
     if (lane === 'Draft') {
@@ -429,7 +448,7 @@ export class ForecastRecordComponent {
 
 
   get canEditClassificationSection(): boolean {
-    return this.isEditMode && (this.canEditCoordinatorSection || this.canEditContractingSection);
+    return this.isEditMode && (this.canEditCoordinatorSection || this.canEditContractingSection || this.canEditRequirementsSection);
   }
 
   // --- Rail convenience getters ---
@@ -656,30 +675,32 @@ export class ForecastRecordComponent {
     const isAdmin = role === 'Admin';
     const isCoordinator = role === 'APFS Coordinator';
 
-    const assignedToMe = this.computeAssignedToMe(status, this.userProfile?.role ?? '');
+    // ✅ Claim gate applies to everyone (including Admin/Super Admin)
+    const claimedByMe = this.claimedByMe;
 
     const canReassign =
       status !== 'Published' &&
       (status === 'Requirements' || status === 'Contracting' || status === 'APFS Coordinator') &&
-      (isCoordinator || isAdmin);
+      (claimedByMe || isCoordinator || isAdmin);
 
     const canSave =
       status !== 'Published' &&
+      this.isEditMode &&
       (status === 'Draft' ||
         status === 'Requirements' ||
         status === 'Contracting' ||
         status === 'APFS Coordinator') &&
-      (assignedToMe || isCoordinator || isAdmin);
+      (claimedByMe || isAdmin || isCoordinator);
 
     const canUnassign =
       status !== 'Published' &&
       (status === 'Requirements' || status === 'Contracting' || status === 'APFS Coordinator') &&
-      (assignedToMe || isCoordinator || isAdmin);
+      (claimedByMe || isCoordinator || isAdmin);
 
     const canApproveSend =
       status !== 'Published' &&
       this.isEditMode &&
-      (assignedToMe || isAdmin) &&
+      claimedByMe &&
       (
         ((status === 'Draft' || status === 'Requirements') && role === 'Requirements') ||
         (status === 'Contracting' && role === 'Contracting') ||
@@ -690,7 +711,7 @@ export class ForecastRecordComponent {
     const canDelete =
       status !== 'Published' &&
       (status === 'Draft') &&
-      (assignedToMe || isAdmin);
+      (claimedByMe || isAdmin);
 
     this.rail = { canReassign, canSave, canUnassign, canApproveSend, canDelete };
   }
@@ -700,7 +721,7 @@ export class ForecastRecordComponent {
 
     if (this.isEditMode) {
       this.form.enable({ emitEvent: false });
-      applyForecastRecordRolePermissions(this.form, this.userProfile);
+      applyForecastRecordRolePermissions(this.form, this.userProfile, { claimedByMe: this.claimedByMe });
     } else {
       this.form.disable({ emitEvent: false });
     }
@@ -926,12 +947,36 @@ export class ForecastRecordComponent {
   openNaics = false;
   //#endregion
 
+  //#region Claim helpers
+  /**
+   * For /forecast/new we "claim" immediately so the creator can edit.
+   * Admin/Super Admin also must be claimed (per your rule), so we do the same.
+   */
+  private claimNewRecordToCurrentUser(base: ForecastRecord): ForecastRecord {
+    const meId = Number(this.userProfile?.id ?? this.currentUserId ?? 0);
+    if (!meId) return base;
+
+    const first = (this.userProfile?.firstName ?? '').trim();
+    const last = (this.userProfile?.lastName ?? '').trim();
+    const name = `${first} ${last}`.trim() || (this.userProfile?.email ?? '');
+
+    return {
+      ...base,
+      assignedToUserId: meId,
+      assignedToName: name,
+      assignedAt: new Date().toISOString(),
+    } as any;
+  }
+  //#endregion
+
   //#region Lifecycle
   ngOnInit(): void {
     this.userProfile = this.extractUserProfileFromAuth();
     console.log(this.userProfile)
-    // initial shell
-    this.form = buildForecastRecordForm(createEmptyForecastRecord());
+    // initial shell (treat as a new record until route resolves)
+    const initial = this.claimNewRecordToCurrentUser(createEmptyForecastRecord());
+    this.record = initial;
+    this.form = buildForecastRecordForm(initial);
     this.wireNaicsTypeahead();
     this.hasSavedRecord = true;
     this.submitted = false;
@@ -959,12 +1004,12 @@ export class ForecastRecordComponent {
           // /forecast/new
           if (!idParam || idParam === 'new') {
             this.recordId = null;
-            this.record = null;
+            this.record = this.claimNewRecordToCurrentUser(createEmptyForecastRecord());
             this.isEditMode = true;
 
             this.isLoading = false;
 
-            this.form = buildForecastRecordForm(createEmptyForecastRecord());
+            this.form = buildForecastRecordForm(this.record);
             this.wireNaicsTypeahead();
             this.submitted = false;
 
@@ -1041,6 +1086,19 @@ export class ForecastRecordComponent {
     if (!this.canSave) return;
 
     const raw = this.form.getRawValue() as any;
+
+    // ✅ NEW: enforce "claim" on create as well (creator/admin must be assigned)
+    if (!this.recordId) {
+      const meId = Number(this.userProfile?.id ?? this.currentUserId ?? 0);
+      if (meId) {
+        const first = (this.userProfile?.firstName ?? '').trim();
+        const last = (this.userProfile?.lastName ?? '').trim();
+        const name = `${first} ${last}`.trim() || (this.userProfile?.email ?? '');
+        raw.assignedToUserId = meId;
+        raw.assignedToName = name;
+        raw.assignedAt = new Date().toISOString();
+      }
+    }
 
     console.log('[onSaveDraft] after getRawValue', { recordId: this.recordId });
 

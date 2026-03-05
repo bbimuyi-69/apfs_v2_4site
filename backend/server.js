@@ -640,7 +640,7 @@ app.get(`${API_PREFIX}/forecast-records/:id`, (req, res) => {
     res.json({ ...record, history });
 });
 
-// CREATE
+/*
 app.post(`${API_PREFIX}/forecast-records`, (req, res) => {
     const db = loadData();
     const me = getCurrentUser(req, db);
@@ -680,6 +680,68 @@ app.post(`${API_PREFIX}/forecast-records`, (req, res) => {
     saveData(db);
 
     res.status(201).json({ ...record, history: [historyRow] });
+});*/
+
+
+app.post(`${API_PREFIX}/forecast-records`, (req, res) => {
+    const db = loadData();
+    const me = getCurrentUser(req, db);
+    if (!me) return res.status(401).json({ message: 'Not authenticated' });
+
+    const now = new Date().toISOString();
+
+    // Server-owned fields: prevent spoofing
+    const body = { ...(req.body || {}) };
+    delete body.assignedToUserId;
+    delete body.assignedToName;
+    delete body.assignedAt;
+
+    const record = {
+        ...body,
+        id: Date.now(),
+        component: me.component,
+        apfsNumber: generateApfsNumber({ component: me.component }),
+        workflowStatus: 'Draft',
+        status: 'Draft',
+        createdAt: now,
+        updatedAt: now,
+
+        // ✅ Claim by default on create
+        assignedToUserId: me.id,
+        assignedToName: `${me.firstName ?? ''} ${me.lastName ?? ''}`.trim() || me.email,
+        assignedAt: now,
+    };
+
+    db.forecastRecords = Array.isArray(db.forecastRecords) ? db.forecastRecords : [];
+    db.recordHistory = Array.isArray(db.recordHistory) ? db.recordHistory : [];
+
+    clearLatestHistoryFlag(db, record.id);
+
+    const createdRow = makeHistoryRow({
+        forecastId: record.id,
+        user: me,
+        comment: 'Created',
+        previousStateId: null,
+        newStateId: 0,
+        latest: false, // not latest because we’ll add Claimed after it
+    });
+
+    const claimedRow = makeHistoryRow({
+        forecastId: record.id,
+        user: me,
+        comment: 'Claimed',
+        previousStateId: 0,
+        newStateId: 0,
+        latest: true,
+        assignmentId: me.id,
+        assignmentDisplay: `${me.firstName ?? ''} ${me.lastName ?? ''}`.trim() || me.email,
+    });
+
+    db.forecastRecords.push(record);
+    db.recordHistory.push(createdRow, claimedRow);
+    saveData(db);
+
+    res.status(201).json({ ...record, history: [createdRow, claimedRow] });
 });
 
 // UPDATE (SAVE DRAFT / EDIT)

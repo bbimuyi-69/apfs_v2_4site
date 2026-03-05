@@ -26,9 +26,6 @@
                     Change Log
                 </button>
 
-                <button type="button" class="rail-btn" (click)="onReassign()" [disabled]="!canReassign || isLoading">
-                    Reassign Record
-                </button>
             </div>
             <!-- #endregion Rail Card: Utilities -->
 
@@ -36,37 +33,25 @@
 
             <!-- #region Rail Card: Primary Actions -->
             <div class="rail-card">
-                <button type="button" class="rail-btn rail-btn-primary" (click)="onSaveDraft()"
-                    [disabled]="!canSave || isLoading">
-                    Save <span class="rail-icon" aria-hidden="true">💾</span>
+                <button type="button" class="rail-btn rail-btn-warn" (click)="onReassign()"
+                    [disabled]="!canUnassign || !hasAssignment || isLoading"
+                    [title]="!hasAssignment ? 'Record is not assigned' : ''">
+                    Reassign
                 </button>
 
                 <button type="button" class="rail-btn rail-btn-warn" (click)="onUnassign()"
                     [disabled]="!canUnassign || !hasAssignment || isLoading"
                     [title]="!hasAssignment ? 'Record is not assigned' : ''">
-                    Unassign <span class="rail-icon" aria-hidden="true">↩️</span>
+                    Unassign
                 </button>
 
                 <button type="button" class="rail-btn rail-btn-danger" (click)="onReject()"
                     [disabled]="!canReject || isLoading" title="Reject and send back to previous step">
-                    Reject &amp; Send Back <span class="rail-icon" aria-hidden="true">⤺</span>
-                </button>
-
-                <button type="button" class="rail-btn rail-btn-accent" (click)="onApproveAndSend()"
-                    [disabled]="isLoading || !canApproveSend || isDraft">
-                    Approve &amp; Send
-                    <span class="rail-icon" aria-hidden="true">✈️</span>
+                    Reject &amp; Send Back <span class="rail-icon" aria-hidden="true">↩️</span>
                 </button>
 
 
-
-
-
-
-
-
-
-                <button type="button" class="rail-btn rail-btn-danger" (click)="onDelete()"
+                <button type="button" class="rail-btn rail-btn-danger rail-btn-delete" (click)="onDelete()"
                     [disabled]="!canDelete || isLoading">
                     Delete <span class="rail-icon" aria-hidden="true">✖</span>
                 </button>
@@ -113,7 +98,7 @@
 
                 <div class="grid-2">
                     <div class="field">
-                        <label>4SITE Number</label>
+                        <label>4SITE number</label>
                         <input type="text" formControlName="apfsNumber"
                             placeholder="Automatically Generated On Creation" />
                         <div class="hint">This is assigned by the 4SITE Application.</div>
@@ -132,11 +117,19 @@
             </section>
             <!-- #endregion Record Info (System Managed) -->
 
+            <!-- Claim note (edit mode) -->
+            <div class="note" *ngIf="isEditMode && editLockMessage">
+                <div>
+                    <div class="note-title">Claim required</div>
+                    <div>{{ editLockMessage }}</div>
+                </div>
+            </div>
+
             <!-- #region Requirements (Owned by Requirements) -->
             <section class="sec" id="sec-requirements" [class.readonly]="isEditMode && !canEditRequirementsSection">
                 <div class="sec-h">
                     <div class="sec-title">
-                        Requirements <span class="sec-sub">Owned by Requirements</span>
+                        Requirements <span class="sec-sub">Owned by requirements</span>
                     </div>
 
                     <div class="sec-meta">
@@ -152,15 +145,16 @@
 
                     <div class="grid-2">
                         <div class="field" [class.is-invalid]="isInvalid('primaryContactFirstName')">
-                            <label>First Name <span class="req">*</span></label>
+                            <label>First name <span class="req">*</span></label>
                             <input type="text" formControlName="primaryContactFirstName" />
+                            <div class="hint">Enter the phone number of the primary contact.</div>
                             <div class="error" *ngIf="showError('primaryContactFirstName','required')">
                                 First name is required.
                             </div>
                         </div>
 
                         <div class="field" [class.is-invalid]="isInvalid('primaryContactLastName')">
-                            <label>Last Name <span class="req">*</span></label>
+                            <label>Last name <span class="req">*</span></label>
                             <input type="text" formControlName="primaryContactLastName" />
                             <div class="error" *ngIf="showError('primaryContactLastName','required')">
                                 Last name is required.
@@ -181,14 +175,14 @@
                         </div>
 
                         <div class="field" [class.is-invalid]="isInvalid('primaryContactPhone')">
-                            <label>Primary Contact Phone Number <span class="req">*</span></label>
+                            <label>Primary contact phone number <span class="req">*</span></label>
                             <input type="tel" inputmode="tel" autocomplete="tel" formControlName="primaryContactPhone"
                                 placeholder="(203) 555-1234" (input)="onPhoneInput($event, 'primaryContactPhone')"
                                 (blur)="onPhoneInput($event, 'primaryContactPhone')" />
 
                             <div class="hint">Enter the phone number of the primary contact.</div>
                             <div class="error" *ngIf="showError('primaryContactPhone','required')">
-                                Primary Contact Phone Number is required.
+                                Primary contact phone number is required.
                             </div>
                         </div>
 
@@ -213,7 +207,7 @@
 
                     <div class="grid-3">
                         <div class="field">
-                            <label>Requirements Office</label>
+                            <label>Requirements office</label>
 
                             <input type="text" formControlName="requirementsOffice"
                                 placeholder="{{ form?.get('requirementsOffice')?.value || '—' }}" readonly />
@@ -222,7 +216,7 @@
                         </div>
 
                         <div class="field" [class.is-invalid]="isInvalid('contractingOffice')">
-                            <label>Contracting Office <span class="req">*</span></label>
+                            <label>Contracting office <span class="req">*</span></label>
                             <select formControlName="contractingOffice">
                                 <option *ngFor="let o of (contractingOfficeOptions$ | async); trackBy: trackByValue"
                                     [value]="o.value">
@@ -235,7 +229,7 @@
                         </div>
 
                         <div class="field" [class.is-invalid]="isInvalid('coordinatorOffice')">
-                            <label>4SITE Coordinator Office <span class="req">*</span></label>
+                            <label>4SITE coordinator office <span class="req">*</span></label>
                             <select formControlName="coordinatorOffice">
                                 <option *ngFor="let o of (coordinatorOfficeOptions$ | async); trackBy: trackByValue"
                                     [value]="o.value">
@@ -243,7 +237,7 @@
                                 </option>
                             </select>
                             <div class="error" *ngIf="showError('coordinatorOffice','required')">
-                                4SITE Coordinator office is required.
+                                4SITE coordinator office is required.
                             </div>
                         </div>
                     </div>
@@ -254,7 +248,7 @@
 
                 <!-- #region Requirements Fields -->
                 <div class="field" [class.is-invalid]="isInvalid('requirementsTitle')">
-                    <label>Requirements Title <span class="req">*</span></label>
+                    <label>Requirements title <span class="req">*</span></label>
                     <input type="text" formControlName="requirementsTitle" />
                     <div class="hint">Enter a brief title to the requirement which will be included in email to
                         industry.</div>
@@ -294,7 +288,8 @@
                             </option>
                         </select>
 
-                        <div class="hint">Select the dollar range for the total estimated value.</div>
+                        <div class="hint">Dollar ranges reflect the GSA structure. Select the dollar range for the total
+                            estimated value.</div>
                         <div class="error" *ngIf="showError('dollarRange','required')">Dollar range is required.
                         </div>
                     </div>
@@ -370,7 +365,7 @@
 
                 <div class="grid-2">
                     <div class="field" [class.is-invalid]="isInvalid('strategicSourcingVehicle')">
-                        <label>Strategic Sourcing Vehicle <span class="req">*</span></label>
+                        <label>Strategic sourcing vehicle <span class="req">*</span></label>
                         <select formControlName="strategicSourcingVehicle">
                             <option *ngFor="let o of strategicSourcingVehicleOptions; trackBy: trackByValue"
                                 [value]="o.value">
@@ -383,7 +378,7 @@
                     </div>
 
                     <div class="field" [class.is-invalid]="isInvalid('typeOfAward')">
-                        <label>Type of Award <span class="req">*</span></label>
+                        <label>Type of award <span class="req">*</span></label>
                         <select formControlName="typeOfAward">
                             <option *ngFor="let o of typeOfAwardOptions; trackBy: trackByValue" [value]="o.value">
                                 {{ o.label }}
@@ -420,7 +415,7 @@
 
                 <div class="grid-2">
                     <div class="field" [class.is-invalid]="isInvalid('fiscalYear')">
-                        <label>Fiscal Year <span class="req">*</span></label>
+                        <label>Fiscal year <span class="req">*</span></label>
                         <select formControlName="fiscalYear">
                             <option *ngFor="let o of fiscalYears; trackBy: trackByValue" [value]="o.value">
                                 {{ o.label }}
@@ -443,7 +438,7 @@
             <section class="sec" id="sec-contracting" [class.readonly]="isEditMode && !canEditContractingSection">
                 <div class="sec-h">
                     <div class="sec-title">
-                        Contracting Office <span class="sec-sub">Owned by Contracting Office</span>
+                        Contracting Office <span class="sec-sub">Owned by contracting office</span>
                     </div>
 
                     <div class="sec-meta">
@@ -487,7 +482,7 @@
                     <div class="field">
                         <label>Contract number</label>
                         <input type="text" formControlName="contractNumber" />
-                        <div class="hint">Notate the Contract Number.</div>
+                        <div class="hint">Users may input the contract and/or order number.</div>
                     </div>
                 </div>
 
@@ -544,7 +539,7 @@
                 <div class="grid-2">
                     <div class="field" [class.is-invalid]="isInvalid('estimatedSolicitationReleaseDate')">
                         <label>
-                            Estimated Solicitation Release Date <span class="req">*</span>
+                            Estimated solicitation release date <span class="req">*</span>
                         </label>
 
                         <input type="text" inputmode="numeric" formControlName="estimatedSolicitationReleaseDate"
@@ -591,7 +586,7 @@
                 <div class="grid-2">
                     <div class="field" [class.is-invalid]="isInvalid('placeOfPerformanceCity')">
                         <label>
-                            Place of Performance City <span class="req">*</span>
+                            Place of performance city <span class="req">*</span>
                         </label>
 
                         <input type="text" inputmode="numeric" formControlName="placeOfPerformanceCity"
@@ -612,7 +607,7 @@
 
                     <div class="field" [class.is-invalid]="isInvalid('placeOfPerformanceState')">
                         <label>
-                            Place of Performance State <span class="req">*</span>
+                            Place of performance state <span class="req">*</span>
                         </label>
 
                         <select formControlName="placeOfPerformanceState">
@@ -647,7 +642,7 @@
             <section class="sec" id="sec-small-business" [class.readonly]="isEditMode && !canEditCoordinatorSection">
                 <div class="sec-h">
                     <div class="sec-title">
-                        Small Business <span class="sec-sub">Owned by 4SITE Coordinator</span>
+                        Small Business <span class="sec-sub">Owned by 4SITE coordinator</span>
                     </div>
 
                     <div class="sec-meta">
@@ -665,7 +660,7 @@
                                 {{ o.label }}
                             </option>
                         </select>
-                        <div class="hint">This field is updated by the 4SITE Coordinator.</div>
+                        <div class="hint">This field is updated by the 4SITE coordinator.</div>
                         <div class="error" *ngIf="showError('smallBusinessSetAside','required')">This field is required.
                         </div>
                     </div>
@@ -678,7 +673,7 @@
                                 {{ o.label }}
                             </option>
                         </select>
-                        <div class="hint">This field is updated by the 4SITE Coordinator.</div>
+                        <div class="hint">This field is updated by the 4SITE coordinator.</div>
                         <div class="error" *ngIf="showError('smallBusinessProgram','required')">This field is required.
                         </div>
                     </div>
@@ -686,7 +681,7 @@
                 <!-- sbSpecialistFirstName/sbSpecialistLastName -->
                 <div class="grid-2">
                     <div class="field" [class.is-invalid]="isInvalid('sbSpecialistFirstName')">
-                        <label>Small Business Specialist/4SITE Coordinator First Name <span class="req">*</span></label>
+                        <label>Small business specialist/4SITE coordinator first name <span class="req">*</span></label>
                         <input type="text" formControlName="sbSpecialistFirstName" />
                         <div class="hint">Enter the first name of the Small Business Specialist/4SITE Coordinator POC
                             for
@@ -696,7 +691,7 @@
                     </div>
 
                     <div class="field" [class.is-invalid]="isInvalid('sbSpecialistLastName')">
-                        <label>Small Business Specialist/4SITE Coordinator Last Name<span class="req">*</span></label>
+                        <label>Small business specialist/4SITE coordinator last name<span class="req">*</span></label>
                         <input type="text" formControlName="sbSpecialistLastName" />
                         <div class="hint">Enter the last name of the Small Business Specialist/4SITE Coordinator POC for
                             this anticipated requirement in the text box provided.</div>
@@ -708,7 +703,7 @@
                 <div class="grid-2">
                     <div class="field" [class.is-invalid]="isInvalid('sbSpecialistPhone')">
                         <label>
-                            Small Business Specialist/4SITE Coordinator Phone <span class="req">*</span>
+                            Small business specialist/4SITE coordinator phone <span class="req">*</span>
                         </label>
 
                         <input type="tel" inputmode="tel" autocomplete="tel" formControlName="sbSpecialistPhone"
@@ -733,7 +728,7 @@
 
 
                     <div class="field" [class.is-invalid]="isInvalid('sbSpecialistEmail')">
-                        <label>Small Business Specialist/4SITE Coordinator Email<span class="req">*</span></label>
+                        <label>Small business specialist/4SITE coordinator email<span class="req">*</span></label>
                         <input type="text" formControlName="sbSpecialistEmail" />
                         <div class="hint">Enter the email address of the Small Business Specialist/4SITE Coordinator POC
                             for this anticipated requirement in the text box provided.</div>
@@ -752,8 +747,14 @@
             <!-- #region Bottom Actions -->
             <div class="apfs-actions">
                 <span *ngIf="saveSuccessMessage" class="save-success">
-                    ✓ Record saved
+                    ✓ Your Record has been saved. To Move it forward in the queue. select "approve and send" .
                 </span>
+
+                <button *ngIf="recordId" type="button" class="btn-primary" (click)="onApproveAndSend()"
+                    [disabled]="isLoading || !canApproveSend || isDraft">
+                    Approve &amp; Send
+                    <span class="rail-icon" aria-hidden="true">✈️</span>
+                </button>
 
                 <button type="button" class="btn-primary" (click)="recordId ? onSaveRecord() : onSaveDraft()"
                     [disabled]="!canSave || isLoading">

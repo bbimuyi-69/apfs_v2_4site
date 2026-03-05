@@ -6,6 +6,7 @@ import { filter, map } from 'rxjs/operators';
 import { Header } from './core/layout/header/header';
 import { AuthService } from './auth/auth.service';
 import { ThemeService } from './core/Theme/theme.service';
+import { DocLink, getDocumentationLinkForRole, canSeeNewRequest } from './features/dashboard-v2/components/nav-rail/nav-rail.helper';
 
 type DropdownKey = 'government' | 'documentation' | 'reports';
 
@@ -78,6 +79,9 @@ export class App {
     this.dropdowns.government = false;
     this.dropdowns.documentation = false;
     this.dropdowns.reports = false;
+  }
+  get documentationLink(): DocLink {
+    return getDocumentationLinkForRole(this.auth.user?.role);
   }
 
   @HostListener('document:click', ['$event'])

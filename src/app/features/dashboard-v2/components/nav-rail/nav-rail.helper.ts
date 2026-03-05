@@ -24,5 +24,9 @@ export function getDocumentationLinkForRole(roleRaw: string | null | undefined):
 }
 
 export function canSeeNewRequest(roleRaw: string | null | undefined): boolean {
-    return roleIncludes(roleRaw, 'requirements');
+    return (
+        roleIncludes(roleRaw, 'requirements') ||
+        roleIncludes(roleRaw, 'admin') ||
+        roleIncludes(roleRaw, 'super admin')
+    );
 }
