@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { Router } from '@angular/router';
+import { RouterLink } from '@angular/router';
 
 import { ForecastRecord } from '../../../forecast/forecast-record/models/forecast-record.model';
 import { ForecastRecordService } from '../../../forecast/forecast-record/services/forecast-record.service';
@@ -9,7 +10,7 @@ import { AuthService } from '../../../../auth/auth.service';
 @Component({
   selector: 'app-record-drawer',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './record-drawer.component.html',
   styleUrls: ['./record-drawer.component.css'],
 })
@@ -208,5 +209,40 @@ export class RecordDrawerComponent {
     if (this.closing) return;
     this.closing = true;
     setTimeout(() => this.close.emit(), 180);
+  }
+
+
+  copiedId: string | number | null = null;
+  private copiedTimer: any;
+
+  copyForecastLink(r: any): void {
+    const id = r?.id;
+    if (!id) return;
+
+    const url = `${window.location.origin}/forecast/${id}`; // ✅ share link default
+
+    navigator.clipboard.writeText(url)
+      .then(() => this.showCopied(id))
+      .catch(() => {
+        // fallback (optional)
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        this.showCopied(id);
+      });
+  }
+
+  private showCopied(id: string | number): void {
+    this.copiedId = id;
+
+    if (this.copiedTimer) clearTimeout(this.copiedTimer);
+    this.copiedTimer = setTimeout(() => {
+      this.copiedId = null;
+    }, 1500);
   }
 }

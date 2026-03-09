@@ -1677,6 +1677,28 @@ app.delete(`${API_PREFIX}/offices/:id`, (req, res) => {
     res.json({ message: 'Office deactivated', id });
 });
 
+
+// =========================
+// SERVE ANGULAR APP
+// =========================
+
+// =========================
+// SERVE ANGULAR APP
+// =========================
+
+const angularDistPath = path.join(__dirname, '..', 'dist', 'fourSite', 'browser');
+
+console.log('[APFS] angularDistPath =', angularDistPath);
+console.log('[APFS] index exists =', fs.existsSync(path.join(angularDistPath, 'index.html')));
+
+// Serve Angular static files
+app.use(express.static(angularDistPath));
+
+// Angular SPA fallback
+app.get('*', (req, res) => {
+    res.sendFile(path.join(angularDistPath, 'index.html'));
+});
+
 // =========================
 // START SERVER
 // =========================

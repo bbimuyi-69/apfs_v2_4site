@@ -4,6 +4,7 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { ForecastRecordService } from '../../services/forecast-record.service';
+import { apfsPrimaryForwardActionLabel } from '../forecast-record/forecast-record';
 
 @Component({
   selector: 'app-forward-comment',
@@ -55,6 +56,10 @@ export class ForwardCommentComponent implements OnInit {
     if (!this.toLane) {
       this.error = 'Missing destination status (to).';
     }
+  }
+
+  get forwardButtonLabel(): string {
+    return apfsPrimaryForwardActionLabel(this.fromLane);
   }
 
   get comment() {

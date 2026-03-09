@@ -33,22 +33,24 @@
 
             <!-- #region Rail Card: Primary Actions -->
             <div class="rail-card">
-                <button type="button" class="rail-btn rail-btn-warn" (click)="onReassign()"
-                    [disabled]="!canUnassign || !hasAssignment || isLoading"
+                <button *ngIf="canReassign" type="button" class="rail-btn rail-btn-warn" (click)="onReassign()"
+                    [disabled]="!canReassign     || !hasAssignment || isLoading"
                     [title]="!hasAssignment ? 'Record is not assigned' : ''">
                     Reassign
                 </button>
 
-                <button type="button" class="rail-btn rail-btn-warn" (click)="onUnassign()"
+                <button *ngIf="canUnassign" type="button" class="rail-btn rail-btn-warn" (click)="onUnassign()"
                     [disabled]="!canUnassign || !hasAssignment || isLoading"
                     [title]="!hasAssignment ? 'Record is not assigned' : ''">
                     Unassign
                 </button>
 
-                <button type="button" class="rail-btn rail-btn-danger" (click)="onReject()"
+                <button *ngIf="canReject" type="button" class="rail-btn rail-btn-danger" (click)="onReject()"
                     [disabled]="!canReject || isLoading" title="Reject and send back to previous step">
                     Reject &amp; Send Back <span class="rail-icon" aria-hidden="true">↩️</span>
                 </button>
+
+
 
 
                 <button type="button" class="rail-btn rail-btn-danger rail-btn-delete" (click)="onDelete()"
@@ -752,7 +754,7 @@
 
                 <button *ngIf="recordId" type="button" class="btn-primary" (click)="onApproveAndSend()"
                     [disabled]="isLoading || !canApproveSend || isDraft">
-                    Approve &amp; Send
+                    {{ approveButtonLabel }}
                     <span class="rail-icon" aria-hidden="true">✈️</span>
                 </button>
 

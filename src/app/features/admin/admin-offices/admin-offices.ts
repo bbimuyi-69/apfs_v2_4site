@@ -14,6 +14,7 @@ import { ApfsOfficeService, OfficeRow } from 'src/app/core/services/apfs-offices
     RouterModule]
 })
 export class AdminOfficesComponent implements OnInit {
+  getOfficePermissionName = getOfficePermissionName;
 
   rows: OfficeRow[] = [];
   filteredRows: OfficeRow[] = [];
@@ -72,5 +73,21 @@ export class AdminOfficesComponent implements OnInit {
 
   clearSearch() {
     this.q.setValue('');
+  }
+}
+
+
+export function getOfficePermissionName(id: number | null | undefined): string {
+  switch (Number(id)) {
+    case 1:
+      return 'Requirements';
+    case 2:
+      return 'Contracting';
+    case 3:
+      return 'Coordinator';
+    case 4:
+      return 'Admin';
+    default:
+      return 'Unknown';
   }
 }

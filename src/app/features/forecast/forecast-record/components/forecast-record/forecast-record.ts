@@ -88,6 +88,31 @@ interface RailPermissions {
   canApproveSend: boolean;
   canDelete: boolean;
 }
+export function apfsResolveNextLane(from: unknown): ForecastWorkflowLane | null {
+  const s = String(from ?? '').trim().toLowerCase();
+  if (!s) return null;
+
+  if (s.includes('draft')) return ForecastWorkflowLane.Requirements;
+  if (s.includes('require')) return ForecastWorkflowLane.Contracting;
+  if (s.includes('contract')) return ForecastWorkflowLane.APFSCoordinator;
+  if (s.includes('coordinator')) return ForecastWorkflowLane.Published;
+  if (s.includes('publish')) return null;
+
+  return null;
+}
+
+/** Single source of truth for the primary forward action label (record + forward-comment can both use this). */
+export function apfsPrimaryForwardActionLabel(from: unknown): 'Approve & Send' | 'Save & Publish' {
+  const next = apfsResolveNextLane(from);
+  return next === ForecastWorkflowLane.Published ? 'Save & Publish' : 'Approve & Send';
+}
+
+/** Shareable record link (default is view; pass mode='edit' only when you explicitly want an edit deep-link). */
+export function apfsForecastSharePath(id: string | number, mode: 'view' | 'edit' = 'view'): string {
+  const safe = encodeURIComponent(String(id));
+  return mode === 'edit' ? `/forecast/${safe}?mode=edit` : `/forecast/${safe}`;
+}
+
 //#endregion
 
 @Component({
@@ -642,13 +667,16 @@ export class ForecastRecordComponent {
     return 'Unknown';
   }
 
-  private normalizeRailRole(): 'Requirements' | 'Contracting' | 'APFS Coordinator' | 'Admin' | 'Viewer' {
+  private normalizeRailRole(): 'Requirements' | 'Contracting' | 'APFS Coordinator' | 'Admin' | 'Super Admin' | 'Viewer' {
     const roleRaw = (this.userProfile?.role ?? '').trim().toLowerCase();
     if (!roleRaw) return 'Viewer';
 
     if (roleRaw === 'requirements') return 'Requirements';
     if (roleRaw === 'contracting office' || roleRaw === 'contracting') return 'Contracting';
     if (roleRaw === 'apfs coordinator' || roleRaw.includes('coordinator')) return 'APFS Coordinator';
+
+    // ✅ Super Admin before Admin (since it also contains 'admin')
+    if (roleRaw === 'super admin' || roleRaw === 'superadmin' || roleRaw.includes('super admin')) return 'Super Admin';
 
     if (roleRaw === 'admin' || roleRaw.includes('admin')) return 'Admin';
 
@@ -672,16 +700,15 @@ export class ForecastRecordComponent {
   private computeRailPermissions(): void {
     const status = this.normalizeRailStatus(this.workflowStatus);
     const role = this.normalizeRailRole();
-    const isAdmin = role === 'Admin';
+    const isAdmin = role === 'Admin' || role === 'Super Admin';
     const isCoordinator = role === 'APFS Coordinator';
-
-    // ✅ Claim gate applies to everyone (including Admin/Super Admin)
     const claimedByMe = this.claimedByMe;
+
+
 
     const canReassign =
       status !== 'Published' &&
-      (status === 'Requirements' || status === 'Contracting' || status === 'APFS Coordinator') &&
-      (claimedByMe || isCoordinator || isAdmin);
+      (isAdmin);
 
     const canSave =
       status !== 'Published' &&
@@ -1202,6 +1229,14 @@ export class ForecastRecordComponent {
     });
   }
 
+  get approveButtonLabel(): string {
+    // Label is based on the NEXT lane.
+    // If the next step is Published, this is the final action.
+    const fromLaneRaw = this.form?.controls.workflowStatus.value ?? this.workflowStatus;
+    const next = this.nextLaneFromAny(fromLaneRaw);
+    return next === ForecastWorkflowLane.Published ? 'Save & Publish' : 'Approve & Send';
+  }
+
   logInvalidControls(): void {
     if (!this.form) return;
 
@@ -1407,7 +1442,11 @@ export class ForecastRecordComponent {
     if (!this.isEditMode) return false;
     if (this.isPublished) return false;
 
-    const status = this.normalizeRailStatus(this.workflowStatus);
+    // ✅ NEW RULE: never in Draft or Requirements (check raw first)
+    const raw = String(this.workflowStatus ?? '').trim();
+    if (raw === 'Draft' || raw === 'Requirements') return false;
+
+    const status: RailStatus = this.normalizeRailStatus(raw);
     const role = this.normalizeRailRole();
     const isAdmin = role === 'Admin';
 

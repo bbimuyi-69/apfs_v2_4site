@@ -49,8 +49,16 @@
                 <!-- Assignment Permission Level -->
                 <div class="field">
                     <label class="label" for="office_assignment_permissions_level_id">Office Assignment Level *</label>
-                    <input id="office_assignment_permissions_level_id" type="number"
-                        formControlName="office_assignment_permissions_level_id" placeholder="2" min="0" />
+                    <select id="office_assignment_permissions_level_id"
+                        formControlName="office_assignment_permissions_level_id">
+
+                        <option [ngValue]="null">— Select assignment level —</option>
+
+                        <option *ngFor="let o of permissionOptions" [ngValue]="o.id">
+                            {{ o.label }}
+                        </option>
+
+                    </select>
                     <div class="field-error" *ngIf="showError('office_assignment_permissions_level_id')">
                         Assignment level is required.
                     </div>

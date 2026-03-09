@@ -138,3 +138,61 @@
   font-size: var(--text-xs);
   font-weight: 800;
 }
+
+.apfs-id {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.apfs-link {
+  text-decoration: none;
+  padding: 4px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.apfs-link:hover {
+  background: var(--surface-2);
+}
+
+.icon-btn {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.icon-btn:hover {
+  background: var(--surface-2);
+}
+
+.copy-hint {
+  font-size: 12px;
+  color: var(--muted);
+  margin-left: 6px;
+  animation: fadeInOut 1.5s ease;
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+
+  10% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  80% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}

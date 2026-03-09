@@ -68,7 +68,6 @@ Untracked files:
   (use "git add <file>..." to include in what will be committed)
         src/app/features/admin/
 
-`
         
 src/app/app.css
 src/app/app.html

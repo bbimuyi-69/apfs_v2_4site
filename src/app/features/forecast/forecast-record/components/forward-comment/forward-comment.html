@@ -6,7 +6,7 @@
             <div class="label">Forward Comment</div>
 
             <textarea class="textarea" [class.is-invalid]="submitted && comment.invalid" [formControl]="comment"
-                placeholder="Comment for moving this record forward..." rows="10"></textarea>
+                placeholder="Comment for moving this record forward..." rows="8"></textarea>
 
             <div class="help">
                 Required. Comment will be saved to the record history when you move the record forward.
@@ -22,8 +22,9 @@
             <div class="api-err" *ngIf="error">{{ error }}</div>
 
             <div class="actions">
+                <!-- ✅ single button (no nesting) -->
                 <button type="button" class="btn primary" (click)="submitForward()" [disabled]="submitting">
-                    {{ submitting ? 'Sending…' : 'Approve & Send' }}
+                    {{ forwardButtonLabel }}
                 </button>
 
                 <button type="button" class="btn cancel" (click)="cancel()" [disabled]="submitting">

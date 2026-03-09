@@ -9,10 +9,21 @@
     <button class="btn" type="button" (click)="requestClose()">✕</button>
   </div>
 
+
+
   <div class="content" *ngIf="record as r">
     <div class="card frame-corner summary">
-      <div class="k">APFS #</div>
-      <div class="v mono">{{ r.apfsNumber || r.id }}</div>
+      <div class="k">4SITE #</div>
+      <div class="v mono apfs-id">
+        <a class="apfs-link" [routerLink]="['/forecast', r.id]" [queryParams]="{ mode: 'view' }"
+          (dblclick)="copyForecastLink(r)">
+          {{ r.apfsNumber || r.id }}
+        </a>
+        <button type="button" class="icon-btn" (click)="copyForecastLink(r); $event.stopPropagation()">
+          {{ copiedId === r.id ? '✅' : '🔗' }}
+        </button>
+        <span class="copy-hint" *ngIf="copiedId === r.id">Copied!</span>
+      </div>
 
       <div class="k">Title</div>
       <div class="v">{{ r.requirementsTitle || '—' }}</div>

@@ -5,6 +5,7 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 
 import { ApfsOrganizationService } from 'src/app/core/services/apfs-organization.service';
 import { ApfsOfficeService, OfficeRow } from 'src/app/core/services/apfs-offices.service';
+import { getOfficePermissionName } from 'src/app/features/admin/admin-offices/admin-offices'; // for getOfficePermissionName helper
 
 type OfficeFormModel = {
   name: FormControl<string>;
@@ -23,6 +24,14 @@ type OfficeFormModel = {
   styleUrls: ['./admin-office-form.css'],
 })
 export class AdminOfficeFormComponent implements OnInit {
+  getOfficePermissionName = getOfficePermissionName;
+  permissionOptions = [
+    { id: 1, label: 'Requirements' },
+    { id: 2, label: 'Contracting' },
+    { id: 3, label: 'Coordinator' },
+    { id: 4, label: 'Admin' }
+  ];
+
   private readonly officeSvc = inject(ApfsOfficeService);
   private readonly orgSvc = inject(ApfsOrganizationService);
   private readonly route = inject(ActivatedRoute);
@@ -88,6 +97,8 @@ export class AdminOfficeFormComponent implements OnInit {
       },
     });
   }
+
+
 
   loadOffice(id: number): void {
     this.isLoading = true;
