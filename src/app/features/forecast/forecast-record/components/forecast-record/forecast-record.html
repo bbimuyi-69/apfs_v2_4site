@@ -758,9 +758,12 @@
                     <span class="rail-icon" aria-hidden="true">✈️</span>
                 </button>
 
-                <button type="button" class="btn-primary" (click)="recordId ? onSaveRecord() : onSaveDraft()"
-                    [disabled]="!canSave || isLoading">
-                    {{ recordId ? 'Save Record' : 'Save Draft' }}
+                <button type="button" class="btn-primary" (click)="onSave()"
+                    [disabled]="!canSave || isLoading || isSaving">
+
+                    <span *ngIf="isSaving" class="btn-spinner"></span>
+                    {{ saveButtonLabel }}
+
                 </button>
 
 

@@ -21,9 +21,8 @@ COPY backend/package*.json ./backend/
 WORKDIR /app/backend
 RUN npm install --omit=dev
 
-COPY backend ./
-
 WORKDIR /app
+COPY backend ./backend
 COPY --from=build /app/dist ./dist
 
 EXPOSE 8080

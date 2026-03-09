@@ -18,7 +18,7 @@ import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { combineLatest, of, EMPTY, map, shareReplay, tap, Observable } from 'rxjs';
-import { catchError, switchMap, timeout, startWith } from 'rxjs/operators';
+import { catchError, switchMap, timeout, startWith, delay } from 'rxjs/operators';
 import { ForecastWorkflowLane } from '../../models/forecast-record.enums';
 
 import {
@@ -113,6 +113,8 @@ export function apfsForecastSharePath(id: string | number, mode: 'view' | 'edit'
   return mode === 'edit' ? `/forecast/${safe}?mode=edit` : `/forecast/${safe}`;
 }
 
+
+
 //#endregion
 
 @Component({
@@ -135,6 +137,9 @@ export class ForecastRecordComponent {
 
   hasSavedRecord = false; // ✅ HERE to track if we have saved at least once
   saveSuccessMessage = false;
+  isSaving = false;
+  justSaved = false;
+  saveMode: 'draft' | 'record' = 'draft';
 
   //#endregion
 
@@ -1008,6 +1013,8 @@ export class ForecastRecordComponent {
     this.hasSavedRecord = true;
     this.submitted = false;
 
+
+
     // ✅ lock component from auth (read-only)
     this.lockComponentFromAuth();
 
@@ -1100,21 +1107,54 @@ export class ForecastRecordComponent {
     this.openNaics = false;
   }
 
+  onSave(): void {
+    this.saveMode = this.recordId ? 'record' : 'draft';
+
+    if (this.recordId) {
+      this.onSaveRecord();
+    } else {
+      this.onSaveDraft();
+    }
+  }
+
+  get saveButtonLabel(): string {
+    if (this.isSaving) {
+      return this.saveMode === 'record' ? 'Saving Record...' : 'Saving Draft...';
+    }
+
+    if (this.justSaved) {
+      return this.saveMode === 'record' ? '✔ Record Saved' : '✔ Draft Saved';
+    }
+
+    return this.saveMode === 'record' ? 'Save Record' : 'Save Draft';
+  }
+
   //#region Save / Submit
   onSaveDraft(): void {
-
     console.log('[onSaveDraft]', {
       recordId: this.recordId,
       willCall: this.recordId ? 'update' : 'create-path',
     });
 
     console.log('[onSaveDraft] ENTER', { recordId: this.recordId });
+
+    if (this.isSaving) {
+      console.log('[onSaveDraft] blocked: already saving');
+      return;
+    }
+
     if (!this.form) return;
     if (!this.canSave) return;
 
+    this.saveMode = 'draft';
+    this.isSaving = true;
+    this.justSaved = false;
+    this.saveSuccessMessage = false;
+    this.loadError = null;
+    this.flushView();
+
     const raw = this.form.getRawValue() as any;
 
-    // ✅ NEW: enforce "claim" on create as well (creator/admin must be assigned)
     if (!this.recordId) {
       const meId = Number(this.userProfile?.id ?? this.currentUserId ?? 0);
       if (meId) {
@@ -1129,7 +1169,6 @@ export class ForecastRecordComponent {
 
     console.log('[onSaveDraft] after getRawValue', { recordId: this.recordId });
 
-    // Server owns these on CREATE (and update protects them anyway)
     if (!this.recordId) {
       delete raw.apfsNumber;
       delete raw.component;
@@ -1139,34 +1178,38 @@ export class ForecastRecordComponent {
       ? ({ ...raw, id: Number(this.recordId) } as ForecastRecord)
       : (raw as ForecastRecord);
 
-    console.log('[onSaveDraft] service methods', {
-      hasCreate: typeof (this.service as any).create,
-      hasUpdate: typeof (this.service as any).update,
-      hasTransition: typeof (this.service as any).transition,
-    });
-
-
     const request$ = this.recordId
       ? this.service.update(payload)
       : this.service.create(payload);
 
     console.log('[onSaveDraft] BEFORE request subscribe', { recordId: this.recordId });
 
-    request$.subscribe({
-      next: () => this.router.navigate(['/dashboard-v2']),
-      error: (e: unknown) => console.error('Save failed', e),
-    });
+    request$
+      .pipe(delay(2000))
+      .subscribe({
+        next: () => {
+          this.hasSavedRecord = true;
+          this.saveSuccessMessage = true;
+          this.justSaved = true;
+          this.isSaving = false;
+          this.flushView();
 
-    this.hasSavedRecord = true;
-    this.saveSuccessMessage = true;
-
-    // optional: auto-hide after 3 seconds
-    setTimeout(() => {
-      this.saveSuccessMessage = false;
-      this.flushView?.();
-    }, 3000);
-
-
+          setTimeout(() => {
+            this.justSaved = false;
+            this.saveSuccessMessage = false;
+            this.flushView();
+            this.router.navigate(['/dashboard-v2']);
+          }, 1200);
+        },
+        error: (e: unknown) => {
+          console.error('Save failed', e);
+          this.loadError = 'Save failed. Please try again.';
+          this.isSaving = false;
+          this.justSaved = false;
+          this.saveSuccessMessage = false;
+          this.flushView();
+        },
+      });
   }
 
   //Nav Rail on Approve & Send
@@ -1254,49 +1297,15 @@ export class ForecastRecordComponent {
     console.log('form errors', this.form.errors);
   }
 
-  /**
- * DEPRECATED (UI removed):
- * Old submit handler before "Approve & Send" matched APFS behavior (validate + save + then comment).
- * Kept temporarily for reference during refactor; safe to delete once forward flow is stable.
- */
-  onSubmit(): void {
-    if (!this.form) return;
-    if (!this.canApproveSend) return;
 
-    this.submitted = true;
-    this.applyRoleRequiredValidators();
-    this.form.markAllAsTouched();
-
-    if (this.form.invalid) {
-      this.logInvalidControls();
-      this.focusFirstInvalid();
-      return;
-    }
-
-    // existing record -> collect comment then advance
-    if (this.recordId) {
-      this.router.navigate(['/forecast', this.recordId, 'forward'], {
-        queryParams: { returnTo: 'record' },
-      });
-      return;
-    }
-
-    // new record: create first, then go to forward screen
-    const raw = this.form.getRawValue() as any;
-    delete raw.apfsNumber;
-
-    this.service.create(raw).subscribe({
-      next: (created) => {
-        this.router.navigate(['/forecast', created.id, 'forward'], {
-          queryParams: { returnTo: 'record' },
-        });
-      },
-      error: (e) => console.error('Create failed', e),
-    });
-  }
 
 
   onSaveRecord(): void {
+    if (this.isSaving) {
+      console.log('[onSaveRecord] blocked: already saving');
+      return;
+    }
+
     if (!this.form) return;
     if (!this.recordId) return;
     if (!this.canSave) return;
@@ -1305,6 +1314,12 @@ export class ForecastRecordComponent {
     if (!Number.isFinite(idNum)) return;
 
     if (!this.triggerValidationUI()) return;
+
+    this.saveMode = 'record';
+    this.isSaving = true;
+    this.justSaved = false;
+    this.saveSuccessMessage = false;
+    this.loadError = null;
 
     const raw = this.form.getRawValue() as any;
     const base: ForecastRecord = this.record ?? ({ id: idNum } as ForecastRecord);
@@ -1324,41 +1339,46 @@ export class ForecastRecordComponent {
     this.isLoading = true;
     this.flushView();
 
-    this.service.update(recordToSave).subscribe({
-      next: (updated) => {
-        this.record = updated;
+    this.service.update(recordToSave)
+      .pipe(delay(2000))
+      .subscribe({
+        next: (updated) => {
+          this.record = updated;
 
-        // rebuild form so workflowStatus reflects server truth
-        this.form = buildForecastRecordForm(updated);
-        this.wireNaicsTypeahead();
-        this.submitted = false;
+          // rebuild form so workflowStatus reflects server truth
+          this.form = buildForecastRecordForm(updated);
+          this.wireNaicsTypeahead();
+          this.submitted = false;
 
-        this.lockComponentFromAuth();
-        this.hydrateOfficeFromProfile();
-        this.applyAccessState();
-        this.wireStrategicSourcingVehicleToggle();
-        this.hydratePrimaryContactFromProfile();
+          this.lockComponentFromAuth();
+          this.hydrateOfficeFromProfile();
+          this.applyAccessState();
+          this.wireStrategicSourcingVehicleToggle();
+          this.hydratePrimaryContactFromProfile();
 
-        this.isLoading = false;
-        this.flushView(); // ✅ this is the key piece for re-enabling Approve & Send
-        this.hasSavedRecord = true;
-        this.saveSuccessMessage = true;
+          this.hasSavedRecord = true;
+          this.saveSuccessMessage = true;
+          this.justSaved = true;
+          this.isSaving = false;
+          this.isLoading = false;
+          this.flushView();
 
-        // optional: auto-hide after 3 seconds
-        setTimeout(() => {
+          setTimeout(() => {
+            this.justSaved = false;
+            this.saveSuccessMessage = false;
+            this.flushView?.();
+          }, 3000);
+        },
+        error: (e: any) => {
+          console.error('[onSaveRecord] save failed', e);
+          this.loadError = e?.error?.message ?? e?.message ?? 'Save failed. Please try again.';
+          this.isSaving = false;
+          this.justSaved = false;
           this.saveSuccessMessage = false;
-          this.flushView?.();
-        }, 3000);
-
-
-      },
-      error: (e: any) => {
-        console.error('[onSaveRecord] save failed', e);
-        this.loadError = e?.error?.message ?? e?.message ?? 'Save failed. Please try again.';
-        this.isLoading = false;
-        this.flushView(); // ✅ also flush on error
-      },
-    });
+          this.isLoading = false;
+          this.flushView();
+        },
+      });
   }
 
   //#endregion

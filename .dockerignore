@@ -1,7 +1,11 @@
 node_modules
+backend/node_modules
 dist
+backend/dist
 .git
 .vscode
 .angular
 coverage
 npm-debug.log
+Dockerfile*
+.dockerignore
