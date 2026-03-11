@@ -44,12 +44,7 @@ export class App {
       this.auth.loadMe().subscribe({ error: () => { } });
     }
 
-    // ❌ REMOVE THIS (inject() not allowed here)
-    // const themeService: ThemeService = inject(ThemeService);
 
-    // (No further code needed; the service constructor applies the theme)
-    // If you want to be explicit, you could reference it once:
-    // void this.themeService;
 
     this.router.events
       .pipe(
@@ -66,6 +61,11 @@ export class App {
       });
   }
 
+  logout(): void {
+    this.auth.logout();
+    this.closeDropdowns();
+    this.router.navigate(['/welcome']);
+  }
   toggleDropdown(key: DropdownKey, ev: Event): void {
     ev.preventDefault();
     ev.stopPropagation();

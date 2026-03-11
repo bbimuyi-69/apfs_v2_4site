@@ -1,282 +1,533 @@
-/* ===============================
-   APFS App Shell Styles (theme-safe)
-   =============================== */
+/* =========================================================
+   APFS app shell rework
+   DHS / 4SITE-inspired layout
+   ========================================================= */
 
 :host {
   display: block;
   min-height: 100vh;
+  background: #ffffff;
+  color: #111111;
+  font-family: Arial, Helvetica, sans-serif;
+}
 
-  /* Let global styles.css own body bg/font.
-     Keep :host transparent so theme shows through. */
-  background: transparent;
-  font-family: var(--font);
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 .app-layout {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background: #ffffff;
 }
 
-/* ===============================
-   Header (Top nav area)
-   =============================== */
+.site-shell {
+  width: min(1240px, calc(100% - 48px));
+  margin: 0 auto;
+}
+
+/* =========================================================
+   U.S. government banner
+   ========================================================= */
+
+.us-gov-banner {
+  background: #005288;
+  color: #ffffff;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.us-gov-banner__inner {
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.us-gov-banner a {
+  color: #ffffff;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.flag__logo {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+/* =========================================================
+   Main header
+   ========================================================= */
 
 .apfs-header {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  background: #ffffff;
+  border-bottom: 1px solid #d9d9d9;
 }
 
 .apfs-header-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: var(--s-2) var(--s-4);
-
+  min-height: 108px;
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 170px auto 1fr;
   align-items: center;
-  gap: var(--s-5);
-
+  gap: 20px;
+  position: relative;
   overflow: visible;
-  /* allow dropdowns to escape */
 }
 
-/* Brand */
 .apfs-brand {
   display: flex;
   align-items: center;
-  gap: var(--s-3);
+}
+
+.brand-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
 }
 
 .apfs__logo {
-  width: 80px;
-  height: 60px;
+  width: 110px;
+  height: auto;
+  display: block;
 }
 
-.brand-text .brand-title {
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--text);
-  line-height: 1.1;
-}
-
-.brand-text .brand-sub {
-  font-size: 11px;
-  color: var(--muted);
-  line-height: 1.1;
-}
-
-/* ===============================
-   Top Nav
-   =============================== */
+/* =========================================================
+   Nav
+   ========================================================= */
 
 .nav-links {
+  justify-self: center;
   overflow: visible;
 }
 
-.nav-links ul.nav-list {
+.nav-list {
   list-style: none;
   margin: 0;
   padding: 0;
-
   display: flex;
   align-items: center;
-  gap: var(--s-4);
-
-  overflow: visible;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
-.nav-links a,
-.dropdown-toggle {
-  text-decoration: none;
-  color: var(--text);
-
-  padding: 8px 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-
-  font-weight: 500;
-  border-radius: var(--radius-sm);
-}
-
-/* Active link */
-.nav-links a.active {
-  color: #ffffff;
-  background-color: var(--brand-blue);
-}
-
-/* Dropdown */
-li.dropdown {
+.nav-list>li {
   position: relative;
 }
 
-.dropdown-toggle {
+.nav-links a,
+.dropdown-toggle,
+.account-button {
+  appearance: none;
   background: transparent;
   border: 0;
-  margin: 0;
+  color: #111111;
+  text-decoration: none;
   font: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 10px 12px;
+  border-radius: 4px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
 }
 
-/* Hover */
 .nav-links a:hover,
-.dropdown-toggle:hover {
-  background: var(--surface-2);
+.dropdown-toggle:hover,
+.account-button:hover {
+  background: #f3f5f7;
 }
 
-/* Caret */
-.caret {
-  margin-left: 5px;
-  display: inline-block;
+.nav-links a.active {
+  color: #005288;
+}
 
+.caret {
   width: 0;
   height: 0;
-
-  border-top: 5px solid var(--text);
+  border-top: 6px solid currentColor;
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
-
-  transition: transform 0.2s ease;
-  vertical-align: middle;
+  transition: transform 0.18s ease;
+  display: inline-block;
+  margin-left: 2px;
 }
 
 .caret.open {
   transform: rotate(180deg);
 }
 
-/* Dropdown menu */
+/* =========================================================
+   Account area
+   ========================================================= */
+
+.header-account,
+.header-auth {
+  justify-self: end;
+  position: relative;
+}
+
+.account-button {
+  font-size: 16px;
+  font-weight: 700;
+  padding-right: 0;
+}
+
+.account-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.account-email {
+  max-width: 230px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-auth {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-auth__link {
+  text-decoration: none;
+  color: #005288;
+  border: 1px solid #005288;
+  padding: 10px 16px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.header-auth__link--primary {
+  background: #005288;
+  color: #ffffff;
+}
+
+/* =========================================================
+   Dropdowns
+   ========================================================= */
+
 .dropdown-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-
-  min-width: 220px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-
+  list-style: none;
+  margin: 0;
   padding: 6px 0;
-  box-shadow: var(--shadow-md);
+  min-width: 240px;
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  background: #ffffff;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.14);
+  z-index: 1000;
+}
 
-  z-index: 9999;
+.dropdown-menu--right {
+  left: auto;
+  right: 0;
+}
+
+.dropdown-menu li {
+  margin: 0;
 }
 
 .dropdown-menu li a {
   display: block;
-  padding: 10px 14px;
-  color: var(--text);
+  padding: 11px 16px;
   text-decoration: none;
+  color: #111111;
+  font-size: 14px;
+  font-weight: 500;
   white-space: nowrap;
 }
 
 .dropdown-menu li a:hover {
-  background: var(--surface-2);
+  background: #f3f5f7;
 }
 
-/* Government banner */
-.gov-banner {
-  font-size: 12px;
-  color: var(--text);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  white-space: nowrap;
-}
+/* =========================================================
+   Main content stage
+   ========================================================= */
 
-.flag__logo {
-  width: 18px;
-  height: 18px;
-}
-
-/* ===============================
-   Main content
-   =============================== */
-
-.apfs-content {
+.apfs-main {
   flex: 1;
-
-  /* keep current layout: centered content */
-  max-width: 1200px;
-  margin: var(--s-6) auto;
-  padding: 0 var(--s-4);
+  background: #ffffff;
 }
 
-/* App header band (the <app-header> wrapper) */
+.hero-panel {
+  background: #eef1f3;
+  border-top: 1px solid #e3e7ea;
+  min-height: 600px;
+}
+
+.hero-panel__inner {
+  padding: 30px 0 70px;
+}
+
 .app-header-band {
-  background: var(--brand-blue);
-  color: #ffffff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
-
-  margin-bottom: var(--s-4);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  /* keeps rounded corners clean */
+  margin-bottom: 0;
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+  border-radius: 0;
+  overflow: visible;
 }
 
-/* Info section */
+.inner-1200 {
+  width: 100%;
+}
+
+.content-stage {
+  min-height: 540px;
+  padding: 30px 42px 56px;
+}
+
+/* router content spacing */
+router-outlet+* {
+  display: block;
+}
+
 .info-section {
-  margin-top: var(--s-6);
+  max-width: 980px;
+  margin-top: 28px;
+  color: #1f1f1f;
 }
 
 .info-section h2 {
-  margin-top: var(--s-5);
-  font-size: var(--text-md);
-  color: var(--text);
+  margin: 0 0 14px;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: #000000;
 }
 
 .info-section p {
-  margin-top: var(--s-2);
-  font-size: var(--text-sm);
-  line-height: 1.6;
-  color: var(--text);
+  margin: 0 0 18px;
+  font-size: 17px;
+  line-height: 1.45;
+  color: #222222;
 }
 
-/* ===============================
-   Footer
-   =============================== */
+/* =========================================================
+   Logout button (reusing welcome page styles)
+   ========================================================= */
+.logout-buttons {
+  margin: 20px 0 28px 0;
+  display: flex;
+  gap: 14px;
+}
+
+.btn-primary {
+  background: #1a5a96;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+/* =========================================================
+   Footer bands
+   ========================================================= */
+
+.footer-crumbs {
+  background: #f4f4f4;
+  border-top: 1px solid #dddddd;
+  border-bottom: 1px solid #d8d8d8;
+}
+
+.footer-crumbs .site-shell {
+  padding: 16px 0;
+}
+
+.footer-crumbs a {
+  color: #005288;
+  text-decoration: underline;
+  font-size: 16px;
+}
+
+.footer-brand-band {
+  background: #d9dde1;
+}
+
+.footer-brand-band__inner {
+  min-height: 96px;
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  padding: 18px 0;
+}
+
+.footer-seal {
+  width: 62px;
+  height: 62px;
+  object-fit: contain;
+}
+
+.footer-wordmark {
+  width: 150px;
+  height: auto;
+  object-fit: contain;
+}
 
 .apfs-footer {
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  text-align: center;
+  background: #666666;
+  color: #ffffff;
+}
 
-  padding: var(--s-4);
-  font-size: var(--text-sm);
+.apfs-footer__inner {
+  padding: 20px 0 28px;
+}
 
-  color: var(--text);
+.footer-topline {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.footer-seal--small {
+  width: 42px;
+  height: 42px;
+}
+
+.footer-domain {
+  font-size: 16px;
+  line-height: 1.1;
+  margin-bottom: 2px;
+}
+
+.footer-official {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.footer-links-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  gap: 18px 34px;
 }
 
 .apfs-footer a {
-  color: var(--brand-blue);
-  text-decoration: none;
-  margin: 0 5px;
-}
-
-.apfs-footer a:hover {
+  color: #ffffff;
   text-decoration: underline;
+  font-size: 15px;
+  line-height: 1.35;
 }
 
-/* ===============================
+/* =========================================================
    Responsive
-   =============================== */
+   ========================================================= */
+
+@media (max-width: 1180px) {
+  .apfs-header-inner {
+    grid-template-columns: 140px 1fr;
+    padding: 18px 0;
+  }
+
+  .header-account,
+  .header-auth {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+
+  .nav-links {
+    justify-self: start;
+  }
+}
 
 @media (max-width: 900px) {
+  .site-shell {
+    width: min(100% - 28px, 100%);
+  }
+
   .apfs-header-inner {
     grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 14px;
+    min-height: auto;
+    padding: 18px 0;
+  }
+
+  .nav-links {
+    justify-self: center;
+  }
+
+  .nav-list {
+    gap: 4px 8px;
+  }
+
+  .nav-links a,
+  .dropdown-toggle,
+  .account-button {
+    font-size: 15px;
+    padding: 8px 10px;
+  }
+
+  .content-stage {
+    padding: 24px 20px 42px;
+    min-height: 420px;
+  }
+
+  .info-section h2 {
+    font-size: 24px;
+  }
+
+  .info-section p {
+    font-size: 16px;
+  }
+
+  .footer-links-grid {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .us-gov-banner__inner {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .header-auth {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .header-auth__link {
+    width: 100%;
     text-align: center;
   }
 
-  .apfs-brand {
-    justify-content: center;
+  .account-email {
+    max-width: 150px;
   }
 
-  .nav-links ul.nav-list {
-    justify-content: center;
-    flex-wrap: wrap;
+  .dropdown-menu,
+  .dropdown-menu--right {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
   }
 
-  .gov-banner {
-    justify-content: center;
+  .footer-brand-band__inner,
+  .footer-topline {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .footer-links-grid {
+    grid-template-columns: 1fr;
   }
 }

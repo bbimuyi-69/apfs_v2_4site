@@ -1,58 +1,69 @@
 <div class="app-layout">
-  <!-- Header / Nav -->
+
+  <!-- Top government banner -->
+  <div class="us-gov-banner">
+    <div class="site-shell us-gov-banner__inner">
+      <img src="/assets/images/icn-us-flag-21px.png" class="flag__logo" alt="US Flag" />
+      <span>An official website of the United States government</span>
+      <a href="javascript:void(0)" aria-label="Learn how you know">Here’s how you know</a>
+    </div>
+  </div>
+
+  <!-- Main masthead -->
   <header class="apfs-header">
-    <div class="apfs-header-inner">
+    <div class="site-shell apfs-header-inner">
+
+      <!-- Brand -->
       <div class="apfs-brand">
-        <img src="/assets/images/4-site_FINAL_withoutTag.png" class="apfs__logo" alt="4Site" />
-        <div class="brand-text">
-          <div class="brand-sub">Forecasting System for Industry Tracking and Engagement</div>
-        </div>
+        <a routerLink="/welcome" class="brand-link" aria-label="4SITE Home">
+          <img src="/assets/images/4-site_FINAL_withoutTag.png" class="apfs__logo" alt="4Site" />
+        </a>
       </div>
 
+      <!-- Navigation -->
       <nav class="nav-links" aria-label="Primary">
         <ul class="nav-list">
+
           <li>
             <a routerLink="/welcome" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
               Home
             </a>
           </li>
 
-          <li><a routerLink="/contact" routerLinkActive="active">Contact Us</a></li>
-
           <li *ngIf="auth.isLoggedIn">
-            <a routerLink="/dashboard-v2" routerLinkActive="active">Dashboard</a>
-          </li>
-
-          <li *ngIf="auth.isAdmin||auth.isSuperAdmin">
-            <a routerLink="/admin" routerLinkActive="active">
-              System Administration
+            <a routerLink="/dashboard-v2" routerLinkActive="active">
+              Dashboard
             </a>
           </li>
 
+          <li>
+            <a routerLink="/search" routerLinkActive="active">
+              Search
+            </a>
+          </li>
+
+          <!-- Reports -->
           <li class="dropdown" *ngIf="auth.isLoggedIn" [class.active]="dropdowns.reports">
             <button type="button" class="dropdown-toggle" (click)="toggleDropdown('reports', $event)"
               [attr.aria-expanded]="dropdowns.reports" aria-controls="menu-reports">
-              📊 Reports
+              Reports
               <span class="caret" [class.open]="dropdowns.reports"></span>
             </button>
 
             <ul id="menu-reports" class="dropdown-menu" *ngIf="dropdowns.reports" (click)="$event.stopPropagation()">
 
-              <!-- Everyone logged in -->
               <li>
                 <a routerLink="/reports/timeliness-report" (click)="closeDropdowns()">
                   Timeliness Report
                 </a>
               </li>
 
-              <!-- Admin + Super Admin -->
               <li *ngIf="auth.user?.role === 'Admin' || auth.user?.role === 'Super Admin'">
                 <a routerLink="/reports/forecast-summary" (click)="closeDropdowns()">
                   Forecast Summary Report
                 </a>
               </li>
 
-              <!-- Super Admin only -->
               <li *ngIf="auth.user?.role === 'Super Admin'">
                 <a routerLink="/reports/office-performance" (click)="closeDropdowns()">
                   Office Performance Report
@@ -62,18 +73,18 @@
             </ul>
           </li>
 
-
-
-
           <!-- Documentation -->
           <li *ngIf="auth.user" class="dropdown" [class.active]="dropdowns.documentation">
+
             <button type="button" class="dropdown-toggle" (click)="toggleDropdown('documentation', $event)"
               [attr.aria-expanded]="dropdowns.documentation" aria-controls="menu-docs">
-              📘 Documentation
+
+              Documentation
               <span class="caret" [class.open]="dropdowns.documentation"></span>
             </button>
 
             <ul id="menu-docs" class="dropdown-menu" *ngIf="dropdowns.documentation" (click)="$event.stopPropagation()">
+
               <li>
                 <a [href]="documentationLink.href" target="_blank" rel="noopener noreferrer" (click)="closeDropdowns()">
                   {{ documentationLink.label }} (PDF)
@@ -85,68 +96,129 @@
                   APFS Tutorial
                 </a>
               </li>
+
             </ul>
           </li>
 
+          <!-- Admin -->
+          <li *ngIf="auth.isAdmin || auth.isSuperAdmin">
+            <a routerLink="/admin" routerLinkActive="active">
+              System Administration
+            </a>
+          </li>
+
+          <!-- Contact -->
+          <li>
+            <a routerLink="/contact" routerLinkActive="active">
+              Contact Us
+            </a>
+          </li>
 
         </ul>
       </nav>
 
-      <div class="gov-banner">
-        <img src="/assets/images/icn-us-flag-21px.png" class="flag__logo" alt="US Flag" />
-        Official website of the Department of Homeland Security
+      <!-- Account -->
+      <div *ngIf="auth.user; else guestActions" class="header-account">
+
+        <div class="account-display">
+          <span class="account-icon">👤</span>
+          <span class="account-email">{{ auth.user?.email }}</span>
+
+          <span class="account-button">
+            <a href="javascript:void(0)" class="btn-primary" (click)="logout()">
+              Logout
+            </a>
+          </span>
+        </div>
+
+
+
+
+
       </div>
+
+      <!-- Guest actions -->
+      <ng-template #guestActions>
+        <div class="header-auth">
+
+
+
+        </div>
+      </ng-template>
+
     </div>
   </header>
 
-  <!--
-    NOTE about .app-header-band width:
-    Right now, .app-header-band sits inside <main class="apfs-content">, which is max-width: 1200px.
-    So the blue band will be constrained (centered, not full-bleed).
+  <!-- Main page body -->
+  <main class="apfs-main">
+    <div class="hero-panel">
+      <div class="site-shell hero-panel__inner">
 
-    If you want the band to be full width across the viewport, move .app-header-band OUTSIDE the
-    <main class="apfs-content"> wrapper and keep an inner container inside it.
-  -->
+        <div class="content-stage">
+          <router-outlet></router-outlet>
+        </div>
 
-  <!-- Full-width band version (uncomment if you move it outside main)
-  <div class="app-header-band">
-    <div class="inner-1200">
-      <app-header [pageTitle]="title"></app-header>
-    </div>
-  </div>
-  -->
-
-  <!-- Main Content -->
-  <main class="apfs-content">
-    <div class="app-header-band">
-      <div class="inner-1200">
-        <app-header [pageTitle]="title"></app-header>
       </div>
     </div>
-
-    <router-outlet></router-outlet>
-
-    <section class="info-section app-shell-info">
-      <h2>About This Data</h2>
-      <p>Public Law 100-656, the Business Opportunity Development Reform Act of 1988, amended the Small Business Act to
-        emphasize acquisition planning. The law requires agencies to compile and make projections of contracting
-        opportunities that small businesses (including small, disadvantaged businesses and 8(a) program participants,
-        women-owned, Historically Underutilized Business Zone (HUBZone), veteran-owned, and service-disabled
-        veteran-owned) may perform. For more details, review the 'About' link above or click here:</p>
-
-      <h2>Potential Subcontracting Opportunities</h2>
-      <p>The information in APFS helps build the statutorily required annual Forecast of Contract Opportunities (i.e.
-        the Forecast). The Forecast allows industry, especially small businesses, the opportunity to learn about
-        prospective DHS business opportunities (which includes subcontracting) over the simplified acquisition threshold
-        (SAT).</p>
-    </section>
   </main>
 
-  <!-- Footer -->
+  <!-- Footer link strip -->
+  <section class="footer-crumbs">
+    <div class="site-shell">
+      <a routerLink="/welcome">Home</a>
+    </div>
+  </section>
+
+  <!-- Mid footer -->
+  <section class="footer-brand-band">
+    <div class="site-shell footer-brand-band__inner">
+      <img src="/assets/images/logo.svg" class="footer-seal" alt="DHS seal" />
+      <img src="/assets/images/4-site_FINAL_withoutTag.png" class="footer-wordmark" alt="4Site" />
+    </div>
+  </section>
+
+  <!-- Dark footer -->
   <footer class="apfs-footer">
-    <a href="#">Sitemap</a> |
-    <a href="https://www.dhs.gov" target="_blank" rel="noopener">DHS.GOV</a> |
-    <a href="#">FOIA</a> |
-    <a href="#">Privacy Policy</a>
+    <div class="site-shell apfs-footer__inner">
+
+      <div class="footer-topline">
+        <img src="/assets/images/logo.svg" class="footer-seal" alt="DHS seal" />
+
+        <div class="footer-topline__text">
+          <div class="footer-domain">DHS.gov</div>
+          <div class="footer-official">
+            An official website of the U.S. Department of Homeland Security
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-links-grid">
+
+        <a href="https://www.dhs.gov/about-dhs" target="_blank">About DHS</a>
+        <a href="https://www.dhs.gov/dhs-components" target="_blank">DHS Components</a>
+        <a href="https://www.dhs.gov/privacy-policy" target="_blank">Privacy Policy</a>
+        <a href="https://www.whitehouse.gov" target="_blank">The White House</a>
+
+        <a href="https://www.dhs.gov/accessibility" target="_blank">Accessibility Statement</a>
+        <a href="https://www.dhs.gov/foia" target="_blank">FOIA Requests</a>
+        <a href="https://www.dhs.gov/vulnerability-disclosure-program" target="_blank">
+          Vulnerability Disclosure Program
+        </a>
+        <a href="https://www.usa.gov" target="_blank">USA.gov</a>
+
+        <a href="https://www.dhs.gov/publication/budget-performance" target="_blank">
+          Budget and Performance
+        </a>
+        <a href="https://www.dhs.gov/no-fear-act-data" target="_blank">
+          No FEAR Act Data
+        </a>
+        <a href="https://www.oig.dhs.gov" target="_blank">
+          Office of the Inspector General
+        </a>
+
+      </div>
+
+    </div>
   </footer>
+
 </div>
