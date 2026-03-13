@@ -72,7 +72,7 @@
 .apfs-header-inner {
   min-height: 108px;
   display: grid;
-  grid-template-columns: 170px auto 1fr;
+  grid-template-columns: 170px 1fr auto;
   align-items: center;
   gap: 20px;
   position: relative;
@@ -101,8 +101,9 @@
    ========================================================= */
 
 .nav-links {
-  justify-self: center;
+  justify-self: start;
   overflow: visible;
+  min-width: 0;
 }
 
 .nav-list {
@@ -111,13 +112,20 @@
   padding: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  white-space: nowrap;
 }
 
 .nav-list>li {
   position: relative;
+  flex: 0 0 auto;
+}
+
+.nav-list a,
+.nav-list button {
+  font-size: 15px;
 }
 
 .nav-links a,
@@ -129,10 +137,10 @@
   color: #111111;
   text-decoration: none;
   font: inherit;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   line-height: 1;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-radius: 4px;
   cursor: pointer;
   display: inline-flex;
@@ -174,23 +182,35 @@
 .header-auth {
   justify-self: end;
   position: relative;
+  min-width: 0;
+}
+
+.account-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
 }
 
 .account-button {
   font-size: 16px;
   font-weight: 700;
   padding-right: 0;
+  flex: 0 0 auto;
 }
 
 .account-icon {
   font-size: 18px;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
 }
 
 .account-email {
   max-width: 230px;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .header-auth {
@@ -322,6 +342,7 @@ router-outlet+* {
 /* =========================================================
    Logout button (reusing welcome page styles)
    ========================================================= */
+
 .logout-buttons {
   margin: 20px 0 28px 0;
   display: flex;
@@ -433,8 +454,13 @@ router-outlet+* {
 
 @media (max-width: 1180px) {
   .apfs-header-inner {
-    grid-template-columns: 140px 1fr;
-    padding: 18px 0;
+    min-height: 108px;
+    display: grid;
+    grid-template-columns: 170px 1fr auto;
+    align-items: center;
+    gap: 20px;
+    position: relative;
+    overflow: visible;
   }
 
   .header-account,
@@ -445,6 +471,21 @@ router-outlet+* {
 
   .nav-links {
     justify-self: start;
+  }
+
+  .nav-list {
+    gap: 8px;
+  }
+
+  .nav-links a,
+  .dropdown-toggle,
+  .account-button {
+    font-size: 15px;
+    padding: 8px 9px;
+  }
+
+  .account-email {
+    max-width: 180px;
   }
 }
 
@@ -466,7 +507,12 @@ router-outlet+* {
   }
 
   .nav-list {
-    gap: 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    white-space: normal;
   }
 
   .nav-links a,
@@ -474,6 +520,10 @@ router-outlet+* {
   .account-button {
     font-size: 15px;
     padding: 8px 10px;
+  }
+
+  .nav-list li {
+    flex: 0 0 auto;
   }
 
   .content-stage {
@@ -508,6 +558,11 @@ router-outlet+* {
   .header-auth__link {
     width: 100%;
     text-align: center;
+  }
+
+  .account-display {
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
   .account-email {

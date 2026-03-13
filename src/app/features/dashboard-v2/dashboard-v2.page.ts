@@ -1,6 +1,8 @@
 import { Component, ChangeDetectorRef, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs/operators';
+
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 
 import { TopbarV2Component } from './components/topbar/topbar.component';
@@ -20,6 +22,7 @@ import { ForecastWorkflowLane } from '../forecast/forecast-record/models/forecas
 
 type ForecastView = 'claimed' | 'office' | 'activity';
 
+
 @Component({
   selector: 'app-dashboard-v2',
   standalone: true,
@@ -38,6 +41,7 @@ type ForecastView = 'claimed' | 'office' | 'activity';
   styleUrl: './dashboard-v2.page.css',
 })
 export class DashboardV2Page implements OnInit {
+  isRecordRoute = false;
   constructor(
     private auth: AuthService,
     private forecastService: ForecastRecordService, // (kept for now; not used for the 3 new views yet)
@@ -97,7 +101,17 @@ export class DashboardV2Page implements OnInit {
       this.roleLabel.set(roles[0] ?? 'User');
     }
 
-    // ✅ Default dashboard view: Claimed
+    // initial route check
+    this.isRecordRoute = this.router.url.startsWith('/forecast/');
+
+    // keep updated on navigation
+    this.router.events
+      .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
+      .subscribe((e) => {
+        this.isRecordRoute = e.urlAfterRedirects.startsWith('/forecast/');
+      });
+
+    // Default dashboard view: Claimed
     this.loadView('claimed');
   }
 

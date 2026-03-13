@@ -36,11 +36,14 @@
             </a>
           </li>
 
-          <li>
-            <a routerLink="/search" routerLinkActive="active">
-              Search
+          <!-- Admin -->
+          <li *ngIf="auth.isAdmin || auth.isSuperAdmin">
+            <a routerLink="/admin" routerLinkActive="active">
+              System Administration
             </a>
           </li>
+
+
 
           <!-- Reports -->
           <li class="dropdown" *ngIf="auth.isLoggedIn" [class.active]="dropdowns.reports">
@@ -100,12 +103,9 @@
             </ul>
           </li>
 
-          <!-- Admin -->
-          <li *ngIf="auth.isAdmin || auth.isSuperAdmin">
-            <a routerLink="/admin" routerLinkActive="active">
-              System Administration
-            </a>
-          </li>
+
+
+
 
           <!-- Contact -->
           <li>
@@ -114,37 +114,54 @@
             </a>
           </li>
 
+          <!-- User Profile -->
+          <li *ngIf="auth.user" class="dropdown" [class.active]="dropdowns.userProfile">
+
+            <button type="button" class="dropdown-toggle" (click)="toggleDropdown('userProfile', $event)"
+              [attr.aria-expanded]="dropdowns.userProfile" aria-controls="menu-userProfile">
+              User Profile
+              <span class="caret" [class.open]="dropdowns.userProfile"></span>
+            </button>
+
+            <ul id="menu-userProfile" class="dropdown-menu" *ngIf="dropdowns.userProfile"
+              (click)="$event.stopPropagation()">
+
+              <li>
+                <a routerLink="/apfs-tutorial" (click)="closeDropdowns()">
+                  User Profile
+                </a>
+              </li>
+              <li>
+                <a routerLink="/apfs-tutorial" (click)="closeDropdowns()">
+                  Messages
+                </a>
+              </li>
+              <li>
+                <a href="javascript:void(0)" class="btn-primary logout-btn" (click)="logout()">
+                  Logout
+                </a>
+              </li>
+
+
+
+            </ul>
+          </li>
+
+          <li *ngIf="auth.isLoggedIn" class="menu-search">
+
+
+            <form class="nav-search-form" (ngSubmit)="onSearch()">
+              <input type="text" name="searchTerm" [(ngModel)]="searchTerm" placeholder="Search forecasts..."
+                autocomplete="off" />
+
+              <button type="submit">🔎</button>
+            </form>
+          </li>
+
         </ul>
       </nav>
 
-      <!-- Account -->
-      <div *ngIf="auth.user; else guestActions" class="header-account">
 
-        <div class="account-display">
-          <span class="account-icon">👤</span>
-          <span class="account-email">{{ auth.user?.email }}</span>
-
-          <span class="account-button">
-            <a href="javascript:void(0)" class="btn-primary" (click)="logout()">
-              Logout
-            </a>
-          </span>
-        </div>
-
-
-
-
-
-      </div>
-
-      <!-- Guest actions -->
-      <ng-template #guestActions>
-        <div class="header-auth">
-
-
-
-        </div>
-      </ng-template>
 
     </div>
   </header>

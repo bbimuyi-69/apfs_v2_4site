@@ -1,16 +1,3 @@
-<a class="nav-link" routerLink="/dashboard-v2" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">🧭
-  Overview</a>
-<a class="nav-link" routerLink="/forecast" routerLinkActive="active">📄 Forecast</a>
-
-
-
-<a *ngIf="showNewRequest" class="nav-link nav-cta" routerLink="/forecast/new" routerLinkActive="active">
+<button *ngIf="showNewRequest" class="new-request-btn" routerLink="/forecast/new">
   ➕ New Request
-</a>
-
-<!-- Documentation -->
-<div class="nav-section">
-  <a class="nav-link nav-doc" [href]="documentationLink.href" target="_blank" rel="noopener noreferrer">
-    📘 {{ documentationLink.label }}
-  </a>
-</div>
+</button>

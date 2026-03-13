@@ -134,6 +134,12 @@ export const routes: Routes = [
         canActivate: [authGuard],
         data: { title: 'Forecast Dashboard' },
     },
+    {
+        path: 'search',
+        loadComponent: () =>
+            import('./features/search/search').then(m => m.Search),
+        data: { title: 'Search Forecast Records' }
+    },
 
 
     {

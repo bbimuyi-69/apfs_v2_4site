@@ -45,8 +45,11 @@
 /* Layout */
 .layout {
   display: grid;
-  grid-template-columns: 240px 1fr;
-  min-height: calc(100vh - 56px);
+  grid-template-columns: 1fr;
+}
+
+.layout.record-mode {
+  grid-template-columns: 220px 1fr;
 }
 
 app-nav-rail {

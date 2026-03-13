@@ -164,4 +164,21 @@ export class AuthService {
 
     return aliasMap[v] ?? v; // if they typed something weird, let backend reject it
   }
+
+  get displayName(): string {
+    const user = this.user;
+    if (!user) return '';
+
+    // adjust these fields to match your actual User model
+    const first = (user as any).first_name ?? (user as any).firstName ?? '';
+    const last = (user as any).last_name ?? (user as any).lastName ?? '';
+    const full = `${first} ${last}`.trim();
+
+    return (
+      full ||
+      (user as any).name ||
+      user.email ||
+      ''
+    );
+  }
 }

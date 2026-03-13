@@ -1,0 +1,102 @@
+<div class="search-page">
+    <div class="search-page__header">
+        <div class="search-title-wrap">
+            <h1>{{ pageTitle }}</h1>
+            <p class="subtext" *ngIf="!loading && !error">
+                {{ results.length }} result{{ results.length === 1 ? '' : 's' }}
+            </p>
+        </div>
+
+        <div class="header-actions">
+            <button type="button" class="filter-toggle-btn" (click)="toggleFilters()">
+                {{ showFilters ? 'Hide Filters' : 'Show Filters' }}
+            </button>
+        </div>
+    </div>
+
+    <div class="search-layout" [class.filters-hidden]="!showFilters">
+        <section class="results-panel">
+            <div class="applied-filters" *ngIf="appliedFilterChips.length > 0">
+                <span class="applied-label">Filters used:</span>
+
+                <button type="button" class="filter-chip" *ngFor="let chip of appliedFilterChips"
+                    (click)="removeChip(chip)">
+                    {{ chip }} ✕
+                </button>
+
+                <button type="button" class="clear-btn" (click)="clearAll()">Clear All</button>
+            </div>
+
+            <div class="results-toolbar">
+                <div class="toolbar-left">
+                    <span *ngIf="loading">Loading...</span>
+                    <span *ngIf="error" class="error-text">{{ error }}</span>
+                    <span *ngIf="!loading && !error && results.length === 0">No records found.</span>
+                </div>
+
+                <div class="toolbar-right">
+                    <label for="quickSearch">Quick Search:</label>
+                    <input id="quickSearch" type="text" [(ngModel)]="quickSearch"
+                        (ngModelChange)="onQuickSearchChange()" placeholder="Type to filter results..." />
+                </div>
+            </div>
+
+            <div class="results-table-wrap">
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>APFS Number</th>
+                            <th>Component</th>
+                            <th>Requirements Title</th>
+                            <th>NAICS Code</th>
+                            <th>Dollar Range</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <tr *ngIf="!loading && results.length === 0">
+                            <td colspan="5" class="empty-state">No records found.</td>
+                        </tr>
+
+                        <tr *ngFor="let r of results" [routerLink]="['/forecast', r.id]" class="clickable-row">
+                            <td>{{ r.apfsNumber || '—' }}</td>
+                            <td>{{ r.component || '—' }}</td>
+                            <td>{{ r.requirementsTitle || '—' }}</td>
+                            <td>{{ r.naicsCode || '—' }}</td>
+                            <td>{{ r.estimatedDollarValue || '—' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <aside class="filters-panel" *ngIf="showFilters">
+            <div class="filters-card">
+                <div class="filters-card__header">
+                    <h2>Filters</h2>
+                </div>
+
+                <div class="filter-field">
+                    <label for="apfsNumber">APFS Number</label>
+                    <input id="apfsNumber" type="text" [(ngModel)]="filters.apfsNumber" />
+                </div>
+
+                <div class="filter-field">
+                    <label for="requirementsTitle">Requirements Title</label>
+                    <input id="requirementsTitle" type="text" [(ngModel)]="filters.requirementsTitle" />
+                </div>
+
+                <div class="filter-field">
+                    <label for="naicsCode">NAICS</label>
+                    <input id="naicsCode" type="text" [(ngModel)]="filters.naicsCode" />
+                </div>
+
+                <div class="filters-actions">
+                    <button type="button" class="btn btn-primary" (click)="applyFilters()">Apply</button>
+                    <button type="button" class="btn btn-secondary" (click)="clearAll()">Reset</button>
+                    <button type="button" class="btn btn-link" (click)="toggleFilters()">Cancel</button>
+                </div>
+            </div>
+        </aside>
+    </div>
+</div>

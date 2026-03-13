@@ -1,7 +1,7 @@
 <section class="welcome-panel">
-
-    <h1>Welcome</h1>
-
+    <h1>
+        Welcome {{ auth.user?.firstName }} {{ auth.user?.lastName }}
+    </h1>
     <p class="lead">
         The Department of Homeland Security (DHS) Forecasting System for Industry Tracking and
         Engagement (4SITE) is a government portal used to create and track new contract actions over
@@ -9,6 +9,8 @@
         includes procurements expected to have a solicitation released in the current and/or
         subsequent fiscal years.
     </p>
+
+
 
     <div class="welcome-buttons">
         <a routerLink="/user-login" class="btn-primary">Sign In</a>
