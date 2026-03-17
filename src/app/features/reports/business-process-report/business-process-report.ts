@@ -173,7 +173,7 @@ export class BusinessProcessReportComponent {
 
   openRecord(row: BusinessProcessDetailRow): void {
     if (!row?.recordId) return;
-
+    this.drawerOpen = false;
     this.selectedRecordId = row.recordId;
     this.recordPanelLoading = false;
     this.recordPanelOpen = true;
