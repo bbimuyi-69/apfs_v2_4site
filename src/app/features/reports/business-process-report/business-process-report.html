@@ -1,0 +1,241 @@
+<div class="apfs-report">
+    <h1 class="apfs-title">Business Process Report</h1>
+    <div class="apfs-subtitle">Press “Filter Report” to generate the report.</div>
+
+    <!-- Blue header + description panel -->
+    <section class="apfs-panel">
+        <div class="apfs-panel__hdr">Business Process Report</div>
+        <div class="apfs-panel__body">
+            This report shows business process activity by workflow section and may be filtered based on the selected
+            components, offices, date range or fiscal year. If none of the filter criteria are selected, the report
+            will return results based on all records in 4SITE. Hyperlinks are provided to lists of the individual
+            records
+            for approvals, rejections, current records and touched records. The results are downloadable as CSV, Excel
+            and PDF. Once the report is run the criteria can be updated by clicking on the "Show Filters" button,
+            changing the desired criteria, and clicking the "Filter Report" button.
+        </div>
+    </section>
+
+    <!-- FILTERS -->
+    <section class="apfs-section" *ngIf="showFilters">
+        <h2 class="apfs-h2">Filters</h2>
+
+        <div class="apfs-note">All filter fields are optional. Use commas for multiple values.</div>
+
+        <div class="apfs-form">
+            <label class="apfs-label">Component</label>
+            <input class="apfs-input" [(ngModel)]="componentsText" name="componentsText"
+                placeholder="e.g. DHS HQ, CBP" />
+
+            <label class="apfs-label">Requirements Office</label>
+            <input class="apfs-input" [(ngModel)]="requirementsOfficesText" name="requirementsOfficesText"
+                placeholder="e.g. OCIO, DHS HQ CPO" />
+
+            <label class="apfs-label">Contracting Office</label>
+            <input class="apfs-input" [(ngModel)]="contractingOfficesText" name="contractingOfficesText"
+                placeholder="e.g. DHS HQ/NPPD/FPS/East CCG" />
+
+            <label class="apfs-label">4SITE Coordinator Office</label>
+            <input class="apfs-input" [(ngModel)]="coordinatorOfficesText" name="coordinatorOfficesText"
+                placeholder="e.g. HQ Coordinator Office" />
+
+            <label class="apfs-label">Fiscal Year</label>
+            <input class="apfs-input" [(ngModel)]="fiscalYearsText" name="fiscalYearsText"
+                placeholder="e.g. 2026, 2025" />
+
+            <label class="apfs-label">Start Date</label>
+            <input class="apfs-input" type="date" [(ngModel)]="startDate" name="startDate" />
+
+            <label class="apfs-label">End Date</label>
+            <input class="apfs-input" type="date" [(ngModel)]="endDate" name="endDate" />
+
+            <div class="apfs-note" style="margin-top:6px;">
+                Filters report activity within selected time period and current record location. Leave blank for
+                anytime.
+            </div>
+
+            <label class="apfs-label">Creation Date After</label>
+            <input class="apfs-input" type="date" [(ngModel)]="creationDateAfter" name="creationDateAfter" />
+
+            <label class="apfs-label">Creation Date Before</label>
+            <input class="apfs-input" type="date" [(ngModel)]="creationDateBefore" name="creationDateBefore" />
+
+            <div class="apfs-note" style="margin-top:6px;">
+                Filters records created within this time window.
+            </div>
+
+            <div class="apfs-actions">
+                <button class="apfs-btn apfs-btn--primary" type="button" (click)="run()">
+                    Filter Report ▼
+                </button>
+
+                <button class="apfs-btn apfs-btn--ghost" type="button" (click)="reset()">
+                    Reset
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- RESULTS -->
+    <section class="apfs-section" *ngIf="(summary$ | async) as s">
+        <div class="apfs-toolbar">
+            <div class="apfs-toolbar__left">
+                <button class="apfs-btn apfs-btn--ghost" type="button" (click)="downloadCsv(s)">
+                    CSV
+                </button>
+                <button class="apfs-btn apfs-btn--ghost" type="button" (click)="downloadExcel(s)">
+                    Excel
+                </button>
+                <button class="apfs-btn apfs-btn--ghost" type="button" (click)="downloadPdf(s)">
+                    PDF
+                </button>
+                <button class="apfs-btn apfs-btn--ghost" type="button" (click)="toggleFilters()">
+                    {{ showFilters ? 'Hide Filters' : 'Show Filters' }} ▼
+                </button>
+            </div>
+
+            <div class="apfs-alert apfs-alert--success" *ngIf="lastRan">
+                Report Updated
+                <span class="apfs-alert__x" (click)="lastRan=false" role="button" aria-label="Close">×</span>
+            </div>
+        </div>
+
+        <h2 class="apfs-h2">Results</h2>
+        <div class="apfs-divider"></div>
+
+        <div class="apfs-result apfs-result--section" *ngFor="let key of sectionKeys">
+            <div class="apfs-result__label">
+                <strong>{{ getSection(s, key).label || sectionLabel(key) }}</strong>
+            </div>
+
+            <div class="apfs-biz-grid">
+                <div class="apfs-biz-card">
+                    <div class="apfs-biz-card__label">Total Approvals</div>
+                    <div class="apfs-biz-card__value">{{ getSection(s, key).totalApprovals }}</div>
+                </div>
+
+                <div class="apfs-biz-card">
+                    <div class="apfs-biz-card__label">Average Approval Time</div>
+                    <div class="apfs-biz-card__value">{{ getSection(s, key).avgApprovalDisplay }}</div>
+                </div>
+
+                <div class="apfs-biz-card">
+                    <div class="apfs-biz-card__label">Total Rejections</div>
+                    <div class="apfs-biz-card__value">{{ getSection(s, key).totalRejections }}</div>
+                </div>
+
+                <div class="apfs-biz-card">
+                    <div class="apfs-biz-card__label">Average Rejection Time</div>
+                    <div class="apfs-biz-card__value">{{ getSection(s, key).avgRejectionDisplay }}</div>
+                </div>
+            </div>
+
+            <div class="apfs-biz-links">
+                <div class="apfs-biz-linkrow">
+                    Number of records approved from {{ sectionLabel(key) }}:
+                    <strong>{{ getSection(s, key).totalApprovals }}</strong>
+                    <button class="apfs-link apfs-link--btn" type="button" (click)="openDetail(key, 'approved')">
+                        ( click here to view list )
+                    </button>
+                </div>
+
+                <div class="apfs-biz-linkrow">
+                    Number of records rejected from {{ sectionLabel(key) }}:
+                    <strong>{{ getSection(s, key).totalRejections }}</strong>
+                    <button class="apfs-link apfs-link--btn" type="button" (click)="openDetail(key, 'rejected')">
+                        ( click here to view list )
+                    </button>
+                </div>
+
+                <div class="apfs-biz-linkrow">
+                    Number of records currently in {{ sectionLabel(key) }}:
+                    <strong>{{ getSection(s, key).currentCount }}</strong>
+                    <button class="apfs-link apfs-link--btn" type="button" (click)="openDetail(key, 'current')">
+                        ( click here to view list )
+                    </button>
+                </div>
+
+                <div class="apfs-biz-linkrow">
+                    Number of records touched {{ sectionLabel(key) }}:
+                    <strong>{{ getSection(s, key).touchedCount }}</strong>
+                    <button class="apfs-link apfs-link--btn" type="button" (click)="openDetail(key, 'touched')">
+                        ( click here to view list )
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- DETAIL DRAWER / MODAL -->
+    <div class="apfs-drawer__backdrop" *ngIf="drawerOpen" (click)="closeDrawer()">
+        <section class="apfs-drawer" (click)="$event.stopPropagation()">
+            <div class="apfs-drawer__hdr">
+                <div class="apfs-drawer__title">{{ drawerTitle }}</div>
+                <button class="apfs-drawer__close" type="button" aria-label="Close" (click)="closeDrawer()">×</button>
+            </div>
+
+            <div class="apfs-drawer__body">
+                <table class="apfs-drawer__table">
+                    <thead>
+                        <tr>
+                            <th>APFS Number</th>
+                            <th>Component</th>
+                            <th>Offices</th>
+                            <th>Requirements Title</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <tr [hidden]="!loadingDetails">
+                            <td colspan="4">Loading records...</td>
+                        </tr>
+
+                        <tr *ngFor="let r of drawerRows; trackBy: trackByRecord" [hidden]="loadingDetails">
+                            <td>
+                                <button class="apfs-link apfs-link--btn" type="button" (click)="openRecord(r)">
+                                    {{ r.apfsNumber }}
+                                </button>
+                            </td>
+                            <td>{{ r.component }}</td>
+                            <td>
+                                <div><strong>Requirements:</strong> {{ r.requirementsOffice }}</div>
+                                <div><strong>Contracting:</strong> {{ r.contractingOffice }}</div>
+                                <div><strong>APFS Coordinator:</strong> {{ r.coordinatorOffice }}</div>
+                            </td>
+                            <td>{{ r.requirementsTitle }}</td>
+                        </tr>
+
+                        <tr [hidden]="loadingDetails || drawerRows.length > 0">
+                            <td colspan="4">No Records to Display.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <div class="apfs-recordpanel__backdrop" *ngIf="recordPanelOpen" (click)="closeRecordPanel()">
+        <aside class="apfs-recordpanel" (click)="$event.stopPropagation()">
+            <div class="apfs-recordpanel__hdr">
+                <div class="apfs-recordpanel__title">Forecast Record</div>
+                <button class="apfs-recordpanel__close" type="button" aria-label="Close" (click)="closeRecordPanel()">
+                    ×
+                </button>
+            </div>
+
+            <div class="apfs-recordpanel__body">
+                <div class="apfs-recordpanel__meta" *ngIf="recordPanelLoading">
+                    Loading record {{ selectedRecordId }}...
+                </div>
+
+                <div class="apfs-recordpanel__placeholder" *ngIf="!recordPanelLoading">
+                    <p><strong>Selected Record Id:</strong> {{ selectedRecordId }}</p>
+                    <p>
+                        This is the new left slide-in panel shell. Next step is to load your
+                        actual forecast record detail view here.
+                    </p>
+                </div>
+            </div>
+        </aside>
+    </div>
+</div>

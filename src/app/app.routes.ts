@@ -12,7 +12,7 @@ import { DashboardV2Page } from './features/dashboard-v2/dashboard-v2.page';
 import { authGuard } from './auth/auth-guard';
 
 // Forecast
-import { ForecastListComponent } from './features/forecast/forecast-list/forecast-list';
+
 import { ForecastRecordComponent } from './features/forecast/forecast-record/components/forecast-record/forecast-record';
 import { RejectCommentComponent } from './features/forecast/forecast-record/components/reject-comment/reject-comment';
 import { ForwardCommentComponent } from './features/forecast/forecast-record/components/forward-comment/forward-comment';
@@ -128,12 +128,7 @@ export const routes: Routes = [
         data: { title: 'Forecast Record' },
     },
 
-    {
-        path: 'forecast',
-        component: ForecastListComponent,
-        canActivate: [authGuard],
-        data: { title: 'Forecast Dashboard' },
-    },
+
     {
         path: 'search',
         loadComponent: () =>
@@ -165,6 +160,12 @@ export const routes: Routes = [
         loadComponent: () =>
             import('./features/reports/timeliness-report/timeliness-report')
                 .then(m => m.TimelinessReportComponent)
+    },
+    {
+        path: 'reports/business-process-report',
+        loadComponent: () =>
+            import('./features/reports/business-process-report/business-process-report')
+                .then(m => m.BusinessProcessReportComponent)
     },
 
 

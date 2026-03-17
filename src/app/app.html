@@ -60,6 +60,11 @@
                   Timeliness Report
                 </a>
               </li>
+              <li>
+                <a routerLink="/reports/business-process-report" (click)="closeDropdowns()">
+                  Business Process Report
+                </a>
+              </li>
 
               <li *ngIf="auth.user?.role === 'Admin' || auth.user?.role === 'Super Admin'">
                 <a routerLink="/reports/forecast-summary" (click)="closeDropdowns()">

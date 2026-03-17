@@ -37,6 +37,29 @@
             <input class="apfs-input" [(ngModel)]="fiscalYearsText" name="fiscalYearsText"
                 placeholder="e.g. 2026, 2025" />
 
+            <!-- Activity Date Range -->
+            <label class="apfs-label">Start Date</label>
+            <input class="apfs-input" type="date" [(ngModel)]="startDate" name="startDate" />
+
+            <label class="apfs-label">End Date</label>
+            <input class="apfs-input" type="date" [(ngModel)]="endDate" name="endDate" />
+
+            <div class="apfs-note" style="margin-top:6px;">
+                Filters report activity within selected time period and current record location. Leave blank for
+                anytime.
+            </div>
+
+            <!-- Creation Date Range -->
+            <label class="apfs-label">Creation Date After</label>
+            <input class="apfs-input" type="date" [(ngModel)]="creationDateAfter" name="creationDateAfter" />
+
+            <label class="apfs-label">Creation Date Before</label>
+            <input class="apfs-input" type="date" [(ngModel)]="creationDateBefore" name="creationDateBefore" />
+
+            <div class="apfs-note" style="margin-top:6px;">
+                Filters records created within this time window.
+            </div>
+
             <div class="apfs-actions">
                 <button class="apfs-btn apfs-btn--primary" type="button" (click)="run()">
                     Filter Report ▼

@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { ForecastRecordService } from '../forecast/forecast-record/services/forecast-record.service';
+import { ForecastRecordService, ForecastRecordPage } from '../forecast/forecast-record/services/forecast-record.service';
 import { ForecastRecord } from '../forecast/forecast-record/models/forecast-record.model';
 
 type SearchResultRow = {
@@ -112,23 +112,33 @@ export class Search {
     this.cdr.detectChanges();
 
     this.forecastRecordService.list({
-      q: this.searchTerm,
+      q: '',
       page: 1,
       pageSize: 100,
       assigned: 'all',
       status: 'All',
       sort: 'updatedAt:desc',
     }).subscribe({
-      next: (rows: ForecastRecord[]) => {
-        this.allResults = (rows ?? [])
-          .filter((r): r is ForecastRecord & { id: number } => typeof r.id === 'number')
-          .map(r => this.toSearchRow(r));
+      next: (page: any) => {
+        console.log('SEARCH RESPONSE', page);
+        console.log('TOTAL', page?.total);
+        console.log('ITEM COUNT', page?.items?.length);
+        console.log('ITEMS', page?.items ?? []);
+
+        const rows = page?.items ?? [];
+
+        this.allResults = rows
+          .filter((r: any): r is ForecastRecord & { id: number } => typeof r.id === 'number')
+          .map((r: ForecastRecord & { id: number }) => this.toSearchRow(r));
+
+        console.log('ALL RESULTS AFTER MAP', this.allResults);
 
         this.applyClientFilters();
         this.loading = false;
         this.cdr.detectChanges();
       },
       error: (err: any) => {
+        console.error('SEARCH ERROR', err);
         this.error = err?.message ?? 'Search failed.';
         this.allResults = [];
         this.results = [];
@@ -180,8 +190,6 @@ export class Search {
 
       if (searchNeedle && !haystack.includes(searchNeedle)) return false;
       if (quickNeedle && !haystack.includes(quickNeedle)) return false;
-
-
 
       return true;
     });

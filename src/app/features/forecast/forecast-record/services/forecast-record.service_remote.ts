@@ -123,7 +123,7 @@ export class ForecastRecordService {
 
       // Accept either new field or legacy status from old seed snippets
       const lane = this.coerceLane((partial as any).workflowStatus ?? (partial as any).status);
-
+     
       const rec: ForecastRecord = this.normalize({
         ...createEmptyForecastRecord(),
         id,
@@ -297,7 +297,7 @@ export class ForecastRecordService {
 
   // ===============================
   // LIST (paged)
-  // ===============================
+// ===============================
   list(query: ForecastRecordQuery = {}): Observable<ForecastRecordPage> {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 25;
@@ -319,20 +319,18 @@ export class ForecastRecordService {
 
       return this.http
         .get<{
-          page?: number;
-          pageSize?: number;
-          total?: number;
-          items?: any[];
-          rows?: any[];
+          page: number;
+          pageSize: number;
+          total: number;
+          items: any[];
         }>(this.baseUrl, { params, headers: this.userHeaders() })
         .pipe(
           map((resp) => {
-
-            const items = (resp.items ?? resp.rows ?? []).map((r: any) => this.normalize(r));
+            const items = (resp.items ?? []).map((r: any) => this.normalize(r));
             return {
-              page: resp.page ?? page,
-              pageSize: resp.pageSize ?? pageSize,
-              total: resp.total ?? items.length,
+              page: resp.page,
+              pageSize: resp.pageSize,
+              total: resp.total,
               items,
             } as ForecastRecordPage;
           })

@@ -39,16 +39,23 @@ export class TimelinessReportComponent {
   showFilters = true;
   lastRan = false;
 
-  // ✅ UI text fields (comma-separated). These are what the HTML binds to.
   componentsText = '';
   requirementsOfficesText = '';
   fiscalYearsText = '';
 
-  // ✅ Service filters (arrays)
+  startDate = '';
+  endDate = '';
+  creationDateAfter = '';
+  creationDateBefore = '';
+
   filters: TimelinessFilters = {
     components: [],
     requirementsOffices: [],
     fiscalYears: [],
+    startDate: '',
+    endDate: '',
+    creationDateAfter: '',
+    creationDateBefore: '',
   };
 
   summary$: Observable<TimelinessSummary | null> = of(null);
@@ -63,11 +70,11 @@ export class TimelinessReportComponent {
     'MISSING_DATES',
   ] as const;
 
-  constructor(private timeliness: TimelinessReportService) { }
-
   drawerOpen = false;
   drawerTitle = '';
   drawerRows: TimelinessListRow[] = [];
+
+  constructor(private timeliness: TimelinessReportService) { }
 
   openBucket(k: BucketKey, s: TimelinessSummary): void {
     this.drawerTitle = this.bucketLabel(k);
@@ -91,26 +98,36 @@ export class TimelinessReportComponent {
   run(): void {
     this.lastRan = true;
 
-    // ✅ Convert text inputs -> array filters
     this.filters = {
       components: this.splitCsv(this.componentsText),
       requirementsOffices: this.splitCsv(this.requirementsOfficesText),
       fiscalYears: this.splitCsv(this.fiscalYearsText),
+      startDate: this.startDate || '',
+      endDate: this.endDate || '',
+      creationDateAfter: this.creationDateAfter || '',
+      creationDateBefore: this.creationDateBefore || '',
     };
 
     this.summary$ = this.timeliness.getTimelinessSummary$(this.filters);
   }
 
   reset(): void {
-    // ✅ clear UI + clear filters
     this.componentsText = '';
     this.requirementsOfficesText = '';
     this.fiscalYearsText = '';
+    this.startDate = '';
+    this.endDate = '';
+    this.creationDateAfter = '';
+    this.creationDateBefore = '';
 
     this.filters = {
       components: [],
       requirementsOffices: [],
       fiscalYears: [],
+      startDate: '',
+      endDate: '',
+      creationDateAfter: '',
+      creationDateBefore: '',
     };
 
     this.summary$ = of(null);
@@ -129,7 +146,7 @@ export class TimelinessReportComponent {
       DUE_61_90: 'Published 61–90 days before award date',
       DUE_91_180: 'Published 91–180 days before award date',
       DUE_181_PLUS: 'Published 181+ days before award date',
-      MISSING_DATES: 'Missing award date and/or updatedAt',
+      MISSING_DATES: 'Missing award date and/or published date',
     };
     return labels[k];
   }
@@ -147,11 +164,8 @@ export class TimelinessReportComponent {
     return colors[k];
   }
 
-
-  // ✅ Bonus: CSV download of all rows in the summary
   downloadCsv(s: TimelinessSummary): void {
-    const allRows = Object.values(s.rowsByBucket).flat();
-
+    const allRows = Object.values(s.rowsByBucket ?? {}).flat();
     if (!allRows.length) return;
 
     const headers = [
@@ -177,7 +191,9 @@ export class TimelinessReportComponent {
       )
     ];
 
-    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([csvRows.join('\n')], {
+      type: 'text/csv;charset=utf-8;'
+    });
 
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -186,7 +202,7 @@ export class TimelinessReportComponent {
   }
 
   downloadExcel(s: TimelinessSummary): void {
-    const allRows = Object.values(s.rowsByBucket).flat();
+    const allRows = Object.values(s.rowsByBucket ?? {}).flat();
     if (!allRows.length) return;
 
     const worksheetData = allRows.map(r => ({
@@ -205,7 +221,7 @@ export class TimelinessReportComponent {
   }
 
   downloadPdf(s: TimelinessSummary): void {
-    const allRows = Object.values(s.rowsByBucket).flat();
+    const allRows = Object.values(s.rowsByBucket ?? {}).flat();
     if (!allRows.length) return;
 
     const doc = new jsPDF();
