@@ -17,6 +17,9 @@ import {
   BusinessProcessSectionSummary
 } from '../services/business-process-report.service';
 
+import { ForecastRecord } from '../../forecast/forecast-record/models/forecast-record.model';
+import { ForecastRecordService, RecordHistoryRow } from '../../forecast/forecast-record/services/forecast-record.service';
+
 @Component({
   standalone: true,
   selector: 'app-business-process-report',
@@ -38,6 +41,8 @@ export class BusinessProcessReportComponent {
   recordPanelOpen = false;
   recordPanelLoading = false;
   selectedRecordId: number | null = null;
+  selectedRecord: ForecastRecord | null = null;
+  recordHistory: RecordHistoryRow[] = [];
 
   componentsText = '';
   requirementsOfficesText = '';
@@ -76,8 +81,11 @@ export class BusinessProcessReportComponent {
   drawerRows: BusinessProcessDetailRow[] = [];
   loadingDetails = false;
 
+
   constructor(
-    private businessProcess: BusinessProcessReportService, private cdr: ChangeDetectorRef
+    private businessProcess: BusinessProcessReportService,
+    private forecastRecordService: ForecastRecordService,
+    private cdr: ChangeDetectorRef
   ) { }
 
   private splitCsv(s: string): string[] {
@@ -173,16 +181,47 @@ export class BusinessProcessReportComponent {
 
   openRecord(row: BusinessProcessDetailRow): void {
     if (!row?.recordId) return;
-    this.drawerOpen = false;
+
     this.selectedRecordId = row.recordId;
-    this.recordPanelLoading = false;
+    this.selectedRecord = null;
+    this.recordHistory = [];
+    this.recordPanelLoading = true;
     this.recordPanelOpen = true;
+
+    this.forecastRecordService.getById(row.recordId).subscribe({
+      next: (record: ForecastRecord) => {
+        this.selectedRecord = record;
+        this.recordPanelLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: (err: unknown) => {
+        console.error('record load error', err);
+        this.selectedRecord = null;
+        this.recordPanelLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
+
+    this.forecastRecordService.getHistory(row.recordId).subscribe({
+      next: (history: RecordHistoryRow[]) => {
+        this.recordHistory = history ?? [];
+      },
+      error: (err: unknown) => {
+        console.error('record history load error', err);
+        this.recordHistory = [];
+      }
+    });
   }
+
+
+
 
   closeRecordPanel(): void {
     this.recordPanelOpen = false;
     this.recordPanelLoading = false;
     this.selectedRecordId = null;
+    this.selectedRecord = null;
+    this.recordHistory = [];
   }
 
   trackByRecord(index: number, row: BusinessProcessDetailRow): number | string {

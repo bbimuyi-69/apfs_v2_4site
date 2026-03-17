@@ -214,28 +214,184 @@
         </section>
     </div>
 
-    <div class="apfs-recordpanel__backdrop" *ngIf="recordPanelOpen" (click)="closeRecordPanel()">
-        <aside class="apfs-recordpanel" (click)="$event.stopPropagation()">
-            <div class="apfs-recordpanel__hdr">
-                <div class="apfs-recordpanel__title">Forecast Record</div>
-                <button class="apfs-recordpanel__close" type="button" aria-label="Close" (click)="closeRecordPanel()">
-                    ×
-                </button>
-            </div>
+    <div class="apfs-recordpanel__body">
 
-            <div class="apfs-recordpanel__body">
-                <div class="apfs-recordpanel__meta" *ngIf="recordPanelLoading">
-                    Loading record {{ selectedRecordId }}...
+        <!-- LOADING -->
+        <div class="apfs-recordpanel__meta" *ngIf="recordPanelLoading">
+            Loading record {{ selectedRecordId }}...
+        </div>
+
+        <!-- RECORD CONTENT -->
+        <div class="apfs-recordprint" *ngIf="!recordPanelLoading && selectedRecord">
+
+            <!-- HEADER -->
+            <div class="apfs-recordprint__top">
+
+                <div class="apfs-recordprint__titleblock">
+                    <div class="apfs-recordprint__system">
+                        Acquisition Planning Forecast System
+                    </div>
+
+                    <div class="apfs-recordprint__recordline">
+                        <span class="apfs-recordprint__label">
+                            Forecast Record Number:
+                        </span>
+                        <span class="apfs-recordprint__number">
+                            {{ selectedRecord.apfsNumber }}
+                        </span>
+                    </div>
                 </div>
 
-                <div class="apfs-recordpanel__placeholder" *ngIf="!recordPanelLoading">
-                    <p><strong>Selected Record Id:</strong> {{ selectedRecordId }}</p>
-                    <p>
-                        This is the new left slide-in panel shell. Next step is to load your
-                        actual forecast record detail view here.
-                    </p>
+                <div class="apfs-recordprint__actions">
+                    <button class="apfs-btn apfs-btn--primary" type="button">
+                        Print
+                    </button>
+                    <button class="apfs-btn apfs-btn--ghost" type="button">
+                        Go To Record Page
+                    </button>
                 </div>
+
+                <div class="apfs-recordprint__seal">
+                    <img src="/assets/dhs-seal.png" alt="DHS seal" />
+                </div>
+
             </div>
-        </aside>
+
+            <!-- TOP INFO -->
+            <table class="apfs-recordprint__table">
+                <tbody>
+                    <tr>
+                        <td><strong>Component:</strong></td>
+                        <td>{{ selectedRecord.component }}</td>
+                        <td><strong>Published Date:</strong></td>
+                        <td>{{ selectedRecord.component }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Requirements Office:</strong></td>
+                        <td>get data</td>
+                        <td><strong>Previously Published On:</strong></td>
+                        <td>get data</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Contracting Office:</strong></td>
+
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td><strong>APFS Coordinator Office:</strong></td>
+
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- MAIN DETAILS -->
+            <table class="apfs-recordprint__table apfs-recordprint__table--spaced">
+                <tbody>
+
+                    <tr>
+                        <td><strong>NAICS:</strong></td>
+                        <td>{{ selectedRecord.naicsCode }}</td>
+                        <td><strong>Competition:</strong></td>
+                        <td>{{ selectedRecord.competitive }}</td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Small Business Set-Aside:</strong></td>
+                        <td>{{ selectedRecord.smallBusinessSetAside }}</td>
+                        <td><strong>Small Business Program:</strong></td>
+                        <td>{{ selectedRecord.smallBusinessProgram }}</td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Contract Vehicle:</strong></td>
+                        <td>{{ selectedRecord.strategicSourcingVehicle || 'None' }}</td>
+                        <td><strong>Contract Type:</strong></td>
+                        <td>{{ selectedRecord.contractType }}</td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Contract Complete:</strong></td>
+                        <td>find data</td>
+                        <td><strong>Contract Status:</strong></td>
+                        <td>{{ selectedRecord.contractStatus }}</td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Estimated Period Of Performance:</strong></td>
+                        <td colspan="3">
+                            {{ selectedRecord.estimatedPopStart }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Estimated Solicitation Release:</strong></td>
+                        <td>{{ selectedRecord.estimatedSolicitationReleaseDate }}</td>
+                        <td><strong>Anticipated Award Date:</strong></td>
+                        <td>{{ selectedRecord.anticipatedAwardDate }}</td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Estimated Dollar Range:</strong></td>
+                        <td>{{ selectedRecord.dollarRange }}</td>
+                        <td><strong>Fiscal Year:</strong></td>
+                        <td>{{ selectedRecord.fiscalYear }}</td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Requirements Title:</strong></td>
+                        <td colspan="3">
+                            {{ selectedRecord.requirementsTitle }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Description:</strong></td>
+                        <td colspan="3">
+                            {{ selectedRecord.requirement }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Place of Performance:</strong></td>
+                        <td>{{ selectedRecord.placeOfPerformanceCity }}</td>
+                        <td><strong>Primary POC Name:</strong></td>
+                        <td>{{ selectedRecord.primaryContactFirstName }} {{ selectedRecord.primaryContactLastName }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Primary POC Phone:</strong></td>
+                        <td>{{ selectedRecord.primaryContactPhone }}</td>
+                        <td><strong>Primary POC Email:</strong></td>
+                        <td>{{ selectedRecord.primaryContactEmail }}</td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Small Business Specialist/APFS Coordinator Name:</strong></td>
+                        <td>{{ selectedRecord.sbSpecialistFirstName }} {{ selectedRecord.sbSpecialistLastName }}</td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+
+                    <tr>
+                        <td><strong>Small Business Specialist/APFS Coordinator Phone:</strong></td>
+                        <td>{{ selectedRecord.sbSpecialistPhone }}</td>
+                        <td><strong>Small Business Specialist/APFS Coordinator Email:</strong></td>
+                        <td>{{ selectedRecord.sbSpecialistEmail }}</td>
+                    </tr>
+
+                </tbody>
+            </table>
+
+        </div>
+
+        <!-- EMPTY -->
+        <div class="apfs-recordpanel__placeholder" *ngIf="!recordPanelLoading && !selectedRecord">
+            Unable to load record.
+        </div>
+
     </div>
 </div>
