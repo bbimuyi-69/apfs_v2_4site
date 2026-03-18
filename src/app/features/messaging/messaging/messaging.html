@@ -1,0 +1,126 @@
+<div class="messaging-page">
+
+    <!-- =========================
+       HEADER (BLUE BAR)
+       ========================= -->
+    <div class="messaging-header">
+        <h1>Message List</h1>
+
+        <div class="header-actions">
+            <button (click)="markSelected(1)">Mark Read</button>
+            <button (click)="markSelected(0)">Mark Unread</button>
+            <button class="danger" (click)="deleteSelected()">Delete Selected Messages</button>
+        </div>
+    </div>
+
+    <!-- =========================
+       TOP TOOLBAR
+       ========================= -->
+    <div class="search-bar">
+        <input type="text" placeholder="" [(ngModel)]="quickSearch" (input)="applyFilters()" />
+
+        <button (click)="showFilters = !showFilters">
+            Search Filters...
+        </button>
+    </div>
+
+    <!-- =========================
+       MAIN BODY
+       ========================= -->
+    <div class="messaging-body">
+
+        <!-- =========================
+         TABLE
+         ========================= -->
+        <div class="message-table">
+
+            <!-- HEADER ROW -->
+            <div class="row header">
+                <div>
+                    <input type="checkbox" (change)="toggleAll()" />
+                </div>
+                <div>Subject</div>
+                <div>Body</div>
+                <div>Time</div>
+            </div>
+
+            <!-- DATA ROWS -->
+            <div class="row" *ngFor="let row of results" [class.unread]="row.read === 0" (click)="openMessage(row)">
+
+                <!-- checkbox -->
+                <div>
+                    <input type="checkbox" (click)="toggleSelect(row.id, $event)" [checked]="selectedIds.has(row.id)" />
+                </div>
+
+                <!-- subject -->
+                <div class="subject">
+                    {{ row.subject }}
+                </div>
+
+                <!-- body preview -->
+                <div class="body">
+                    {{ row.body | slice:0:95 }}
+                    <span *ngIf="(row.body?.length ?? 0) > 95">...</span>
+                </div>
+
+                <!-- time -->
+                <div class="time">
+                    {{ row.time | date:'shortDate' }}
+                    <small>{{ row.time | date:'shortTime' }}</small>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- =========================
+         FILTER PANEL
+         ========================= -->
+        <div class="filters" *ngIf="showFilters">
+
+            <h3>Filters</h3>
+
+            <label>Subject</label>
+            <input [(ngModel)]="filters.subject" (input)="applyFilters()" />
+
+            <div style="margin-top: 6px;">
+                <button (click)="applyFilters()">Apply</button>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- =========================
+       MESSAGE DETAIL
+       ========================= -->
+    <div class="message-overlay" *ngIf="selectedMessage">
+
+        <div class="message-card">
+
+            <h2>Message</h2>
+
+            <div><strong>To:</strong> {{ selectedMessage.user_id }}</div>
+
+            <div>
+                <strong>Date:</strong>
+                {{ selectedMessage.time | date:'medium' }}
+            </div>
+
+            <div>
+                <strong>Subject:</strong>
+                {{ selectedMessage.subject }}
+            </div>
+
+            <div class="body">
+                <strong>Body:</strong>
+                {{ selectedMessage.body }}
+            </div>
+
+            <button (click)="closeMessage()">Close</button>
+
+        </div>
+
+    </div>
+
+</div>

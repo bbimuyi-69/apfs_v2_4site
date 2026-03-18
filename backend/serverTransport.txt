@@ -1,60 +1,638 @@
-app.post(`${API_PREFIX}/forecast-records`, (req, res) => {
+/* =========================================================
+   REPORTING HELPERS
+   Shared filters + Timeliness + Business Process
+   ========================================================= */
+
+function parseCsvParam(v) {
+    return String(v ?? '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+}
+
+function parseDateOnly(value) {
+    if (!value) return null;
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return null;
+    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0, 0));
+}
+
+function parseDateTime(value) {
+    if (!value) return null;
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function isOnOrAfter(date, min) {
+    if (!min) return true;
+    if (!date) return false;
+    return date.getTime() >= min.getTime();
+}
+
+function isOnOrBefore(date, max) {
+    if (!max) return true;
+    if (!date) return false;
+    return date.getTime() <= max.getTime();
+}
+
+function parseAwardDateToUtc(s) {
+    if (!s) return null;
+    const raw = String(s).trim();
+    if (!raw) return null;
+
+    const mmddyyyy = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (mmddyyyy) {
+        const mm = Number(mmddyyyy[1]);
+        const dd = Number(mmddyyyy[2]);
+        const yyyy = Number(mmddyyyy[3]);
+        const dt = new Date(Date.UTC(yyyy, mm - 1, dd, 0, 0, 0, 0));
+        return Number.isNaN(dt.getTime()) ? null : dt;
+    }
+
+    const iso = new Date(raw);
+    if (Number.isNaN(iso.getTime())) return null;
+
+    return new Date(Date.UTC(
+        iso.getUTCFullYear(),
+        iso.getUTCMonth(),
+        iso.getUTCDate(),
+        0, 0, 0, 0
+    ));
+}
+
+function diffDaysUtc(a, b) {
+    const msPerDay = 24 * 60 * 60 * 1000;
+    return Math.round((a.getTime() - b.getTime()) / msPerDay);
+}
+
+function bucketFor(daysToAward) {
+    if (daysToAward == null) return 'MISSING_DATES';
+    if (daysToAward < 0) return 'PAST_DUE';
+    if (daysToAward <= 30) return 'DUE_0_30';
+    if (daysToAward <= 60) return 'DUE_31_60';
+    if (daysToAward <= 90) return 'DUE_61_90';
+    if (daysToAward <= 180) return 'DUE_91_180';
+    return 'DUE_181_PLUS';
+}
+
+function isPublishedRecord(record) {
+    const s = String(record?.workflowStatus ?? record?.status ?? '').trim().toLowerCase();
+    return s === 'published';
+}
+
+function getRecordActivityTimes(db, forecastId) {
+    const history = Array.isArray(db.recordHistory) ? db.recordHistory : [];
+
+    return history
+        .filter(h => Number(h.forecast_id) === Number(forecastId) && h.time)
+        .map(h => parseDateOnly(h.time))
+        .filter(Boolean)
+        .sort((a, b) => a.getTime() - b.getTime());
+}
+
+function hasActivityInWindow(db, record, start, end) {
+    if (!start && !end) return true;
+
+    const activityTimes = getRecordActivityTimes(db, record.id);
+
+    if (!activityTimes.length) {
+        const fallback = parseDateOnly(record.updatedAt || record.createdAt);
+        return isOnOrAfter(fallback, start) && isOnOrBefore(fallback, end);
+    }
+
+    return activityTimes.some(dt => isOnOrAfter(dt, start) && isOnOrBefore(dt, end));
+}
+
+function getPublishedDate(db, record) {
+    const history = Array.isArray(db.recordHistory) ? db.recordHistory : [];
+
+    const publishEvent = history
+        .filter(h => Number(h.forecast_id) === Number(record.id))
+        .filter(h => Number(h.new_state_id) === 4)
+        .sort((a, b) => new Date(a.time) - new Date(b.time))[0];
+
+    if (publishEvent?.time) {
+        return parseDateOnly(publishEvent.time);
+    }
+
+    return parseDateOnly(record.updatedAt);
+}
+
+function matchesAny(value, allowed) {
+    if (!allowed?.length) return true;
+    const v = String(value ?? '').trim().toLowerCase();
+    return allowed.some(x => String(x).trim().toLowerCase() === v);
+}
+
+function validateReportDateFilters(query) {
+    const startDate = parseDateOnly(query.startDate);
+    const endDate = parseDateOnly(query.endDate);
+    const creationDateAfter = parseDateOnly(query.creationDateAfter);
+    const creationDateBefore = parseDateOnly(query.creationDateBefore);
+
+    if (startDate && endDate && endDate.getTime() < startDate.getTime()) {
+        return { error: 'endDate cannot be before startDate' };
+    }
+
+    if (creationDateAfter && creationDateBefore && creationDateBefore.getTime() < creationDateAfter.getTime()) {
+        return { error: 'creationDateBefore cannot be before creationDateAfter' };
+    }
+
+    return {
+        error: null,
+        startDate,
+        endDate,
+        creationDateAfter,
+        creationDateBefore,
+    };
+}
+
+function filterReportRows(db, me, rawRows, query) {
+    const validated = validateReportDateFilters(query);
+    if (validated.error) {
+        return { error: validated.error };
+    }
+
+    const components = parseCsvParam(query.components);
+    const requirementsOffices = parseCsvParam(query.requirementsOffices);
+    const contractingOffices = parseCsvParam(query.contractingOffices);
+    const coordinatorOffices = parseCsvParam(query.coordinatorOffices);
+    const fiscalYears = parseCsvParam(query.fiscalYears);
+
+    let rows = getVisibleForecastRecords(me, rawRows || []);
+
+    if (components.length) {
+        rows = rows.filter(r => matchesAny(r.component, components));
+    }
+
+    if (requirementsOffices.length) {
+        rows = rows.filter(r => matchesAny(r.requirementsOffice, requirementsOffices));
+    }
+
+    if (contractingOffices.length) {
+        rows = rows.filter(r => matchesAny(r.contractingOffice, contractingOffices));
+    }
+
+    if (coordinatorOffices.length) {
+        rows = rows.filter(r => matchesAny(r.coordinatorOffice, coordinatorOffices));
+    }
+
+    if (fiscalYears.length) {
+        rows = rows.filter(r =>
+            fiscalYears.some(fy => String(r.fiscalYear ?? '').trim() === String(fy).trim())
+        );
+    }
+
+    if (validated.creationDateAfter || validated.creationDateBefore) {
+        rows = rows.filter(r => {
+            const created = parseDateOnly(r.createdAt);
+            return isOnOrAfter(created, validated.creationDateAfter)
+                && isOnOrBefore(created, validated.creationDateBefore);
+        });
+    }
+
+    if (validated.startDate || validated.endDate) {
+        rows = rows.filter(r => hasActivityInWindow(db, r, validated.startDate, validated.endDate));
+    }
+
+    return {
+        error: null,
+        rows,
+        filtersApplied: {
+            components,
+            requirementsOffices,
+            contractingOffices,
+            coordinatorOffices,
+            fiscalYears,
+            startDate: query.startDate ?? '',
+            endDate: query.endDate ?? '',
+            creationDateAfter: query.creationDateAfter ?? '',
+            creationDateBefore: query.creationDateBefore ?? '',
+        }
+    };
+}
+
+/* =========================================================
+   TIMELINESS
+   ========================================================= */
+
+function summarizeTimelinessRows(db, records) {
+    const counts = {
+        MISSING_DATES: 0,
+        PAST_DUE: 0,
+        DUE_0_30: 0,
+        DUE_31_60: 0,
+        DUE_61_90: 0,
+        DUE_91_180: 0,
+        DUE_181_PLUS: 0,
+    };
+
+    const rowsByBucket = {
+        MISSING_DATES: [],
+        PAST_DUE: [],
+        DUE_0_30: [],
+        DUE_31_60: [],
+        DUE_61_90: [],
+        DUE_91_180: [],
+        DUE_181_PLUS: [],
+    };
+
+    const totalVisible = records.length;
+    const published = records.filter(isPublishedRecord);
+    const totalPublished = published.length;
+    const denom = totalPublished || 1;
+
+    for (const r of published) {
+        const award = parseAwardDateToUtc(r.anticipatedAwardDate || r.anticipated_award_date);
+        const publishedDate = getPublishedDate(db, r);
+
+        let bucket = 'MISSING_DATES';
+        if (award && publishedDate) {
+            bucket = bucketFor(diffDaysUtc(award, publishedDate));
+        }
+
+        counts[bucket]++;
+
+        rowsByBucket[bucket].push({
+            apfsNumber: String(r.apfsNumber ?? r.id ?? ''),
+            recordId: Number(r.id),
+            component: String(r.component ?? '').trim(),
+            office: String(r.requirementsOffice ?? '').trim(),
+            anticipatedAwardDate: String(r.anticipatedAwardDate ?? r.anticipated_award_date ?? '').trim(),
+            publishedDate: publishedDate ? publishedDate.toISOString().slice(0, 10) : '',
+            createdAt: String(r.createdAt ?? '').trim(),
+            updatedAt: String(r.updatedAt ?? '').trim(),
+            workflowStatus: String(r.workflowStatus ?? r.status ?? '').trim(),
+        });
+    }
+
+    return {
+        totalVisible,
+        totalPublished,
+        buckets: {
+            MISSING_DATES: { count: counts.MISSING_DATES, percentOfPublished: +((counts.MISSING_DATES * 100) / denom).toFixed(1) },
+            PAST_DUE: { count: counts.PAST_DUE, percentOfPublished: +((counts.PAST_DUE * 100) / denom).toFixed(1) },
+            DUE_0_30: { count: counts.DUE_0_30, percentOfPublished: +((counts.DUE_0_30 * 100) / denom).toFixed(1) },
+            DUE_31_60: { count: counts.DUE_31_60, percentOfPublished: +((counts.DUE_31_60 * 100) / denom).toFixed(1) },
+            DUE_61_90: { count: counts.DUE_61_90, percentOfPublished: +((counts.DUE_61_90 * 100) / denom).toFixed(1) },
+            DUE_91_180: { count: counts.DUE_91_180, percentOfPublished: +((counts.DUE_91_180 * 100) / denom).toFixed(1) },
+            DUE_181_PLUS: { count: counts.DUE_181_PLUS, percentOfPublished: +((counts.DUE_181_PLUS * 100) / denom).toFixed(1) },
+        },
+        rowsByBucket,
+    };
+}
+
+/* =========================================================
+   BUSINESS PROCESS
+   ========================================================= */
+
+const WORKFLOW_STATE = {
+    NEW: 0,
+    REQUIREMENTS: 1,
+    CONTRACTING: 2,
+    COORDINATOR: 3,
+    PUBLISHED: 4,
+};
+
+function getCurrentStateId(record) {
+    const raw = String(record?.workflowStatus ?? record?.status ?? '').trim().toLowerCase();
+
+    if (raw === 'new') return WORKFLOW_STATE.NEW;
+    if (raw === 'requirements') return WORKFLOW_STATE.REQUIREMENTS;
+    if (raw === 'contracting') return WORKFLOW_STATE.CONTRACTING;
+    if (raw === 'apfs coordinator') return WORKFLOW_STATE.COORDINATOR;
+    if (raw === 'published') return WORKFLOW_STATE.PUBLISHED;
+
+    return null;
+}
+
+function getBusinessSectionMeta(sectionKey) {
+    const map = {
+        requirements: {
+            key: 'requirements',
+            label: 'Requirements',
+            stateId: WORKFLOW_STATE.REQUIREMENTS,
+        },
+        contracting: {
+            key: 'contracting',
+            label: 'Contracting',
+            stateId: WORKFLOW_STATE.CONTRACTING,
+        },
+        coordinator: {
+            key: 'coordinator',
+            label: 'APFS Coordinator',
+            stateId: WORKFLOW_STATE.COORDINATOR,
+        },
+        published: {
+            key: 'published',
+            label: 'Published',
+            stateId: WORKFLOW_STATE.PUBLISHED,
+        },
+    };
+
+    return map[String(sectionKey || '').trim().toLowerCase()] || null;
+}
+
+function getHistoryForForecast(db, forecastId) {
+    const history = Array.isArray(db.recordHistory) ? db.recordHistory : [];
+
+    return history
+        .filter(h => Number(h.forecast_id) === Number(forecastId) && h.time)
+        .slice()
+        .sort((a, b) => new Date(a.time) - new Date(b.time));
+}
+
+function isForwardApproval(fromState, toState) {
+    return (
+        (fromState === WORKFLOW_STATE.REQUIREMENTS && toState === WORKFLOW_STATE.CONTRACTING) ||
+        (fromState === WORKFLOW_STATE.CONTRACTING && toState === WORKFLOW_STATE.COORDINATOR) ||
+        (fromState === WORKFLOW_STATE.COORDINATOR && toState === WORKFLOW_STATE.PUBLISHED)
+    );
+}
+
+function isBackwardRejection(fromState, toState) {
+    return Number.isFinite(fromState) &&
+        Number.isFinite(toState) &&
+        toState < fromState;
+}
+
+function findMostRecentEntryTime(history, laneStateId, upToIndex) {
+    for (let i = upToIndex; i >= 0; i--) {
+        const h = history[i];
+        if (Number(h.new_state_id) !== Number(laneStateId)) continue;
+        const dt = parseDateTime(h.time);
+        if (dt) return dt;
+    }
+    return null;
+}
+
+function formatDuration(ms, emptyLabel) {
+    if (!Number.isFinite(ms) || ms < 0) {
+        return emptyLabel || '';
+    }
+
+    let totalSeconds = Math.floor(ms / 1000);
+    const days = Math.floor(totalSeconds / 86400);
+    totalSeconds -= days * 86400;
+    const hrs = Math.floor(totalSeconds / 3600);
+    totalSeconds -= hrs * 3600;
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds - mins * 60;
+
+    return `${days} Days ${hrs} Hrs ${mins} Min ${secs} Sec`;
+}
+
+function getLaneExitEvents(history, fromStateId, mode) {
+    const out = [];
+
+    for (let i = 0; i < history.length; i++) {
+        const h = history[i];
+        const prev = Number(h.previous_state_id);
+        const next = Number(h.new_state_id);
+
+        if (prev !== Number(fromStateId)) continue;
+
+        const exitTime = parseDateTime(h.time);
+        if (!exitTime) continue;
+
+        const entryTime = findMostRecentEntryTime(history, fromStateId, i);
+        if (!entryTime) continue;
+
+        const approval = mode === 'approved' && isForwardApproval(prev, next);
+        const rejection = mode === 'rejected' && isBackwardRejection(prev, next);
+
+        if (!approval && !rejection) continue;
+
+        out.push({
+            historyId: Number(h.id),
+            previousStateId: prev,
+            newStateId: next,
+            entryTime,
+            exitTime,
+            elapsedMs: exitTime.getTime() - entryTime.getTime(),
+            userComment: String(h.user_comment ?? '').trim(),
+        });
+    }
+
+    return out;
+}
+
+function toBusinessProcessDetailRow(record, extra = {}) {
+    return {
+        recordId: Number(record.id),
+        apfsNumber: String(record.apfsNumber ?? ''),
+        component: String(record.component ?? ''),
+        requirementsOffice: String(record.requirementsOffice ?? ''),
+        contractingOffice: String(record.contractingOffice ?? ''),
+        coordinatorOffice: String(record.coordinatorOffice ?? ''),
+        requirementsTitle: String(record.requirementsTitle ?? ''),
+        workflowStatus: String(record.workflowStatus ?? record.status ?? ''),
+        createdAt: String(record.createdAt ?? ''),
+        updatedAt: String(record.updatedAt ?? ''),
+        enteredAt: extra.enteredAt ?? '',
+        exitedAt: extra.exitedAt ?? '',
+        elapsedDisplay: extra.elapsedDisplay ?? '',
+    };
+}
+
+function buildBusinessSection(db, rows, sectionMeta) {
+    const approvedEvents = [];
+    const rejectedEvents = [];
+    let currentCount = 0;
+    let touchedCount = 0;
+
+    for (const record of rows) {
+        const currentStateId = getCurrentStateId(record);
+        if (currentStateId === sectionMeta.stateId) {
+            currentCount++;
+        }
+
+        const history = getHistoryForForecast(db, record.id);
+
+        const touched = history.some(h =>
+            Number(h.previous_state_id) === sectionMeta.stateId ||
+            Number(h.new_state_id) === sectionMeta.stateId
+        );
+        if (touched) {
+            touchedCount++;
+        }
+
+        approvedEvents.push(
+            ...getLaneExitEvents(history, sectionMeta.stateId, 'approved').map(e => ({
+                record,
+                ...e
+            }))
+        );
+
+        rejectedEvents.push(
+            ...getLaneExitEvents(history, sectionMeta.stateId, 'rejected').map(e => ({
+                record,
+                ...e
+            }))
+        );
+    }
+
+    const avgApprovalMs = approvedEvents.length
+        ? Math.round(approvedEvents.reduce((sum, e) => sum + e.elapsedMs, 0) / approvedEvents.length)
+        : null;
+
+    const avgRejectionMs = rejectedEvents.length
+        ? Math.round(rejectedEvents.reduce((sum, e) => sum + e.elapsedMs, 0) / rejectedEvents.length)
+        : null;
+
+    return {
+        label: sectionMeta.label,
+        totalApprovals: approvedEvents.length,
+        avgApprovalDisplay: approvedEvents.length
+            ? formatDuration(avgApprovalMs, 'No Average Approval Time')
+            : 'No Average Approval Time',
+        totalRejections: rejectedEvents.length,
+        avgRejectionDisplay: rejectedEvents.length
+            ? formatDuration(avgRejectionMs, 'No Average Rejected Time')
+            : 'No Average Rejected Time',
+        currentCount,
+        touchedCount,
+    };
+}
+
+function summarizeBusinessProcessRows(db, rows) {
+    return {
+        sections: {
+            requirements: buildBusinessSection(db, rows, getBusinessSectionMeta('requirements')),
+            contracting: buildBusinessSection(db, rows, getBusinessSectionMeta('contracting')),
+            coordinator: buildBusinessSection(db, rows, getBusinessSectionMeta('coordinator')),
+            published: buildBusinessSection(db, rows, getBusinessSectionMeta('published')),
+        }
+    };
+}
+
+function getBusinessProcessDetailRows(db, rows, sectionKey, metricKey) {
+    const sectionMeta = getBusinessSectionMeta(sectionKey);
+    if (!sectionMeta) return [];
+
+    const metric = String(metricKey ?? '').trim().toLowerCase();
+    const out = [];
+
+    for (const record of rows) {
+        const history = getHistoryForForecast(db, record.id);
+
+        if (metric === 'approved' || metric === 'rejected') {
+            const events = getLaneExitEvents(history, sectionMeta.stateId, metric);
+
+            for (const e of events) {
+                out.push(toBusinessProcessDetailRow(record, {
+                    enteredAt: e.entryTime ? e.entryTime.toISOString() : '',
+                    exitedAt: e.exitTime ? e.exitTime.toISOString() : '',
+                    elapsedDisplay: formatDuration(
+                        e.elapsedMs,
+                        metric === 'approved' ? 'No Average Approval Time' : 'No Average Rejected Time'
+                    ),
+                }));
+            }
+        } else if (metric === 'current') {
+            const currentStateId = getCurrentStateId(record);
+            if (currentStateId === sectionMeta.stateId) {
+                out.push(toBusinessProcessDetailRow(record, {
+                    elapsedDisplay: '',
+                }));
+            }
+        } else if (metric === 'touched') {
+            const touched = history.some(h =>
+                Number(h.previous_state_id) === sectionMeta.stateId ||
+                Number(h.new_state_id) === sectionMeta.stateId
+            );
+
+            if (touched) {
+                out.push(toBusinessProcessDetailRow(record, {
+                    elapsedDisplay: '',
+                }));
+            }
+        }
+    }
+
+    out.sort((a, b) => String(a.apfsNumber).localeCompare(String(b.apfsNumber)));
+    return out;
+}
+
+/* =========================================================
+   REFACTORED TIMELINESS ENDPOINT
+   ========================================================= */
+
+app.get(`${API_PREFIX}/forecast-records/timeliness-report`, (req, res) => {
     const db = loadData();
     const me = getCurrentUser(req, db);
     if (!me) return res.status(401).json({ message: 'Not authenticated' });
 
-    const now = new Date().toISOString();
+    const filtered = filterReportRows(db, me, db.forecastRecords || [], req.query);
+    if (filtered.error) {
+        return res.status(400).json({ message: filtered.error });
+    }
 
-    // Server-owned fields: prevent spoofing
-    const body = { ...(req.body || {}) };
-    delete body.assignedToUserId;
-    delete body.assignedToName;
-    delete body.assignedAt;
+    const summary = summarizeTimelinessRows(db, filtered.rows);
 
-    const record = {
-        ...body,
-        id: Date.now(),
-        component: me.component,
-        apfsNumber: generateApfsNumber({ component: me.component }),
-        workflowStatus: 'Draft',
-        status: 'Draft',
-        createdAt: now,
-        updatedAt: now,
-
-        // ✅ Claim by default on create
-        assignedToUserId: me.id,
-        assignedToName: `${me.firstName ?? ''} ${me.lastName ?? ''}`.trim() || me.email,
-        assignedAt: now,
-    };
-
-    db.forecastRecords = Array.isArray(db.forecastRecords) ? db.forecastRecords : [];
-    db.recordHistory = Array.isArray(db.recordHistory) ? db.recordHistory : [];
-
-    clearLatestHistoryFlag(db, record.id);
-
-    const createdRow = makeHistoryRow({
-        forecastId: record.id,
-        user: me,
-        comment: 'Created',
-        previousStateId: null,
-        newStateId: 0,
-        latest: false, // not latest because we’ll add Claimed after it
+    return res.json({
+        filtersApplied: filtered.filtersApplied,
+        ...summary
     });
+});
 
-    const claimedRow = makeHistoryRow({
-        forecastId: record.id,
-        user: me,
-        comment: 'Claimed',
-        previousStateId: 0,
-        newStateId: 0,
-        latest: true,
-        assignmentId: me.id,
-        assignmentDisplay: `${me.firstName ?? ''} ${me.lastName ?? ''}`.trim() || me.email,
+/* =========================================================
+   BUSINESS PROCESS SUMMARY ENDPOINT
+   ========================================================= */
+
+app.get(`${API_PREFIX}/forecast-records/business-process-report`, (req, res) => {
+    const db = loadData();
+    const me = getCurrentUser(req, db);
+    if (!me) return res.status(401).json({ message: 'Not authenticated' });
+
+    const filtered = filterReportRows(db, me, db.forecastRecords || [], req.query);
+    if (filtered.error) {
+        return res.status(400).json({ message: filtered.error });
+    }
+
+    const summary = summarizeBusinessProcessRows(db, filtered.rows);
+
+    return res.json({
+        filtersApplied: filtered.filtersApplied,
+        ...summary
     });
+});
 
-    db.forecastRecords.push(record);
-    db.recordHistory.push(createdRow, claimedRow);
-    saveData(db);
+/* =========================================================
+   BUSINESS PROCESS DETAIL ENDPOINT
+   ========================================================= */
 
-    res.status(201).json({ ...record, history: [createdRow, claimedRow] });
+app.get(`${API_PREFIX}/forecast-records/business-process-report/details`, (req, res) => {
+    const db = loadData();
+    const me = getCurrentUser(req, db);
+    if (!me) return res.status(401).json({ message: 'Not authenticated' });
+
+    const section = String(req.query.section ?? '').trim().toLowerCase();
+    const metric = String(req.query.metric ?? '').trim().toLowerCase();
+
+    const validSections = ['requirements', 'contracting', 'coordinator', 'published'];
+    const validMetrics = ['approved', 'rejected', 'current', 'touched'];
+
+    if (!validSections.includes(section)) {
+        return res.status(400).json({ message: 'Invalid section' });
+    }
+
+    if (!validMetrics.includes(metric)) {
+        return res.status(400).json({ message: 'Invalid metric' });
+    }
+
+    const filtered = filterReportRows(db, me, db.forecastRecords || [], req.query);
+    if (filtered.error) {
+        return res.status(400).json({ message: filtered.error });
+    }
+
+    const detailRows = getBusinessProcessDetailRows(db, filtered.rows, section, metric);
+
+    return res.json({
+        filtersApplied: filtered.filtersApplied,
+        section,
+        metric,
+        count: detailRows.length,
+        rows: detailRows,
+    });
 });

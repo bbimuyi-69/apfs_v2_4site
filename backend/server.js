@@ -53,7 +53,8 @@ function emptyDb() {
         users: [],
         forecastRecords: [],
         recordHistory: [],
-        apfs_organization: []   // ✅ adding this
+        apfs_organization: [],
+        apfs_usernotification: []
     };
 }
 
@@ -70,6 +71,7 @@ function loadData() {
     if (!data.forecastRecords) data.forecastRecords = [];
     if (!data.recordHistory) data.recordHistory = [];
     if (!data.apfs_organization) data.apfs_organization = [];
+    if (!data.apfs_usernotification) data.apfs_usernotification = [];
 
     // ✅ ADD THESE
     if (!data.offices) data.offices = [];
@@ -2317,6 +2319,133 @@ app.delete(`${API_PREFIX}/offices/:id`, (req, res) => {
     res.json({ message: 'Office deactivated', id });
 });
 
+
+
+/* =========================================================
+   USER NOTIFICATIONS API (FIXED FOR loadData())
+   ========================================================= */
+
+// LIST
+app.get(`${API_PREFIX}/user-notifications`, (req, res) => {
+    const db = loadData();
+
+    const userId = Number(req.query.userId);
+    if (!Number.isFinite(userId)) {
+        return res.status(400).json({ message: 'userId is required' });
+    }
+
+    let rows = db.apfs_usernotification || [];
+
+    rows = rows.filter(n => Number(n.user_id) === userId);
+
+    rows.sort((a, b) =>
+        new Date(b.time).getTime() - new Date(a.time).getTime()
+    );
+
+    res.json({
+        items: rows,
+        total: rows.length,
+        unread: rows.filter(x => Number(x.read) === 0).length
+    });
+});
+
+// GET ONE
+app.get(`${API_PREFIX}/user-notifications/:id`, (req, res) => {
+    const db = loadData();
+    const id = Number(req.params.id);
+
+    const row = (db.apfs_usernotification || []).find(n => Number(n.id) === id);
+
+    if (!row) {
+        return res.status(404).json({ message: 'Notification not found' });
+    }
+
+    res.json(row);
+});
+
+// CREATE
+app.post(`${API_PREFIX}/user-notifications`, (req, res) => {
+    const db = loadData();
+    const { subject, body, user_id } = req.body || {};
+
+    if (!subject || !body || !user_id) {
+        return res.status(400).json({
+            message: 'subject, body, user_id required'
+        });
+    }
+
+    const row = {
+        id: Date.now(),
+        time: new Date().toISOString(),
+        subject: String(subject).trim(),
+        body: String(body).trim(),
+        read: 0,
+        user_id: Number(user_id)
+    };
+
+    db.apfs_usernotification = db.apfs_usernotification || [];
+    db.apfs_usernotification.unshift(row);
+
+    saveData(db);
+
+    res.status(201).json(row);
+});
+
+// MARK READ
+app.patch(`${API_PREFIX}/user-notifications/:id/read`, (req, res) => {
+    const db = loadData();
+    const id = Number(req.params.id);
+    const readValue = Number(req.body?.read);
+
+    const rows = db.apfs_usernotification || [];
+    const idx = rows.findIndex(n => Number(n.id) === id);
+
+    if (idx === -1) {
+        return res.status(404).json({ message: 'Not found' });
+    }
+
+    rows[idx].read = readValue === 1 ? 1 : 0;
+
+    saveData(db);
+
+    res.json(rows[idx]);
+});
+
+// MARK ALL READ
+app.patch(`${API_PREFIX}/user-notifications/read-all`, (req, res) => {
+    const db = loadData();
+    const userId = Number(req.body?.userId);
+
+    let count = 0;
+
+    (db.apfs_usernotification || []).forEach(n => {
+        if (Number(n.user_id) === userId && Number(n.read) === 0) {
+            n.read = 1;
+            count++;
+        }
+    });
+
+    saveData(db);
+
+    res.json({ updated: count });
+});
+
+// DELETE
+app.delete(`${API_PREFIX}/user-notifications/:id`, (req, res) => {
+    const db = loadData();
+    const id = Number(req.params.id);
+
+    const before = db.apfs_usernotification.length;
+
+    db.apfs_usernotification =
+        (db.apfs_usernotification || []).filter(n => Number(n.id) !== id);
+
+    saveData(db);
+
+    res.json({
+        deleted: before - db.apfs_usernotification.length
+    });
+});
 
 // =========================
 // SERVE ANGULAR APP

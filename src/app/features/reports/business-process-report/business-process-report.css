@@ -716,60 +716,120 @@
         font-size: 11px;
     }
 
-    @media print {
 
-        :host {
-            background: #ffffff !important;
-        }
+}
 
-        .apfs-report {
-            max-width: none;
-            margin: 0;
-            padding: 0;
-        }
+@media print {
+    @page {
+        size: auto;
+        margin: 0.5in;
+    }
 
-        /* Hide everything first */
-        .apfs-report>*,
-        .apfs-drawer__backdrop,
-        .apfs-recordpanel__hdr,
-        .apfs-recordprint__actions {
-            display: none !important;
-        }
+    html,
+    body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+    }
 
-        /* Show only the record panel body and printable record section */
-        .apfs-recordpanel__backdrop,
-        .apfs-recordpanel,
-        .apfs-recordpanel__body,
-        .apfs-recordprint {
-            display: block !important;
-            position: static !important;
-            inset: auto !important;
-            width: auto !important;
-            height: auto !important;
-            max-height: none !important;
-            overflow: visible !important;
-            background: #ffffff !important;
-            box-shadow: none !important;
-            border: 0 !important;
-            animation: none !important;
-        }
+    :host {
+        display: block !important;
+        background: #fff !important;
+    }
 
-        .apfs-recordpanel__backdrop {
-            background: transparent !important;
-            padding: 0 !important;
-        }
+    /* Hide normal report page content */
+    .apfs-title,
+    .apfs-subtitle,
+    .apfs-panel,
+    .apfs-section,
+    .apfs-toolbar,
+    .apfs-divider,
+    .apfs-result,
+    .apfs-drawer__backdrop,
+    .apfs-recordpanel__hdr,
+    .apfs-recordprint__actions {
+        display: none !important;
+    }
 
-        .apfs-recordprint,
-        .apfs-recordprint * {
-            visibility: visible !important;
-        }
+    /* Neutralize overlay shell */
+    .apfs-recordpanel__backdrop {
+        display: block !important;
+        position: static !important;
+        inset: auto !important;
+        background: transparent !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
 
-        .apfs-recordprint__table {
-            page-break-inside: avoid;
-        }
+    .apfs-recordpanel {
+        display: block !important;
+        position: static !important;
+        top: auto !important;
+        left: auto !important;
+        width: 100% !important;
+        max-width: none !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        background: transparent !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        animation: none !important;
+        transform: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
 
-        @page {
-            margin: 0.5in;
-        }
+    .apfs-recordpanel__body {
+        display: block !important;
+        overflow: visible !important;
+        height: auto !important;
+        max-height: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        background: transparent !important;
+    }
+
+    /* Print only the record */
+    .apfs-recordprint {
+        display: block !important;
+        position: static !important;
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        break-inside: auto !important;
+        page-break-inside: auto !important;
+    }
+
+    .apfs-recordprint__top {
+        display: grid !important;
+        grid-template-columns: 1fr auto !important;
+        gap: 16px !important;
+        align-items: start !important;
+        margin-bottom: 14px !important;
+    }
+
+    .apfs-recordprint__seal img {
+        width: 90px !important;
+        height: auto !important;
+    }
+
+    .apfs-recordprint__table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        table-layout: fixed !important;
+        margin-bottom: 14px !important;
+        page-break-inside: auto !important;
+    }
+
+    .apfs-recordprint__table tr,
+    .apfs-recordprint__table td,
+    .apfs-recordprint__table th {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
     }
 }
