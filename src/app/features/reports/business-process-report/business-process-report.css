@@ -84,28 +84,23 @@
    ========================================================= */
 .apfs-form {
     display: grid;
-    grid-template-columns: 180px 1fr;
-    gap: 8px 12px;
+    grid-template-columns: 220px 1fr;
+    gap: 10px 16px;
     align-items: center;
-    background: #fff;
-    border: 1px solid #d7d7d7;
-    padding: 12px;
 }
 
 .apfs-label {
-    font-size: 12px;
-    color: #222;
+    justify-self: start;
+    font-weight: 600;
+    color: #333;
 }
 
 .apfs-input {
-    height: 28px;
-    border: 1px solid #b8b8b8;
-    background: #fff;
-    padding: 4px 8px;
-    font-size: 12px;
-    color: #222;
     width: 100%;
-    box-sizing: border-box;
+    height: 36px;
+    padding: 6px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
 }
 
 .apfs-input:focus {
@@ -114,12 +109,19 @@
     box-shadow: 0 0 0 1px rgba(79, 135, 189, 0.18);
 }
 
+/* Notes span full width */
+.apfs-note {
+    grid-column: 1 / -1;
+    font-size: 12px;
+    color: #666;
+}
+
+/* Button row aligned under inputs */
 .apfs-actions {
-    grid-column: 2;
+    grid-column: 2 / 3;
     display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 6px;
+    gap: 10px;
+    margin-top: 8px;
 }
 
 /* =========================================================
@@ -299,6 +301,22 @@
     text-decoration: underline;
 }
 
+.apfs-link--btn {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    color: #1b61a9;
+    text-align: left;
+    cursor: pointer;
+}
+
+.apfs-link--btn:hover {
+    text-decoration: underline;
+}
+
 /* =========================================================
    Drawer / modal
    ========================================================= */
@@ -433,7 +451,7 @@
     position: fixed;
     top: 0;
     left: 0;
-    width: min(820px, calc(100vw - 48px));
+    width: min(1000px, calc(100vw - 48px));
     height: 100vh;
     background: #ffffff;
     border-right: 1px solid #cfcfcf;
@@ -512,6 +530,112 @@
 }
 
 /* =========================================================
+   Printable record detail look
+   ========================================================= */
+.apfs-recordprint {
+    color: #333;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.apfs-recordprint__top {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 16px;
+    align-items: start;
+    margin-bottom: 14px;
+}
+
+.apfs-recordprint__titleblock {
+    min-width: 0;
+}
+
+.apfs-recordprint__system {
+    font-size: 18px;
+    line-height: 1.25;
+    color: #333;
+    margin-bottom: 18px;
+}
+
+.apfs-recordprint__recordline {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.apfs-recordprint__label {
+    font-size: 18px;
+    color: #333;
+}
+
+.apfs-recordprint__number {
+    font-size: 24px;
+    font-weight: 400;
+    color: #333;
+}
+
+.apfs-recordprint__actions {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin-top: 36px;
+}
+
+.apfs-recordprint__seal img {
+    width: 104px;
+    height: auto;
+    display: block;
+}
+
+.apfs-recordprint__table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    margin-bottom: 14px;
+    background: #fff;
+}
+
+.apfs-recordprint__table--spaced {
+    margin-top: 24px;
+}
+
+.apfs-recordprint__table td,
+.apfs-recordprint__table th {
+    border: 1px solid #cfcfcf;
+    padding: 4px 6px;
+    font-size: 12px;
+    line-height: 1.35;
+    vertical-align: top;
+    text-align: left;
+    color: #333;
+    word-wrap: break-word;
+}
+
+.apfs-recordprint__table th {
+    font-weight: 700;
+    background: #f6f6f6;
+}
+
+.apfs-recordprint__table td strong {
+    font-weight: 700;
+}
+
+/* Make the printable tables resemble the screenshot proportions */
+.apfs-recordprint__table td:nth-child(1),
+.apfs-recordprint__table td:nth-child(3),
+.apfs-recordprint__table th:nth-child(1),
+.apfs-recordprint__table th:nth-child(3) {
+    width: 24%;
+}
+
+.apfs-recordprint__table td:nth-child(2),
+.apfs-recordprint__table td:nth-child(4),
+.apfs-recordprint__table th:nth-child(2),
+.apfs-recordprint__table th:nth-child(4) {
+    width: 26%;
+}
+
+/* =========================================================
    Small responsive behavior
    ========================================================= */
 @media (max-width: 980px) {
@@ -529,6 +653,18 @@
     .apfs-biz-grid .apfs-biz-card:nth-child(2n),
     .apfs-biz-links .apfs-biz-linkrow:nth-child(2n) {
         border-right: 0;
+    }
+
+    .apfs-recordprint__top {
+        grid-template-columns: 1fr;
+    }
+
+    .apfs-recordprint__actions {
+        margin-top: 0;
+    }
+
+    .apfs-recordprint__seal {
+        order: -1;
     }
 }
 
@@ -569,107 +705,71 @@
         width: calc(100vw - 20px);
     }
 
-    .apfs-link--btn {
-        appearance: none;
-        border: 0;
-        background: transparent;
-        padding: 0;
-        margin: 0;
-        font: inherit;
-        color: #1b61a9;
-        text-align: left;
-        cursor: pointer;
+    .apfs-recordprint__label,
+    .apfs-recordprint__number,
+    .apfs-recordprint__system {
+        font-size: 16px;
     }
 
-    .apfs-link--btn:hover {
-        text-decoration: underline;
+    .apfs-recordprint__table td,
+    .apfs-recordprint__table th {
+        font-size: 11px;
     }
 
-    .apfs-link--btn {
-        appearance: none;
-        border: 0;
-        background: transparent;
-        padding: 0;
-        margin: 0;
-        font: inherit;
-        color: #1b61a9;
-        text-align: left;
-        cursor: pointer;
-    }
+    @media print {
 
-    .apfs-link--btn:hover {
-        text-decoration: underline;
-    }
+        :host {
+            background: #ffffff !important;
+        }
 
-    /* =========================================================
-   Left slide-in detail panel
-   ========================================================= */
-    .apfs-detailpanel__backdrop {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.08);
-        z-index: 1150;
-    }
+        .apfs-report {
+            max-width: none;
+            margin: 0;
+            padding: 0;
+        }
 
-    .apfs-detailpanel {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: min(980px, calc(100vw - 48px));
-        height: 100vh;
-        background: #ffffff;
-        border-right: 1px solid #cfcfcf;
-        box-shadow: 2px 0 14px rgba(0, 0, 0, 0.18);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        z-index: 1151;
-        animation: apfsSlideInLeft 180ms ease-out;
-    }
+        /* Hide everything first */
+        .apfs-report>*,
+        .apfs-drawer__backdrop,
+        .apfs-recordpanel__hdr,
+        .apfs-recordprint__actions {
+            display: none !important;
+        }
 
-    .apfs-detailpanel__hdr {
-        position: relative;
-        padding: 14px 16px 10px;
-        border-bottom: 1px solid #d7d7d7;
-        background: #f8f8f8;
-        flex: 0 0 auto;
-    }
+        /* Show only the record panel body and printable record section */
+        .apfs-recordpanel__backdrop,
+        .apfs-recordpanel,
+        .apfs-recordpanel__body,
+        .apfs-recordprint {
+            display: block !important;
+            position: static !important;
+            inset: auto !important;
+            width: auto !important;
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+            background: #ffffff !important;
+            box-shadow: none !important;
+            border: 0 !important;
+            animation: none !important;
+        }
 
-    .apfs-detailpanel__title {
-        font-size: 18px;
-        font-weight: 400;
-        color: #222;
-        line-height: 1.2;
-        padding-right: 28px;
-    }
+        .apfs-recordpanel__backdrop {
+            background: transparent !important;
+            padding: 0 !important;
+        }
 
-    .apfs-detailpanel__close {
-        position: absolute;
-        top: 8px;
-        right: 12px;
-        border: 0;
-        background: transparent;
-        color: #999;
-        font-size: 22px;
-        line-height: 1;
-        cursor: pointer;
-        padding: 0;
-    }
+        .apfs-recordprint,
+        .apfs-recordprint * {
+            visibility: visible !important;
+        }
 
-    .apfs-detailpanel__close:hover {
-        color: #333;
-    }
+        .apfs-recordprint__table {
+            page-break-inside: avoid;
+        }
 
-    .apfs-detailpanel__body {
-        flex: 1 1 auto;
-        overflow: auto;
-        padding: 14px 16px 18px;
-        background: #fff;
-    }
-
-    @media (max-width: 700px) {
-        .apfs-detailpanel {
-            width: calc(100vw - 20px);
+        @page {
+            margin: 0.5in;
         }
     }
 }

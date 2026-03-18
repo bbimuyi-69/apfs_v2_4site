@@ -6,6 +6,8 @@ import { AsyncPipe, NgIf, NgFor } from '@angular/common';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { Router } from '@angular/router';
+
 
 import {
   BusinessProcessReportService,
@@ -85,7 +87,8 @@ export class BusinessProcessReportComponent {
   constructor(
     private businessProcess: BusinessProcessReportService,
     private forecastRecordService: ForecastRecordService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private router: Router
   ) { }
 
   private splitCsv(s: string): string[] {
@@ -167,13 +170,13 @@ export class BusinessProcessReportComponent {
         this.drawerRows = Array.isArray(res?.rows) ? res.rows : [];
         this.loadingDetails = false;
         console.log('DRAWER ROWS:', this.drawerRows);
-        this.cdr.markForCheck(); // lighter than detectChanges
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('detail error', err);
         this.drawerRows = [];
         this.loadingDetails = false;
-        this.cdr.markForCheck(); // lighter than detectChanges
+        this.cdr.detectChanges();
 
       }
     });
@@ -187,6 +190,7 @@ export class BusinessProcessReportComponent {
     this.recordHistory = [];
     this.recordPanelLoading = true;
     this.recordPanelOpen = true;
+    this.cdr.detectChanges();
 
     this.forecastRecordService.getById(row.recordId).subscribe({
       next: (record: ForecastRecord) => {
@@ -205,10 +209,12 @@ export class BusinessProcessReportComponent {
     this.forecastRecordService.getHistory(row.recordId).subscribe({
       next: (history: RecordHistoryRow[]) => {
         this.recordHistory = history ?? [];
+        this.cdr.detectChanges();
       },
       error: (err: unknown) => {
         console.error('record history load error', err);
         this.recordHistory = [];
+        this.cdr.detectChanges();
       }
     });
   }
@@ -222,6 +228,31 @@ export class BusinessProcessReportComponent {
     this.selectedRecordId = null;
     this.selectedRecord = null;
     this.recordHistory = [];
+  }
+
+  printRecord(): void {
+    window.print();
+  }
+
+  goToRecord(): void {
+    const id = this.selectedRecordId ?? this.selectedRecord?.id ?? null;
+    console.log('goToRecord clicked, id =', id);
+
+    if (!id) {
+      console.warn('No record id available for navigation');
+      return;
+    }
+
+    this.router.navigate(['/forecast', id]).then(ok => {
+      console.log('navigate result =', ok);
+      if (ok) {
+        this.closeRecordPanel();
+      } else {
+        console.warn('Navigation returned false');
+      }
+    }).catch(err => {
+      console.error('Navigation error', err);
+    });
   }
 
   trackByRecord(index: number, row: BusinessProcessDetailRow): number | string {
