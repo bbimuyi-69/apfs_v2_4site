@@ -616,6 +616,143 @@ app.get(`${API_PREFIX}/forecast-records`, (req, res) => {
     res.json({ rows, total: rows.length });
 });
 
+app.get(`${API_PREFIX}/forecast-records/report-base`, (req, res) => {
+    const db = loadData();
+    const me = getCurrentUser(req, db);
+
+    if (!me) {
+        return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    console.log(
+        'GET /forecast-records/report-base - user:',
+        me.email,
+        'role:',
+        me.role,
+        'component:',
+        me.component,
+        'query:',
+        req.query
+    );
+
+    const allRecords = db.forecastRecords || [];
+
+    // 🔐 Apply existing security scoping FIRST
+    let rows = getVisibleForecastRecords(me, allRecords);
+
+    // -----------------------------
+    // Simple inline filters
+    // -----------------------------
+
+    const components = String(req.query.component || '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+
+    const offices = String(req.query.office || '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+
+    const publishedOnly =
+        String(req.query.publishedOnly ?? 'true').toLowerCase() !== 'false';
+
+    const awardStart = req.query.anticipatedAwardStart
+        ? new Date(req.query.anticipatedAwardStart)
+        : null;
+
+    const awardEnd = req.query.anticipatedAwardEnd
+        ? new Date(req.query.anticipatedAwardEnd)
+        : null;
+
+    const createdAfter = req.query.createdAfter
+        ? new Date(req.query.createdAfter)
+        : null;
+
+    const createdBefore = req.query.createdBefore
+        ? new Date(req.query.createdBefore)
+        : null;
+
+    rows = rows.filter(r => {
+        // -----------------------------
+        // Published filter
+        // -----------------------------
+        if (publishedOnly && String(r.workflowStatus || '').toLowerCase() !== 'published') {
+            return false;
+        }
+
+        // -----------------------------
+        // Component filter
+        // -----------------------------
+        if (components.length) {
+            const recordComponent =
+                r.component ||
+                r.organization ||
+                '';
+
+            if (!components.includes(recordComponent)) {
+                return false;
+            }
+        }
+
+        // -----------------------------
+        // Office filter (match any)
+        // -----------------------------
+        if (offices.length) {
+            const officeValues = [
+                r.office,
+                r.requirementsOffice,
+                r.contractingOffice,
+                r.coordinatorOffice
+            ].filter(Boolean);
+
+            const match = officeValues.some(o => offices.includes(o));
+            if (!match) return false;
+        }
+
+        // -----------------------------
+        // Anticipated Award Date filter
+        // -----------------------------
+        if (awardStart || awardEnd) {
+            const raw =
+                r.anticipatedAwardDate ||
+                r.anticipated_award_date ||
+                r.estimatedAwardDate ||
+                r.awardDate;
+
+            if (!raw) return false;
+
+            const dt = new Date(raw);
+            if (isNaN(dt)) return false;
+
+            if (awardStart && dt < awardStart) return false;
+            if (awardEnd && dt > awardEnd) return false;
+        }
+
+        // -----------------------------
+        // Created date filter
+        // -----------------------------
+        if (createdAfter || createdBefore) {
+            const raw = r.createdAt || r.created_at;
+            if (!raw) return false;
+
+            const dt = new Date(raw);
+            if (isNaN(dt)) return false;
+
+            if (createdAfter && dt < createdAfter) return false;
+            if (createdBefore && dt > createdBefore) return false;
+        }
+
+        return true;
+    });
+
+    // 🔥 Return SAME SHAPE as your existing endpoint
+    res.json({
+        rows,
+        total: rows.length
+    });
+});
+
 
 /* =========================================================
    REPORTING HELPERS

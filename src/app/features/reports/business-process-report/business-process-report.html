@@ -265,34 +265,46 @@
 
                     </div>
 
+
+
                     <!-- TOP INFO -->
-                    <table class="apfs-recordprint__table">
-                        <tbody>
-                            <tr>
-                                <td><strong>Component:</strong></td>
-                                <td>{{ selectedRecord.component }}</td>
-                                <td><strong>Published Date:</strong></td>
-                                <td>{{ selectedRecord.component }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Requirements Office:</strong></td>
-                                <td>get data</td>
-                                <td><strong>Previously Published On:</strong></td>
-                                <td>get data</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Contracting Office:</strong></td>
+                    <table class="apfs-recordprint__table apfs-recordprint__table--top">
+                        <colgroup>
+                            <col class="col-label">
+                            <col class="col-value">
+                            <col class="col-label">
+                            <col class="col-value">
+                        </colgroup>
 
-                                <td></td>
-                                <td></td>
-                            </tr>
-                            <tr>
-                                <td><strong>4SITE Coordinator Office:</strong></td>
+                        <tr>
+                            <th>Component:</th>
+                            <th>{{ selectedRecord.component }}</th>
+                            <th>Published Date:</th>
+                            <th>Previously Published On:</th>
+                        </tr>
 
-                                <td></td>
-                                <td></td>
-                            </tr>
-                        </tbody>
+                        <tr>
+                            <th>Requirements Office:</th>
+                            <td>{{ selectedRecord['requirementsOffice'] }}</td>
+
+
+                        </tr>
+
+                        <tr>
+                            <th>Contracting Office:</th>
+                            <td>{{ selectedRecord['contractingOffice'] }}</td>
+
+                            <th></th>
+                            <td></td>
+                        </tr>
+
+                        <tr>
+                            <th>4SITE Coordinator Office:</th>
+                            <td>{{ selectedRecord['coordinatorOffice'] }}</td>
+
+                            <th></th>
+                            <td></td>
+                        </tr>
                     </table>
 
                     <!-- MAIN DETAILS -->
@@ -395,6 +407,39 @@
 
                         </tbody>
                     </table>
+
+                    <section class="apfs-recordhistory">
+                        <h3 class="apfs-recordhistory__heading">Record History</h3>
+
+                        <div *ngIf="recordHistoryItems.length === 0" class="apfs-recordhistory__empty">
+                            No history yet.
+                        </div>
+
+                        <table *ngIf="recordHistoryItems.length > 0" class="apfs-recordhistory__table">
+                            <thead>
+                                <tr>
+                                    <th>Date/Time</th>
+                                    <th>Moved From</th>
+                                    <th>Moved To</th>
+                                    <th>Assignment</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let h of recordHistoryItems">
+                                    <td>{{ h.at }}</td>
+                                    <td>{{ h.fromState || '' }}</td>
+                                    <td>{{ h.toState || '' }}</td>
+                                    <td class="apfs-recordhistory__assignment">
+                                        <div *ngIf="h.assignmentTo">To: {{ h.assignmentTo }}</div>
+                                        <div *ngIf="h.assignmentFrom">From: {{ h.assignmentFrom }}</div>
+                                        <div *ngIf="!h.assignmentTo && !h.assignmentFrom && h.assignment">
+                                            {{ h.assignment }}
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
 
                 </div>
 

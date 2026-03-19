@@ -65,6 +65,11 @@
                   Business Process Report
                 </a>
               </li>
+              <li>
+                <a routerLink="/reports/anticipated-awards-report" (click)="closeDropdowns()">
+                  Anticipated Awards Report
+                </a>
+              </li>
 
               <li *ngIf="auth.user?.role === 'Admin' || auth.user?.role === 'Super Admin'">
                 <a routerLink="/reports/forecast-summary" (click)="closeDropdowns()">

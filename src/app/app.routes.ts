@@ -169,6 +169,13 @@ export const routes: Routes = [
                 .then(m => m.BusinessProcessReportComponent)
     },
     {
+        path: 'reports/anticipated-awards-report',
+        loadComponent: () =>
+            import('./features/reports/anticipated-awards-report/anticipated-awards-report')
+                .then(m => m.AnticipatedAwardsReport)
+    },
+
+    {
         path: 'messages',
         component: MessagingPage,
         canActivate: [authGuard] // keep consistent with your other protected routes

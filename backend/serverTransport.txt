@@ -1,125 +1,136 @@
-/* =========================================================
-   USER NOTIFICATIONS API (FIXED FOR loadData())
-   ========================================================= */
-
-// LIST
-app.get(`${API_PREFIX}/user-notifications`, (req, res) => {
+app.get(`${API_PREFIX}/forecast-records/report-base`, (req, res) => {
     const db = loadData();
+    const me = getCurrentUser(req, db);
 
-    const userId = Number(req.query.userId);
-    if (!Number.isFinite(userId)) {
-        return res.status(400).json({ message: 'userId is required' });
+    if (!me) {
+        return res.status(401).json({ message: 'Not authenticated' });
     }
 
-    let rows = db.apfs_usernotification || [];
-
-    rows = rows.filter(n => Number(n.user_id) === userId);
-
-    rows.sort((a, b) =>
-        new Date(b.time).getTime() - new Date(a.time).getTime()
+    console.log(
+        'GET /forecast-records/report-base - user:',
+        me.email,
+        'role:',
+        me.role,
+        'component:',
+        me.component,
+        'query:',
+        req.query
     );
 
-    res.json({
-        items: rows,
-        total: rows.length,
-        unread: rows.filter(x => Number(x.read) === 0).length
-    });
-});
+    const allRecords = db.forecastRecords || [];
 
-// GET ONE
-app.get(`${API_PREFIX}/user-notifications/:id`, (req, res) => {
-    const db = loadData();
-    const id = Number(req.params.id);
+    // 🔐 Apply existing security scoping FIRST
+    let rows = getVisibleForecastRecords(me, allRecords);
 
-    const row = (db.apfs_usernotification || []).find(n => Number(n.id) === id);
+    // -----------------------------
+    // Simple inline filters
+    // -----------------------------
 
-    if (!row) {
-        return res.status(404).json({ message: 'Notification not found' });
-    }
+    const components = String(req.query.component || '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
 
-    res.json(row);
-});
+    const offices = String(req.query.office || '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
 
-// CREATE
-app.post(`${API_PREFIX}/user-notifications`, (req, res) => {
-    const db = loadData();
-    const { subject, body, user_id } = req.body || {};
+    const publishedOnly =
+        String(req.query.publishedOnly ?? 'true').toLowerCase() !== 'false';
 
-    if (!subject || !body || !user_id) {
-        return res.status(400).json({
-            message: 'subject, body, user_id required'
-        });
-    }
+    const awardStart = req.query.anticipatedAwardStart
+        ? new Date(req.query.anticipatedAwardStart)
+        : null;
 
-    const row = {
-        id: Date.now(),
-        time: new Date().toISOString(),
-        subject: String(subject).trim(),
-        body: String(body).trim(),
-        read: 0,
-        user_id: Number(user_id)
-    };
+    const awardEnd = req.query.anticipatedAwardEnd
+        ? new Date(req.query.anticipatedAwardEnd)
+        : null;
 
-    db.apfs_usernotification = db.apfs_usernotification || [];
-    db.apfs_usernotification.unshift(row);
+    const createdAfter = req.query.createdAfter
+        ? new Date(req.query.createdAfter)
+        : null;
 
-    saveData(db);
+    const createdBefore = req.query.createdBefore
+        ? new Date(req.query.createdBefore)
+        : null;
 
-    res.status(201).json(row);
-});
-
-// MARK READ
-app.patch(`${API_PREFIX}/user-notifications/:id/read`, (req, res) => {
-    const db = loadData();
-    const id = Number(req.params.id);
-    const readValue = Number(req.body?.read);
-
-    const rows = db.apfs_usernotification || [];
-    const idx = rows.findIndex(n => Number(n.id) === id);
-
-    if (idx === -1) {
-        return res.status(404).json({ message: 'Not found' });
-    }
-
-    rows[idx].read = readValue === 1 ? 1 : 0;
-
-    saveData(db);
-
-    res.json(rows[idx]);
-});
-
-// MARK ALL READ
-app.patch(`${API_PREFIX}/user-notifications/read-all`, (req, res) => {
-    const db = loadData();
-    const userId = Number(req.body?.userId);
-
-    let count = 0;
-
-    (db.apfs_usernotification || []).forEach(n => {
-        if (Number(n.user_id) === userId && Number(n.read) === 0) {
-            n.read = 1;
-            count++;
+    rows = rows.filter(r => {
+        // -----------------------------
+        // Published filter
+        // -----------------------------
+        if (publishedOnly && String(r.workflowStatus || '').toLowerCase() !== 'published') {
+            return false;
         }
+
+        // -----------------------------
+        // Component filter
+        // -----------------------------
+        if (components.length) {
+            const recordComponent =
+                r.component ||
+                r.organization ||
+                '';
+
+            if (!components.includes(recordComponent)) {
+                return false;
+            }
+        }
+
+        // -----------------------------
+        // Office filter (match any)
+        // -----------------------------
+        if (offices.length) {
+            const officeValues = [
+                r.office,
+                r.requirementsOffice,
+                r.contractingOffice,
+                r.coordinatorOffice
+            ].filter(Boolean);
+
+            const match = officeValues.some(o => offices.includes(o));
+            if (!match) return false;
+        }
+
+        // -----------------------------
+        // Anticipated Award Date filter
+        // -----------------------------
+        if (awardStart || awardEnd) {
+            const raw =
+                r.anticipatedAwardDate ||
+                r.anticipated_award_date ||
+                r.estimatedAwardDate ||
+                r.awardDate;
+
+            if (!raw) return false;
+
+            const dt = new Date(raw);
+            if (isNaN(dt)) return false;
+
+            if (awardStart && dt < awardStart) return false;
+            if (awardEnd && dt > awardEnd) return false;
+        }
+
+        // -----------------------------
+        // Created date filter
+        // -----------------------------
+        if (createdAfter || createdBefore) {
+            const raw = r.createdAt || r.created_at;
+            if (!raw) return false;
+
+            const dt = new Date(raw);
+            if (isNaN(dt)) return false;
+
+            if (createdAfter && dt < createdAfter) return false;
+            if (createdBefore && dt > createdBefore) return false;
+        }
+
+        return true;
     });
 
-    saveData(db);
-
-    res.json({ updated: count });
-});
-
-// DELETE
-app.delete(`${API_PREFIX}/user-notifications/:id`, (req, res) => {
-    const db = loadData();
-    const id = Number(req.params.id);
-
-    const before = db.apfs_usernotification.length;
-
-    db.apfs_usernotification =
-        (db.apfs_usernotification || []).filter(n => Number(n.id) !== id);
-
-    saveData(db);
-
+    // 🔥 Return SAME SHAPE as your existing endpoint
     res.json({
-        deleted: before - db.apfs_usernotification.length
+        rows,
+        total: rows.length
     });
 });

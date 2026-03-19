@@ -1,0 +1,214 @@
+<div class="apfs-report">
+    <h1 class="apfs-title">Anticipated Awards Report</h1>
+    <div class="apfs-subtitle">Press "Filter Report" to generate the report.</div>
+
+    <section class="apfs-panel">
+        <div class="apfs-panel__hdr">Anticipated Awards Report</div>
+        <div class="apfs-panel__body">
+            This report provides a count of all Published forecast records in each available dollar range for a list of
+            components based on selected criteria. Links are provided to individual lists of records and the report may
+            be
+            downloaded as CSV and PDF.
+        </div>
+    </section>
+
+    <!-- INITIAL FILTERS ONLY -->
+    <section class="apfs-section" *ngIf="showFilters && !resultsVisible">
+        <h2 class="apfs-h2">Filters</h2>
+
+        <div class="apfs-note">All filter fields are optional.</div>
+
+        <div class="apfs-form">
+            <label class="apfs-label">Component</label>
+            <input class="apfs-input" [(ngModel)]="componentText" name="componentText" placeholder="e.g. CBP, DHS HQ" />
+
+            <label class="apfs-label">Office</label>
+            <input class="apfs-input" [(ngModel)]="officeText" name="officeText"
+                placeholder="e.g. CBP/OAQ, DHS HQ CPO" />
+
+            <label class="apfs-label">Start Date</label>
+            <input class="apfs-input" type="date" [(ngModel)]="anticipatedAwardStart" name="anticipatedAwardStart" />
+            <div class="apfs-help">
+                Filter report to only use records with an Anticipated Award Date within the selected time period.
+            </div>
+
+            <label class="apfs-label">End Date</label>
+            <input class="apfs-input" type="date" [(ngModel)]="anticipatedAwardEnd" name="anticipatedAwardEnd" />
+            <div class="apfs-help">
+                Filter report to only use records with an Anticipated Award Date within the selected time period.
+            </div>
+
+            <div class="apfs-actions">
+                <button class="apfs-btn apfs-btn--primary" type="button" (click)="run()">Filter Report ▼</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- RESULTS -->
+    <section class="apfs-section" *ngIf="resultsVisible">
+        <div class="apfs-toolbar">
+            <div class="apfs-toolbar__left">
+                <button class="apfs-btn apfs-btn--ghost" type="button">CSV</button>
+                <button class="apfs-btn apfs-btn--ghost" type="button">Excel</button>
+                <button class="apfs-btn apfs-btn--ghost" type="button">PDF</button>
+                <button class="apfs-btn apfs-btn--ghost" type="button" (click)="toggleFilters()">
+                    {{ showFilters ? 'Hide Filters' : 'Show Filters' }} ▼
+                </button>
+            </div>
+
+            <div class="apfs-alert apfs-alert--success" *ngIf="lastRan">
+                {{ filterLabel }}
+                <span class="apfs-alert__x" (click)="lastRan=false" role="button" aria-label="Close">×</span>
+            </div>
+
+            <div class="apfs-search">
+                <label class="apfs-search__label">Search:</label>
+                <input class="apfs-search__input" type="text" [(ngModel)]="searchText" />
+            </div>
+        </div>
+
+        <h2 class="apfs-h2">Results</h2>
+        <div class="apfs-divider"></div>
+
+        <div class="apfs-table-wrap">
+            <table class="apfs-table">
+                <thead>
+                    <tr>
+                        <th class="apfs-table__action"></th>
+
+                        <th (click)="setSort('component')" class="apfs-sortable">
+                            Component <span class="apfs-sort-icon">{{ sortArrow('component') }}</span>
+                        </th>
+
+                        <th (click)="setSort('under250k')" class="apfs-sortable">
+                            under $250K <span class="apfs-sort-icon">{{ sortArrow('under250k') }}</span>
+                        </th>
+
+                        <th (click)="setSort('k250To500')" class="apfs-sortable">
+                            $250K to $500K <span class="apfs-sort-icon">{{ sortArrow('k250To500') }}</span>
+                        </th>
+
+                        <th (click)="setSort('k500To1m')" class="apfs-sortable">
+                            $500K to $1M <span class="apfs-sort-icon">{{ sortArrow('k500To1m') }}</span>
+                        </th>
+
+                        <th (click)="setSort('m1To2')" class="apfs-sortable">
+                            $1M to $2M <span class="apfs-sort-icon">{{ sortArrow('m1To2') }}</span>
+                        </th>
+
+                        <th (click)="setSort('m2To5')" class="apfs-sortable">
+                            $2M to $5M <span class="apfs-sort-icon">{{ sortArrow('m2To5') }}</span>
+                        </th>
+
+                        <th (click)="setSort('m5To10')" class="apfs-sortable">
+                            $5M to $10M <span class="apfs-sort-icon">{{ sortArrow('m5To10') }}</span>
+                        </th>
+
+                        <th (click)="setSort('m10To20')" class="apfs-sortable">
+                            $10M to $20M <span class="apfs-sort-icon">{{ sortArrow('m10To20') }}</span>
+                        </th>
+
+                        <th (click)="setSort('m20To50')" class="apfs-sortable">
+                            $20M to $50M <span class="apfs-sort-icon">{{ sortArrow('m20To50') }}</span>
+                        </th>
+
+                        <th (click)="setSort('m50To100')" class="apfs-sortable">
+                            $50M to $100M <span class="apfs-sort-icon">{{ sortArrow('m50To100') }}</span>
+                        </th>
+
+                        <th (click)="setSort('over100m')" class="apfs-sortable">
+                            Over $100M <span class="apfs-sort-icon">{{ sortArrow('over100m') }}</span>
+                        </th>
+
+                        <th (click)="setSort('total')" class="apfs-sortable">
+                            Total <span class="apfs-sort-icon">{{ sortArrow('total') }}</span>
+                        </th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <ng-container *ngFor="let row of displayRows">
+                        <tr [class.apfs-table__total]="row.component === 'TOTAL'">
+                            <td class="apfs-table__action">
+                                <button class="apfs-mini-btn" type="button" (click)="openDetails(row)">
+                                    {{ isExpanded(row) ? 'Hide Forecasts' : 'View Forecasts' }}
+                                </button>
+                            </td>
+                            <td>{{ row.component }}</td>
+                            <td>{{ row.under250k }}</td>
+                            <td>{{ row.k250To500 }}</td>
+                            <td>{{ row.k500To1m }}</td>
+                            <td>{{ row.m1To2 }}</td>
+                            <td>{{ row.m2To5 }}</td>
+                            <td>{{ row.m5To10 }}</td>
+                            <td>{{ row.m10To20 }}</td>
+                            <td>{{ row.m20To50 }}</td>
+                            <td>{{ row.m50To100 }}</td>
+                            <td>{{ row.over100m }}</td>
+                            <td>{{ row.total }}</td>
+                        </tr>
+
+                        <tr *ngIf="isExpanded(row)" class="apfs-inline-detail-row">
+                            <td colspan="13" class="apfs-inline-detail-cell">
+                                <table class="apfs-inline-table">
+                                    <thead>
+                                        <tr>
+                                            <th>APFS Number</th>
+                                            <th>Title</th>
+                                            <th>Dollar Range</th>
+                                            <th>Office</th>
+                                            <th>Anticipated Award Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr *ngFor="let r of expandedRows">
+                                            <td>{{ r.apfsNumber }}</td>
+                                            <td>{{ r.requirementsTitle }}</td>
+                                            <td>{{ r.dollarRange }}</td>
+                                            <td>{{ r.office }}</td>
+                                            <td>{{ r.anticipatedAwardDate }}</td>
+                                        </tr>
+                                        <tr *ngIf="!expandedRows.length">
+                                            <td colspan="5">No records to display.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                    </ng-container>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<!-- RIGHT FILTER DRAWER AFTER RESULTS -->
+<div class="apfs-drawer__backdrop" *ngIf="showFilters && resultsVisible" (click)="toggleFilters()">
+    <section class="apfs-drawer apfs-drawer--filters" (click)="$event.stopPropagation()">
+        <div class="apfs-drawer__hdr">
+            <div class="apfs-drawer__title">Filters</div>
+            <button class="apfs-drawer__close" type="button" aria-label="Close" (click)="toggleFilters()">×</button>
+        </div>
+
+        <div class="apfs-drawer__body">
+            <div class="apfs-note apfs-note--drawer">All filter fields are optional.</div>
+
+            <label class="apfs-label">Component</label>
+            <input class="apfs-input" [(ngModel)]="componentText" name="drawerComponentText" />
+
+            <label class="apfs-label">Office</label>
+            <input class="apfs-input" [(ngModel)]="officeText" name="drawerOfficeText" />
+
+            <label class="apfs-label">Start Date</label>
+            <input class="apfs-input" type="date" [(ngModel)]="anticipatedAwardStart" name="drawerAwardStart" />
+
+            <label class="apfs-label">End Date</label>
+            <input class="apfs-input" type="date" [(ngModel)]="anticipatedAwardEnd" name="drawerAwardEnd" />
+
+            <div class="apfs-actions apfs-actions--drawer">
+                <button class="apfs-btn apfs-btn--primary" type="button" (click)="run()">Filter Report ▼</button>
+                <button class="apfs-btn" type="button" (click)="reset()">Reset</button>
+            </div>
+        </div>
+    </section>
+</div>

@@ -22,6 +22,21 @@ import {
 import { ForecastRecord } from '../../forecast/forecast-record/models/forecast-record.model';
 import { ForecastRecordService, RecordHistoryRow } from '../../forecast/forecast-record/services/forecast-record.service';
 
+type RecordHistoryItemVM = {
+  id: number | string;
+  at: string;
+  atIso?: string;
+  title: string;
+  actor: string;
+  comment?: string;
+  assignment?: string;
+  assignmentTo?: string;
+  assignmentFrom?: string;
+  fromState?: string;
+  toState?: string;
+  isLatest: boolean;
+};
+
 @Component({
   standalone: true,
   selector: 'app-business-process-report',
@@ -45,6 +60,7 @@ export class BusinessProcessReportComponent {
   selectedRecordId: number | null = null;
   selectedRecord: ForecastRecord | null = null;
   recordHistory: RecordHistoryRow[] = [];
+  recordHistoryItems: RecordHistoryItemVM[] = [];
 
   componentsText = '';
   requirementsOfficesText = '';
@@ -188,46 +204,132 @@ export class BusinessProcessReportComponent {
     this.selectedRecordId = row.recordId;
     this.selectedRecord = null;
     this.recordHistory = [];
+    this.recordHistoryItems = [];
     this.recordPanelLoading = true;
     this.recordPanelOpen = true;
     this.cdr.detectChanges();
 
     this.forecastRecordService.getById(row.recordId).subscribe({
       next: (record: ForecastRecord) => {
+
+        // 🔥 CLEAN LOG
+        console.group('📦 Forecast Record Loaded');
+        console.log('Full Record:', record);
+        console.log('History:', (record as any)?.history);
+        console.log('Keys:', Object.keys(record));
+        console.groupEnd();
+
+        // 🔥 OPTIONAL: deep JSON view
+        console.log('JSON:', JSON.parse(JSON.stringify(record)));
+
         this.selectedRecord = record;
+
+        const history = ((record as any)?.history ?? []) as RecordHistoryRow[];
+        this.recordHistory = history;
+        this.recordHistoryItems = this.mapHistoryItems(history);
+
         this.recordPanelLoading = false;
         this.cdr.detectChanges();
       },
       error: (err: unknown) => {
         console.error('record load error', err);
         this.selectedRecord = null;
+        this.recordHistory = [];
+        this.recordHistoryItems = [];
         this.recordPanelLoading = false;
         this.cdr.detectChanges();
       }
     });
+  }
 
-    this.forecastRecordService.getHistory(row.recordId).subscribe({
-      next: (history: RecordHistoryRow[]) => {
-        this.recordHistory = history ?? [];
-        this.cdr.detectChanges();
-      },
-      error: (err: unknown) => {
-        console.error('record history load error', err);
-        this.recordHistory = [];
-        this.cdr.detectChanges();
+  private mapHistoryItems(rows: RecordHistoryRow[] | null | undefined): RecordHistoryItemVM[] {
+    if (!Array.isArray(rows) || rows.length === 0) return [];
+
+    return rows.map((h) => {
+      const iso = h.time ?? null;
+      const actor = h.user_display?.toString().trim() || 'Unknown';
+      const comment = h.user_comment?.toString().trim() || undefined;
+      const assignment = h.assignment_display?.toString().trim() || undefined;
+
+      const fromState =
+        h.previous_state_id != null ? this.stateName(h.previous_state_id) : '';
+
+      const toState =
+        h.new_state_id != null ? this.stateName(h.new_state_id) : '';
+
+      let assignmentTo: string | undefined;
+      let assignmentFrom: string | undefined;
+
+      if (comment === 'Unassigned') {
+        assignmentTo = 'unassigned';
+        assignmentFrom = assignment || actor;
+      } else if (assignment) {
+        assignmentTo = assignment;
+        assignmentFrom = actor;
       }
+
+      let title = 'Updated';
+      if (comment === 'Created') {
+        title = 'Created';
+      } else if (fromState || toState) {
+        title = `${fromState} → ${toState}`;
+      } else if (assignment) {
+        title = 'Assignment Updated';
+      }
+
+      return {
+        id: h.id ?? `${iso}-${actor}`,
+        at: this.formatWhen(iso),
+        atIso: iso ?? undefined,
+        title,
+        actor,
+        comment,
+        assignment,
+        assignmentTo,
+        assignmentFrom,
+        fromState,
+        toState,
+        isLatest: Number(h.latest) === 1,
+      };
     });
   }
+
+  private formatWhen(value: string | null | undefined): string {
+    if (!value) return '';
+
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return String(value);
+
+    return d.toLocaleString();
+  }
+
+  private stateName(value: number | string | null | undefined): string {
+    const n = Number(value);
+
+    switch (n) {
+      case 0: return 'Draft';
+      case 1: return 'Requirements';
+      case 2: return 'Contracting';
+      case 3: return 'Coordinator';
+      case 4: return 'Published';
+      default: return 'Updated';
+    }
+  }
+
+
+
 
 
 
 
   closeRecordPanel(): void {
     this.recordPanelOpen = false;
-    this.recordPanelLoading = false;
     this.selectedRecordId = null;
     this.selectedRecord = null;
     this.recordHistory = [];
+    this.recordHistoryItems = [];
+    this.recordPanelLoading = false;
+    this.cdr.detectChanges();
   }
 
   printRecord(): void {
