@@ -640,10 +640,6 @@ app.get(`${API_PREFIX}/forecast-records/report-base`, (req, res) => {
     // 🔐 Apply existing security scoping FIRST
     let rows = getVisibleForecastRecords(me, allRecords);
 
-    // -----------------------------
-    // Simple inline filters
-    // -----------------------------
-
     const components = String(req.query.component || '')
         .split(',')
         .map(s => s.trim())
@@ -652,6 +648,13 @@ app.get(`${API_PREFIX}/forecast-records/report-base`, (req, res) => {
     const offices = String(req.query.office || '')
         .split(',')
         .map(s => s.trim())
+        .filter(Boolean);
+
+    const reportScope = String(req.query.reportScope || '').trim();
+
+    const workflowStatuses = String(req.query.workflowStatuses || '')
+        .split(',')
+        .map(s => s.trim().toLowerCase())
         .filter(Boolean);
 
     const publishedOnly =
@@ -674,10 +677,35 @@ app.get(`${API_PREFIX}/forecast-records/report-base`, (req, res) => {
         : null;
 
     rows = rows.filter(r => {
+        const status = String(r.workflowStatus ?? r.status ?? '')
+            .trim()
+            .toLowerCase();
+
         // -----------------------------
-        // Published filter
+        // Workflow filter
         // -----------------------------
-        if (publishedOnly && String(r.workflowStatus || '').toLowerCase() !== 'published') {
+        if (workflowStatuses.length) {
+            if (!workflowStatuses.includes(status)) {
+                return false;
+            }
+        } else if (reportScope === 'published') {
+            if (status !== 'published') {
+                return false;
+            }
+        } else if (reportScope === 'businessProcess') {
+            const allowed = [
+                'requirements',
+                'contracting',
+                'apfs coordinator',
+                'published'
+            ];
+            if (!allowed.includes(status)) {
+                return false;
+            }
+        } else if (reportScope === 'all') {
+            // no workflow filtering
+        } else if (publishedOnly && status !== 'published') {
+            // legacy fallback
             return false;
         }
 
@@ -746,7 +774,6 @@ app.get(`${API_PREFIX}/forecast-records/report-base`, (req, res) => {
         return true;
     });
 
-    // 🔥 Return SAME SHAPE as your existing endpoint
     res.json({
         rows,
         total: rows.length
