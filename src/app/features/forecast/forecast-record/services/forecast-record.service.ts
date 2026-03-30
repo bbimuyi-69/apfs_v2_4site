@@ -42,6 +42,16 @@ export type RecordHistoryRow = {
   user_id?: string | null;
 };
 
+export type ForecastChangeLogRow = {
+  id: number;
+  field_name: string;
+  field_new_value: string | null;
+  field_old_value: string | null;
+  date_changed: string;
+  forecast_id: number;
+  is_public?: 0 | 1 | number | null;
+};
+
 export type RejectPayload = {
   comment: string;
   userId?: string | null;
@@ -547,6 +557,21 @@ export class ForecastRecordService {
     this.ensureSeeded();
     this.historyStore ??= new Map<number, RecordHistoryRow[]>();
     return of(this.historyStore.get(id) ?? []).pipe(delay(120));
+  }
+
+
+  getChangeLog(id: number | string): Observable<ForecastChangeLogRow[]> {
+    const idStr = String(id);
+
+    if (!this.useMock) {
+      return this.http.get<ForecastChangeLogRow[]>(
+        `${this.baseUrl}/${encodeURIComponent(idStr)}/change-log`,
+        { headers: this.userHeaders() }
+      );
+    }
+
+    // mock fallback
+    return of([]).pipe(delay(150));
   }
 
   private previousLane(cur: ForecastWorkflowLane): ForecastWorkflowLane | null {

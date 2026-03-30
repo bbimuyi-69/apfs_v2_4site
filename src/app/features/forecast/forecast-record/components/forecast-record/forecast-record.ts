@@ -32,7 +32,10 @@ import {
 
 import { createEmptyForecastRecord } from '../../models/forecast-record.factory';
 import { ForecastRecord } from '../../models/forecast-record.model';
-import { ForecastRecordService } from '../../services/forecast-record.service';
+import {
+  ForecastRecordService,
+  ForecastChangeLogRow
+} from '../../services/forecast-record.service';
 
 
 import {
@@ -67,6 +70,16 @@ type RecordHistoryItemVM = {
   comment?: string;           // user_comment
   assignment?: string;        // assignment_display
   isLatest?: boolean;         // latest === 1
+};
+
+type ChangeLogItemVM = {
+  id: number | string;
+  at: string;
+  atIso?: string;
+  fieldName: string;
+  oldValue: string;
+  newValue: string;
+  isPublic?: boolean;
 };
 
 //#endregion
@@ -247,7 +260,12 @@ export class ForecastRecordComponent {
   //#endregion
 
   //#region History Drawer State
+  //#region Drawer State
   historyOpen = false;
+  changeLogOpen = false;
+  changeLogLoading = false;
+  changeLogError: string | null = null;
+  changeLogRows: ForecastChangeLogRow[] = [];
 
   //#region History Drawer: View Model
 
@@ -273,6 +291,23 @@ export class ForecastRecordComponent {
       hour: 'numeric',
       minute: '2-digit',
     });
+  }
+
+  private formatFieldLabel(field: any): string {
+    const raw = String(field ?? '').trim();
+    if (!raw) return 'Unknown field';
+
+    return raw
+      .replace(/_/g, ' ')
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/\b\w/g, (m) => m.toUpperCase());
+  }
+
+  private formatChangeValue(value: any): string {
+    if (value == null) return '—';
+
+    const s = String(value).trim();
+    return s || '—';
   }
 
   //#endregion
@@ -333,6 +368,26 @@ export class ForecastRecordComponent {
         comment,
         assignment,
         isLatest,
+      };
+    });
+  }
+
+  get changeLogItems(): ChangeLogItemVM[] {
+    if (!Array.isArray(this.changeLogRows) || this.changeLogRows.length === 0) {
+      return [];
+    }
+
+    return this.changeLogRows.map((r) => {
+      const iso = r.date_changed ?? null;
+
+      return {
+        id: r.id ?? `${r.field_name}-${iso}`,
+        at: this.formatWhen(iso),
+        atIso: iso ?? undefined,
+        fieldName: this.formatFieldLabel(r.field_name),
+        oldValue: this.formatChangeValue(r.field_old_value),
+        newValue: this.formatChangeValue(r.field_new_value),
+        isPublic: Number(r.is_public) === 1,
       };
     });
   }
@@ -1485,6 +1540,21 @@ export class ForecastRecordComponent {
     return true;
   }
 
+  get canUnpublish(): boolean {
+    if (!this.isEditMode) return false;
+    if (!this.isPublished) return false;
+
+    const role = this.normalizeRailRole();
+
+    // only Admin / Super Admin
+    if (role !== 'Admin' && role !== 'Super Admin') return false;
+
+    // must be claimed (same rule as everything else)
+    //if (!this.claimedByMe) return false;
+
+    return true;
+  }
+
   //this might not be needed at some point
   //this might not be needed at some point
   onTransition(toLane: ForecastWorkflowLane) {
@@ -1641,6 +1711,48 @@ export class ForecastRecordComponent {
       },
     });
   }
+
+  onUnpublish(): void {
+    if (!this.canUnpublish) return;
+    if (!this.recordId) return;
+
+    const ok = confirm('Unpublish this record and send it back to 4SITE Coordinator?');
+    if (!ok) return;
+
+    this.isLoading = true;
+    this.flushView();
+
+    this.service.reject(Number(this.recordId), {
+      comment: 'Unpublished'
+    }).subscribe({
+      next: (resp) => {
+        const updated = resp.record;
+
+        this.record = updated;
+
+        this.form = buildForecastRecordForm(updated);
+        this.wireNaicsTypeahead();
+        this.submitted = false;
+
+        this.lockComponentFromAuth();
+        this.hydrateOfficeFromProfile();
+
+        this.applyAccessState();
+        this.wireStrategicSourcingVehicleToggle();
+        this.hydratePrimaryContactFromProfile();
+
+        this.isLoading = false;
+        this.flushView();
+        this.router.navigate(['/dashboard-v2']);
+      },
+      error: (e: unknown) => {
+        console.error('Unpublish failed', e);
+        this.isLoading = false;
+        this.flushView();
+        alert('Unpublish failed. Please try again.');
+      },
+    });
+  }
   //#endregion
 
   //#region Navigation / Rail Handlers 
@@ -1655,15 +1767,54 @@ export class ForecastRecordComponent {
   // ---- Rail button handlers ----
   onPrintableView(): void { window.print(); }
   onCsvDownload(): void { console.warn('CSV download not wired yet'); }
+
   onRecordHistory(): void {
+    this.changeLogOpen = false;
     this.historyOpen = true;
+    this.flushView();
   }
+
   closeHistory(): void {
     this.historyOpen = false;
+    this.flushView();
   }
 
+  onChangeLog(): void {
+    if (!this.recordId) return;
 
-  onChangeLog(): void { console.warn('Change log not wired yet'); }
+    this.historyOpen = false;
+    this.changeLogOpen = true;
+    this.changeLogLoading = true;
+    this.changeLogError = null;
+    this.changeLogRows = [];
+    this.flushView();
+
+    this.service.getChangeLog(this.recordId).subscribe({
+      next: (rows) => {
+        this.changeLogRows = Array.isArray(rows) ? rows : [];
+        this.changeLogLoading = false;
+        this.flushView();
+      },
+      error: (e: unknown) => {
+        console.error('Change log load failed', e);
+        this.changeLogRows = [];
+        this.changeLogError = 'Failed to load change log.';
+        this.changeLogLoading = false;
+        this.flushView();
+      },
+    });
+  }
+
+  closeChangeLog(): void {
+    this.changeLogOpen = false;
+    this.flushView();
+  }
+
+  closeDrawers(): void {
+    this.historyOpen = false;
+    this.changeLogOpen = false;
+    this.flushView();
+  }
 
   onReassign(): void {
     if (!this.canReassign) return;

@@ -46,7 +46,7 @@ if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 
-console.log('[APFS] DB_FILE =', DB_FILE);
+//console.log('[APFS] DB_FILE =', DB_FILE);
 
 function emptyDb() {
     return {
@@ -402,6 +402,7 @@ function laneOrderKey(raw) {
 
 function previousLaneValue(raw) {
     const lane = normalizeLane(raw);
+    if (lane === 'published') return 'APFS Coordinator';
     if (lane === 'coordinator') return 'Contracting';
     if (lane === 'contracting') return 'Requirements';
     if (lane === 'requirements') return 'Draft';
@@ -533,26 +534,10 @@ app.get(`${API_PREFIX}/forecast-records/office`, (req, res) => {
     const all = db.forecastRecords || [];
     const visible = getVisibleForecastRecords(me, all); // ✅ visible is defined here
 
-    console.log('[OFFICE VIEW] me:', {
-        id: me.id,
-        email: me.email,
-        office: me.office,
-        component: me.component,
-        role: me.role
-    });
 
-    console.log('[OFFICE VIEW] counts:', {
-        all: all.length,
-        visible: visible.length
-    });
 
-    console.log('[OFFICE VIEW] sample visible office fields:', visible.slice(0, 5).map(r => ({
-        id: r.id,
-        component: r.component,
-        requirementsOffice: r.requirementsOffice,
-        contractingOffice: r.contractingOffice,
-        coordinatorOffice: r.coordinatorOffice,
-    })));
+
+
 
     const myOffice = String(me.office ?? '').trim().toLowerCase();
 
@@ -1551,6 +1536,7 @@ app.post(`${API_PREFIX}/forecast-records`, (req, res) => {
 });
 
 // UPDATE (SAVE DRAFT / EDIT)
+/*
 app.put(`${API_PREFIX}/forecast-records/:id`, (req, res) => {
     const db = loadData();
     const me = getCurrentUser(req, db);
@@ -1594,6 +1580,146 @@ app.put(`${API_PREFIX}/forecast-records/:id`, (req, res) => {
     saveData(db);
 
     res.json({ ...updated, history: getHistoryForRecord(db, id) });
+});*/
+
+app.put(`${API_PREFIX}/forecast-records/:id`, (req, res) => {
+    const db = loadData();
+    const me = getCurrentUser(req, db);
+    if (!me) return res.status(401).json({ message: 'Not authenticated' });
+
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ message: 'Invalid id' });
+
+    const idx = (db.forecastRecords || []).findIndex((r) => Number(r.id) === id);
+    if (idx === -1) return res.status(404).json({ message: 'Not found' });
+
+    const existing = db.forecastRecords[idx];
+
+    const blocked = requireForecastAccess(req, res, me, existing);
+    if (blocked) return;
+
+    const now = new Date().toISOString();
+
+    const updated = {
+        ...existing,
+        ...req.body,
+
+        // protected / server-owned
+        id: existing.id,
+        component: existing.component,
+        apfsNumber: existing.apfsNumber,
+
+        // protect assignment fields (claim/unclaim owns these)
+        assignedToUserId: existing.assignedToUserId ?? null,
+        assignedToName: existing.assignedToName ?? null,
+        assignedAt: existing.assignedAt ?? null,
+
+        // keep workflow fields unless explicitly sent
+        workflowStatus: req.body?.workflowStatus ?? existing.workflowStatus,
+        status: req.body?.status ?? req.body?.workflowStatus ?? existing.status,
+
+        updatedAt: now,
+    };
+
+
+    // 👇 ADD LOGS RIGHT HERE
+    console.log('REQ BODY:', req.body);
+    console.log('EXISTING KEYS:', Object.keys(existing).sort());
+    console.log('UPDATED KEYS:', Object.keys(updated).sort());
+
+    // -----------------------------------
+    // Change log tracking
+    // Rule: if previous_published_date is not null, track edits
+    // -----------------------------------
+    const shouldTrackChanges = !!existing?.previous_published_date;
+
+    console.log('CHANGELOG SHOULD TRACK:', shouldTrackChanges);
+
+    if (shouldTrackChanges) {
+        db.apfs_forecastchangelog = db.apfs_forecastchangelog || [];
+
+        const trackedFields = [
+            'requirementsTitle',
+            'requirement',
+            'description',
+            'notes',
+            'requirementsOffice',
+            'contractingOffice',
+            'coordinatorOffice',
+            'sbSpecialistFirstName',
+            'sbSpecialistLastName',
+            'sbSpecialistEmail',
+            'sbSpecialistPhone',
+            'smallBusinessSetAside',
+            'smallBusinessProgram',
+            'dollarRange',
+            'naicsCode',
+            'contractType',
+            'strategicSourcingVehicleUsed',
+            'strategicSourcingVehicle',
+            'typeOfAward',
+            'competitive',
+            'contractStatus',
+            'incumbent',
+            'vendorName',
+            'contractNumber',
+            'fiscalYear',
+            'estimatedPopStart',
+            'estimatedPopEnd',
+            'estimatedSolicitationReleaseDate',
+            'anticipatedAwardDate',
+            'programLevel',
+            'productServiceCode',
+            'placeOfPerformance',
+            'comments'
+        ];
+
+        const toText = (v) => {
+            if (v == null) return '';
+            if (typeof v === 'string') return v.trim();
+            if (typeof v === 'object') {
+                try {
+                    return JSON.stringify(v);
+                } catch {
+                    return String(v);
+                }
+            }
+            return String(v);
+        };
+
+        const changes = [];
+
+        for (let i = 0; i < trackedFields.length; i += 1) {
+            const field = trackedFields[i];
+            const oldValue = toText(existing[field]);
+            const newValue = toText(updated[field]);
+
+            console.log('FIELD CHECK:', field, { oldValue, newValue });
+
+            if (oldValue === newValue) continue;
+
+            changes.push({
+                id: Date.now() + i,
+                field_name: field,
+                field_old_value: oldValue,
+                field_new_value: newValue,
+                date_changed: now,
+                forecast_id: Number(existing.id),
+                is_public: 1
+            });
+        }
+
+        console.log('CHANGES:', changes);
+
+        if (changes.length) {
+            db.apfs_forecastchangelog.unshift(...changes);
+        }
+    }
+
+    db.forecastRecords[idx] = updated;
+    saveData(db);
+
+    res.json({ ...updated, history: getHistoryForRecord(db, id) });
 });
 
 
@@ -1619,6 +1745,23 @@ app.post(`${API_PREFIX}/forecast-records/:id/transition`, (req, res) => {
     const to = String(req.body?.to ?? '').trim();
     if (!to) return res.status(400).json({ message: 'Missing "to"' });
 
+    console.log('The TO state is :', to);
+    // detect publish transition
+    const isPublishing = String(to).toLowerCase() === 'published';
+    const wasPublished = String(from).toLowerCase() === 'published';
+
+    if (isPublishing) {
+        if (!r.published_date) {
+            // first publish
+            r.published_date = new Date().toISOString();
+            r.previous_published_date = null;
+        } else {
+            // republish
+            r.previous_published_date = r.published_date;
+            r.published_date = new Date().toISOString();
+        }
+    }
+
     r.workflowStatus = to;
     r.status = to;
     r.updatedAt = new Date().toISOString();
@@ -1642,7 +1785,7 @@ app.post(`${API_PREFIX}/forecast-records/:id/transition`, (req, res) => {
     res.json({ ...r, history: getHistoryForRecord(db, id) });
 });
 
-// REJECT
+/*
 app.post(`${API_PREFIX}/forecast-records/:id/reject`, (req, res) => {
     const db = loadData();
     const me = getCurrentUser(req, db);
@@ -1679,6 +1822,147 @@ app.post(`${API_PREFIX}/forecast-records/:id/reject`, (req, res) => {
     r.assignedToUserId = null;
     r.assignedToName = null;
     r.assignedAt = null;
+
+    saveData(db);
+    res.json({ ...r, history: getHistoryForRecord(db, id) });
+});*/
+
+
+/*app.post(`${API_PREFIX}/forecast-records/:id/reject`, (req, res) => {
+    const db = loadData();
+    const me = getCurrentUser(req, db);
+    if (!me) return res.status(401).json({ message: 'Not authenticated' });
+
+    const id = Number(req.params.id);
+    const r = (db.forecastRecords || []).find((x) => Number(x.id) === id);
+    if (!r) return res.status(404).json({ message: 'Not found' });
+
+    const blocked = requireForecastAccess(req, res, me, r);
+    if (blocked) return;
+
+    const prev = previousLaneValue(r.workflowStatus);
+    if (!prev) return res.status(409).json({ message: 'Cannot reject' });
+
+    const rejectComment = String(req.body?.comment ?? '').trim();
+
+    // capture recipient BEFORE clearing assignment
+    const notifyUserId = r.assignedToUserId ?? null;
+
+    clearLatestHistoryFlag(db, id);
+
+    db.recordHistory.push(
+        makeHistoryRow({
+            forecastId: id,
+            user: me,
+            comment: rejectComment,
+            assignmentDisplay: r.assignedToName ?? null,
+            assignmentId: r.assignedToUserId ?? null,
+            previousStateId: laneOrderKey(r.workflowStatus),
+            newStateId: laneOrderKey(prev),
+            latest: true,
+        })
+    );
+
+    r.workflowStatus = prev;
+    r.status = prev;
+    r.updatedAt = new Date().toISOString();
+    r.assignedToUserId = null;
+    r.assignedToName = null;
+    r.assignedAt = null;
+
+    // add notification row
+    if (notifyUserId != null) {
+        const notificationRow = {
+            id: Date.now(),
+            time: new Date().toISOString(),
+            subject: 'Forecast Record Rejected',
+            body: `Forecast ${r.apfsNumber || r.id} "${r.requirementsTitle || 'Untitled'}" was rejected and sent back to ${prev}.${rejectComment ? ` Comment: ${rejectComment}` : ''}`,
+            read: 0,
+            user_id: Number(notifyUserId)
+        };
+
+        db.apfs_usernotification = db.apfs_usernotification || [];
+        db.apfs_usernotification.unshift(notificationRow);
+    }
+
+    saveData(db);
+    res.json({ ...r, history: getHistoryForRecord(db, id) });
+});*/
+
+app.post(`${API_PREFIX}/forecast-records/:id/reject`, (req, res) => {
+    const db = loadData();
+    const me = getCurrentUser(req, db);
+    if (!me) return res.status(401).json({ message: 'Not authenticated' });
+
+    const id = Number(req.params.id);
+    const r = (db.forecastRecords || []).find((x) => Number(x.id) === id);
+    if (!r) return res.status(404).json({ message: 'Not found' });
+
+    const blocked = requireForecastAccess(req, res, me, r);
+    if (blocked) return;
+
+    const currentLane = String(r.workflowStatus ?? r.status ?? '').trim();
+    const prev = previousLaneValue(currentLane);
+    if (!prev) return res.status(409).json({ message: 'Cannot reject' });
+
+    const now = new Date().toISOString();
+    const rejectComment = String(req.body?.comment ?? '').trim();
+
+    const wasPublished = currentLane.toLowerCase() === 'published';
+
+    // capture recipient BEFORE clearing assignment
+    const notifyUserId = r.assignedToUserId ?? null;
+    const notifyUserName = r.assignedToName ?? null;
+
+    clearLatestHistoryFlag(db, id);
+
+    db.recordHistory.push(
+        makeHistoryRow({
+            forecastId: id,
+            user: me,
+            comment: rejectComment || `Rejected back to ${prev}`,
+            assignmentDisplay: r.assignedToName ?? null,
+            assignmentId: r.assignedToUserId ?? null,
+            previousStateId: laneOrderKey(currentLane),
+            newStateId: laneOrderKey(prev),
+            latest: true,
+        })
+    );
+
+    // -----------------------------
+    // Unpublish logic
+    // Published -> APFS Coordinator
+    // -----------------------------
+    if (wasPublished) {
+        r.previous_published_date =
+            r.published_date ?? r.previous_published_date ?? null;
+
+        r.published_date = null;
+    }
+
+    r.workflowStatus = prev;
+    r.status = prev;
+    r.updatedAt = now;
+    r.assignedToUserId = null;
+    r.assignedToName = null;
+    r.assignedAt = null;
+
+    // add notification row
+    if (notifyUserId != null) {
+        const actionLabel = wasPublished ? 'unpublished' : 'rejected';
+
+        const notificationRow = {
+            id: Date.now(),
+            time: now,
+            subject: wasPublished ? 'Forecast Record Unpublished' : 'Forecast Record Rejected',
+            body: `Forecast ${r.apfsNumber || r.id} "${r.requirementsTitle || 'Untitled'}" was ${actionLabel} and sent back to ${prev}.${rejectComment ? ` Comment: ${rejectComment}` : ''}`,
+            read: 0,
+            user_id: Number(notifyUserId)
+        };
+
+        db.apfs_usernotification = db.apfs_usernotification || [];
+        db.apfs_usernotification.unshift(notificationRow);
+    }
 
     saveData(db);
     res.json({ ...r, history: getHistoryForRecord(db, id) });
@@ -2215,28 +2499,16 @@ app.get(`${API_PREFIX}/public/offices/options`, (req, res) => {
     };
 
     const roleLevel = roleToLevel(roleRaw);
-    console.log('[public/offices/options] role debug:', { roleRaw, roleLevel });
+    //console.log('[public/offices/options] role debug:', { roleRaw, roleLevel });
 
     const rows = Array.isArray(data.offices) ? data.offices : [];
 
-    console.log('[public/offices/options] FULL offices array:\n',
-        JSON.stringify(rows, null, 2)
-    );
-    console.log('[public/offices/options] totals', {
-        rows: rows.length,
-        sampleOrgIds: Array.from(new Set(rows.slice(0, 20).map(r => r.organization_id))).slice(0, 10),
-        sampleActive: Array.from(new Set(rows.slice(0, 20).map(r => r.active))).slice(0, 10),
-        sampleLevels: Array.from(new Set(rows.slice(0, 20).map(r => r.office_assignment_permissions_level_id))).slice(0, 10),
-    });
+
+
 
 
     const sample = rows.filter(r => Number(r.organization_id) === 71).slice(0, 5);
-    console.log('[public/offices/options] raw org 71 sample:', sample.map(r => ({
-        id: r.id,
-        organization_id: r.organization_id,
-        office_assignment_permissions_level_id: r.office_assignment_permissions_level_id,
-        keys: Object.keys(r)
-    })));
+
     let options = rows
         .map(r => ({
             id: Number(r.id),
@@ -2249,7 +2521,7 @@ app.get(`${API_PREFIX}/public/offices/options`, (req, res) => {
         .filter(o => !Number.isFinite(organizationId) || o.organization_id === organizationId)
         .filter(o => !onlyActive || o.active === 1);
 
-    console.log('[public/offices/options] mapped sample', options.slice(0, 15));
+
 
     // ✅ role filter (if provided and recognized)
     if (roleLevel != null) {
@@ -2259,19 +2531,7 @@ app.get(`${API_PREFIX}/public/offices/options`, (req, res) => {
     options = options
         .sort((a, b) => a.full_name.localeCompare(b.full_name))
         .map(o => ({ id: o.id, full_name: o.full_name, organization_id: o.organization_id, office_assignment_permissions_level_id: o.level_id })); // sanitize output
-    console.log('[public/offices/options] after filters', {
-        onlyActive,
-        organizationId,
-        roleLevel,
-        count: options.length,
-        distinctLevels: Array.from(new Set(options.map(o => o.office_assignment_permissions_level_id))),
-        sample: options.slice(0, 15).map(o => ({
-            id: o.id,
-            full_name: o.full_name,
-            organization_id: o.organization_id,
-            level: o.office_assignment_permissions_level_id,
-        }))
-    });
+
 
     //tap(rows => console.log('[officeOptions$ rows]', rows))
     res.json(options);
@@ -2611,6 +2871,182 @@ app.delete(`${API_PREFIX}/user-notifications/:id`, (req, res) => {
     });
 });
 
+
+//forecast change log api endpoint
+app.post(`${API_PREFIX}/forecast-change-log`, (req, res) => {
+    const db = loadData();
+    const me = getCurrentUser(req, db);
+
+    if (!me) {
+        return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    const {
+        field_name,
+        field_old_value,
+        field_new_value,
+        forecast_id,
+        is_public
+    } = req.body || {};
+
+    if (!forecast_id || !field_name) {
+        return res.status(400).json({
+            message: 'forecast_id and field_name are required'
+        });
+    }
+
+    const forecastIdNum = Number(forecast_id);
+    if (Number.isNaN(forecastIdNum)) {
+        return res.status(400).json({
+            message: 'forecast_id must be a valid number'
+        });
+    }
+
+    const record = (db.forecastRecords || []).find(
+        (x) => Number(x.id) === forecastIdNum
+    );
+
+    if (!record) {
+        return res.status(404).json({
+            message: 'Forecast record not found'
+        });
+    }
+
+    if (!canAccessForecastRecord(me, record)) {
+        return res.status(403).json({
+            message: 'Forbidden'
+        });
+    }
+
+    const row = {
+        id: Date.now(),
+        field_name: String(field_name).trim(),
+        field_new_value:
+            field_new_value == null ? '' : String(field_new_value),
+        field_old_value:
+            field_old_value == null ? '' : String(field_old_value),
+        date_changed: new Date().toISOString(),
+        forecast_id: forecastIdNum,
+        is_public: Number(is_public) === 0 ? 0 : 1
+    };
+
+    db.apfs_forecastchangelog = db.apfs_forecastchangelog || [];
+    db.apfs_forecastchangelog.unshift(row);
+
+    saveData(db);
+
+    return res.status(201).json(row);
+});
+
+app.post(`${API_PREFIX}/forecast-change-log/bulk`, (req, res) => {
+    const db = loadData();
+    const me = getCurrentUser(req, db);
+
+    if (!me) {
+        return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    const { forecast_id, changes } = req.body || {};
+
+    if (!forecast_id) {
+        return res.status(400).json({
+            message: 'forecast_id is required'
+        });
+    }
+
+    const forecastIdNum = Number(forecast_id);
+    if (Number.isNaN(forecastIdNum)) {
+        return res.status(400).json({
+            message: 'forecast_id must be a valid number'
+        });
+    }
+
+    if (!Array.isArray(changes) || !changes.length) {
+        return res.status(400).json({
+            message: 'changes array is required'
+        });
+    }
+
+    const record = (db.forecastRecords || []).find(
+        (x) => Number(x.id) === forecastIdNum
+    );
+
+    if (!record) {
+        return res.status(404).json({
+            message: 'Forecast record not found'
+        });
+    }
+
+    if (!canAccessForecastRecord(me, record)) {
+        return res.status(403).json({
+            message: 'Forbidden'
+        });
+    }
+
+    db.apfs_forecastchangelog = db.apfs_forecastchangelog || [];
+
+    const now = new Date().toISOString();
+
+    const rows = changes
+        .filter((c) => c && c.field_name)
+        .map((c, i) => ({
+            id: Date.now() + i,
+            field_name: String(c.field_name).trim(),
+            field_new_value:
+                c.field_new_value == null ? '' : String(c.field_new_value),
+            field_old_value:
+                c.field_old_value == null ? '' : String(c.field_old_value),
+            date_changed: now,
+            forecast_id: forecastIdNum,
+            is_public: Number(c.is_public) === 0 ? 0 : 1
+        }));
+
+    if (!rows.length) {
+        return res.status(400).json({
+            message: 'At least one valid change with field_name is required'
+        });
+    }
+
+    db.apfs_forecastchangelog.unshift(...rows);
+    saveData(db);
+
+    return res.status(201).json({
+        message: 'Change log rows created',
+        count: rows.length,
+        rows
+    });
+});
+
+
+app.get(`${API_PREFIX}/forecast-records/:id/change-log`, (req, res) => {
+    const db = loadData();
+    const me = getCurrentUser(req, db);
+    if (!me) return res.status(401).json({ message: 'Not authenticated' });
+
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) {
+        return res.status(400).json({ message: 'Invalid id' });
+    }
+
+    const record = (db.forecastRecords || []).find((r) => Number(r.id) === id);
+    if (!record) {
+        return res.status(404).json({ message: 'Not found' });
+    }
+
+    const blocked = requireForecastAccess(req, res, me, record);
+    if (blocked) return;
+
+    const rows = (db.apfs_forecastchangelog || [])
+        .filter((x) => Number(x.forecast_id) === id)
+        .sort((a, b) => {
+            const aTime = new Date(a.date_changed || 0).getTime();
+            const bTime = new Date(b.date_changed || 0).getTime();
+            return bTime - aTime;
+        });
+
+    res.json(rows);
+});
+
 // =========================
 // SERVE ANGULAR APP
 // =========================
@@ -2621,8 +3057,6 @@ app.delete(`${API_PREFIX}/user-notifications/:id`, (req, res) => {
 
 const angularDistPath = path.join(__dirname, '..', 'dist', 'fourSite', 'browser');
 
-console.log('[APFS] angularDistPath =', angularDistPath);
-console.log('[APFS] index exists =', fs.existsSync(path.join(angularDistPath, 'index.html')));
 
 // Serve Angular static files
 app.use(express.static(angularDistPath));

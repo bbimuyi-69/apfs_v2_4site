@@ -1,12 +1,19 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 
 import {
   AnticipatedAwardsReportService,
   AnticipatedAwardsRow,
   ReportCriteria
 } from '../services/anticipated-awards-report.service';
+
+import { ForecastRecord } from '../../forecast/forecast-record/models/forecast-record.model';
+import {
+  ForecastRecordService,
+  RecordHistoryRow
+} from '../../forecast/forecast-record/services/forecast-record.service';
 
 type SortDirection = 'asc' | 'desc';
 
@@ -37,6 +44,21 @@ type ExpandedRecord = {
   anticipatedAwardDate?: string | null;
 };
 
+type RecordHistoryItemVM = {
+  id: number | string;
+  at: string;
+  atIso?: string;
+  title: string;
+  actor: string;
+  comment?: string;
+  assignment?: string;
+  assignmentTo?: string;
+  assignmentFrom?: string;
+  fromState?: string;
+  toState?: string;
+  isLatest: boolean;
+};
+
 @Component({
   selector: 'app-anticipated-awards-report',
   standalone: true,
@@ -46,13 +68,12 @@ type ExpandedRecord = {
 })
 export class AnticipatedAwardsReport {
   private service = inject(AnticipatedAwardsReportService);
+  private forecastRecordService = inject(ForecastRecordService);
   private cdr = inject(ChangeDetectorRef);
+  private router = inject(Router);
 
   sortKey: SortKey | null = null;
   sortDirection: SortDirection = 'asc';
-
-
-
 
   private readonly sortLabels: Record<SortKey, string> = {
     component: 'Component',
@@ -87,6 +108,14 @@ export class AnticipatedAwardsReport {
   expandedComponent: string | null = null;
   expandedRows: ExpandedRecord[] = [];
 
+  // left record panel
+  recordPanelOpen = false;
+  recordPanelLoading = false;
+  selectedRecordId: number | null = null;
+  selectedRecord: ForecastRecord | null = null;
+  recordHistory: RecordHistoryRow[] = [];
+  recordHistoryItems: RecordHistoryItemVM[] = [];
+
   private splitCsv(s: string): string[] {
     return (s ?? '')
       .split(',')
@@ -99,12 +128,10 @@ export class AnticipatedAwardsReport {
       this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
     } else {
       this.sortKey = key;
-      this.sortDirection = key === 'component' ? 'asc' : 'asc';
+      this.sortDirection = 'asc';
     }
 
-    this.filterLabel = `Ordered by ${this.sortLabels[key]} in ${this.sortDirection === 'asc' ? 'ascending' : 'descending'
-      } order`;
-
+    this.filterLabel = `Ordered by ${this.sortLabels[key]} in ${this.sortDirection === 'asc' ? 'ascending' : 'descending'} order`;
     this.cdr.detectChanges();
   }
 
@@ -131,7 +158,6 @@ export class AnticipatedAwardsReport {
       const aVal = a[key];
       const bVal = b[key];
 
-      // Keep TOTAL row at top unless sorting by component and you want it included
       if (a.component === 'TOTAL' && b.component !== 'TOTAL') return -1;
       if (b.component === 'TOTAL' && a.component !== 'TOTAL') return 1;
 
@@ -139,7 +165,7 @@ export class AnticipatedAwardsReport {
         return String(aVal ?? '').localeCompare(String(bVal ?? '')) * dir;
       }
 
-      return ((Number(aVal ?? 0) - Number(bVal ?? 0)) * dir);
+      return (Number(aVal ?? 0) - Number(bVal ?? 0)) * dir;
     });
   }
 
@@ -162,10 +188,10 @@ export class AnticipatedAwardsReport {
 
       this.lastRan = true;
       this.resultsVisible = true;
-      this.showFilters = false; // hide main filter block after run
+      this.showFilters = false;
       this.expandedComponent = null;
       this.expandedRows = [];
-      this.filterLabel = this.buildFilterLabel(criteria);
+      this.closeRecordPanel();
 
       this.cdr.detectChanges();
     });
@@ -186,6 +212,7 @@ export class AnticipatedAwardsReport {
     this.filterLabel = '';
     this.showFilters = true;
 
+    this.closeRecordPanel();
     this.cdr.detectChanges();
   }
 
@@ -233,6 +260,77 @@ export class AnticipatedAwardsReport {
     return this.expandedComponent === row.component;
   }
 
+  openRecord(row: ExpandedRecord): void {
+    const rawId = row?.id;
+    const recordId = typeof rawId === 'number' ? rawId : Number(rawId);
+
+    if (!recordId || Number.isNaN(recordId)) return;
+
+    this.selectedRecordId = recordId;
+    this.selectedRecord = null;
+    this.recordHistory = [];
+    this.recordHistoryItems = [];
+    this.recordPanelLoading = true;
+    this.recordPanelOpen = true;
+    this.cdr.detectChanges();
+
+    this.forecastRecordService.getById(recordId).subscribe({
+      next: (record: ForecastRecord) => {
+        this.selectedRecord = record;
+
+        const history = ((record as any)?.history ?? []) as RecordHistoryRow[];
+        this.recordHistory = history;
+        this.recordHistoryItems = this.mapHistoryItems(history);
+
+        this.recordPanelLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: (err: unknown) => {
+        console.error('record load error', err);
+        this.selectedRecord = null;
+        this.recordHistory = [];
+        this.recordHistoryItems = [];
+        this.recordPanelLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  closeRecordPanel(): void {
+    this.recordPanelOpen = false;
+    this.selectedRecordId = null;
+    this.selectedRecord = null;
+    this.recordHistory = [];
+    this.recordHistoryItems = [];
+    this.recordPanelLoading = false;
+    this.cdr.detectChanges();
+  }
+
+  printRecord(): void {
+    window.print();
+  }
+
+  goToRecord(): void {
+    const id = this.selectedRecordId ?? this.selectedRecord?.id ?? null;
+    if (!id) return;
+
+    this.router.navigate(['/forecast', id]).then(ok => {
+      if (ok) {
+        this.closeRecordPanel();
+      }
+    }).catch(err => {
+      console.error('Navigation error', err);
+    });
+  }
+
+  trackExpandedRecord(index: number, row: ExpandedRecord): number | string {
+    return row.id ?? row.apfsNumber ?? index;
+  }
+
+  trackHistory(index: number, row: RecordHistoryItemVM): number | string {
+    return row.id ?? index;
+  }
+
   private buildFilterLabel(c: ReportCriteria): string {
     const parts: string[] = [];
 
@@ -241,5 +339,79 @@ export class AnticipatedAwardsReport {
 
     if (!parts.length) return 'Forecasts shown for Total';
     return `Forecasts shown for ${parts.join(' / ')}`;
+  }
+
+  private mapHistoryItems(rows: RecordHistoryRow[] | null | undefined): RecordHistoryItemVM[] {
+    if (!Array.isArray(rows) || rows.length === 0) return [];
+
+    return rows.map((h) => {
+      const iso = h.time ?? null;
+      const actor = h.user_display?.toString().trim() || 'Unknown';
+      const comment = h.user_comment?.toString().trim() || undefined;
+      const assignment = h.assignment_display?.toString().trim() || undefined;
+
+      const fromState =
+        h.previous_state_id != null ? this.stateName(h.previous_state_id) : '';
+
+      const toState =
+        h.new_state_id != null ? this.stateName(h.new_state_id) : '';
+
+      let assignmentTo: string | undefined;
+      let assignmentFrom: string | undefined;
+
+      if (comment === 'Unassigned') {
+        assignmentTo = 'unassigned';
+        assignmentFrom = assignment || actor;
+      } else if (assignment) {
+        assignmentTo = assignment;
+        assignmentFrom = actor;
+      }
+
+      let title = 'Updated';
+      if (comment === 'Created') {
+        title = 'Created';
+      } else if (fromState || toState) {
+        title = `${fromState} → ${toState}`;
+      } else if (assignment) {
+        title = 'Assignment Updated';
+      }
+
+      return {
+        id: h.id ?? `${iso}-${actor}`,
+        at: this.formatWhen(iso),
+        atIso: iso ?? undefined,
+        title,
+        actor,
+        comment,
+        assignment,
+        assignmentTo,
+        assignmentFrom,
+        fromState,
+        toState,
+        isLatest: Number(h.latest) === 1,
+      };
+    });
+  }
+
+  private formatWhen(value: string | null | undefined): string {
+    if (!value) return '';
+
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return String(value);
+
+    return d.toLocaleString();
+  }
+
+  private stateName(value: number | string | null | undefined): string {
+    const n = Number(value);
+
+    switch (n) {
+      case 0: return 'Draft';
+      case 1: return 'Requirements';
+      case 2: return 'Contracting';
+      case 3: return 'Coordinator';
+      case 4: return 'Published';
+      default: return 'Updated';
+    }
   }
 }

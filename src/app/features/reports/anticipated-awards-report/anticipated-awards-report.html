@@ -12,7 +12,6 @@
         </div>
     </section>
 
-    <!-- INITIAL FILTERS ONLY -->
     <section class="apfs-section" *ngIf="showFilters && !resultsVisible">
         <h2 class="apfs-h2">Filters</h2>
 
@@ -44,7 +43,6 @@
         </div>
     </section>
 
-    <!-- RESULTS -->
     <section class="apfs-section" *ngIf="resultsVisible">
         <div class="apfs-toolbar">
             <div class="apfs-toolbar__left">
@@ -161,8 +159,13 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr *ngFor="let r of expandedRows">
-                                            <td>{{ r.apfsNumber }}</td>
+                                        <tr *ngFor="let r of expandedRows; trackBy: trackExpandedRecord">
+                                            <td>
+                                                <button class="apfs-link apfs-link--btn" type="button"
+                                                    (click)="openRecord(r)">
+                                                    {{ r.apfsNumber }}
+                                                </button>
+                                            </td>
                                             <td>{{ r.requirementsTitle }}</td>
                                             <td>{{ r.dollarRange }}</td>
                                             <td>{{ r.office }}</td>
@@ -211,4 +214,162 @@
             </div>
         </div>
     </section>
+</div>
+
+<!-- LEFT RECORD PANEL -->
+<div class="apfs-recordpanel__backdrop" *ngIf="recordPanelOpen" (click)="closeRecordPanel()">
+    <aside class="apfs-recordpanel" (click)="$event.stopPropagation()">
+        <div class="apfs-recordpanel__hdr">
+            <div class="apfs-recordpanel__title">Forecast Record</div>
+            <button class="apfs-recordpanel__close" type="button" aria-label="Close" (click)="closeRecordPanel()">
+                ×
+            </button>
+        </div>
+
+        <div class="apfs-recordpanel__body">
+            <div class="apfs-recordpanel__meta" *ngIf="recordPanelLoading">
+                Loading record {{ selectedRecordId }}...
+            </div>
+
+            <div class="apfs-recordprint" *ngIf="!recordPanelLoading && selectedRecord">
+                <div class="apfs-recordprint__top">
+                    <div class="apfs-recordprint__titleblock">
+                        <div class="apfs-recordprint__system">
+                            Forecasting System for Industry Tracking and Engagement (4SITE)
+                        </div>
+
+                        <div class="apfs-recordprint__recordline">
+                            <span class="apfs-recordprint__label">Forecast Record Number:</span>
+                            <span class="apfs-recordprint__number">{{ selectedRecord.apfsNumber }}</span>
+                        </div>
+                    </div>
+
+                    <div class="apfs-recordprint__actions">
+                        <button class="apfs-btn apfs-btn--primary" type="button" (click)="printRecord()">
+                            Print
+                        </button>
+
+                        <button class="apfs-btn apfs-btn--ghost" type="button" (click)="goToRecord()">
+                            Go To Record Page
+                        </button>
+                    </div>
+
+                    <div class="apfs-recordprint__seal">
+                        <img src="/assets/images/logo.svg" alt="DHS seal" />
+                    </div>
+                </div>
+
+                <table class="apfs-recordprint__table apfs-recordprint__table--top">
+                    <tr>
+                        <th>Component:</th>
+                        <th>{{ selectedRecord.component }}</th>
+                        <th>Published Date:</th>
+                        <th>Previously Published On:</th>
+                    </tr>
+
+                    <tr>
+                        <th>Requirements Office:</th>
+                        <td>{{ selectedRecord['requirementsOffice'] }}</td>
+                        <th></th>
+                        <td></td>
+                    </tr>
+
+                    <tr>
+                        <th>Contracting Office:</th>
+                        <td>{{ selectedRecord['contractingOffice'] }}</td>
+                        <th></th>
+                        <td></td>
+                    </tr>
+
+                    <tr>
+                        <th>4SITE Coordinator Office:</th>
+                        <td>{{ selectedRecord['coordinatorOffice'] }}</td>
+                        <th></th>
+                        <td></td>
+                    </tr>
+                </table>
+
+                <table class="apfs-recordprint__table apfs-recordprint__table--spaced">
+                    <tbody>
+                        <tr>
+                            <td><strong>NAICS:</strong></td>
+                            <td>{{ selectedRecord.naicsCode }}</td>
+                            <td><strong>Competition:</strong></td>
+                            <td>{{ selectedRecord.competitive }}</td>
+                        </tr>
+
+                        <tr>
+                            <td><strong>Small Business Set-Aside:</strong></td>
+                            <td>{{ selectedRecord.smallBusinessSetAside }}</td>
+                            <td><strong>Small Business Program:</strong></td>
+                            <td>{{ selectedRecord.smallBusinessProgram }}</td>
+                        </tr>
+
+                        <tr>
+                            <td><strong>Contract Vehicle:</strong></td>
+                            <td>{{ selectedRecord.strategicSourcingVehicle || 'None' }}</td>
+                            <td><strong>Contract Type:</strong></td>
+                            <td>{{ selectedRecord.contractType }}</td>
+                        </tr>
+
+                        <tr>
+                            <td><strong>Contract Status:</strong></td>
+                            <td>{{ selectedRecord.contractStatus }}</td>
+                            <td><strong>Fiscal Year:</strong></td>
+                            <td>{{ selectedRecord.fiscalYear }}</td>
+                        </tr>
+
+                        <tr>
+                            <td><strong>Estimated Solicitation Release:</strong></td>
+                            <td>{{ selectedRecord.estimatedSolicitationReleaseDate }}</td>
+                            <td><strong>Anticipated Award Date:</strong></td>
+                            <td>{{ selectedRecord.anticipatedAwardDate }}</td>
+                        </tr>
+
+                        <tr>
+                            <td><strong>Estimated Dollar Range:</strong></td>
+                            <td>{{ selectedRecord.dollarRange }}</td>
+                            <td><strong>Requirements Title:</strong></td>
+                            <td>{{ selectedRecord.requirementsTitle }}</td>
+                        </tr>
+
+                        <tr>
+                            <td><strong>Description / Requirement:</strong></td>
+                            <td colspan="3">{{ selectedRecord.requirement }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="apfs-recordhistory" *ngIf="recordHistoryItems.length">
+                    <div class="apfs-recordhistory__heading">Record History</div>
+
+                    <table class="apfs-recordhistory__table">
+                        <thead>
+                            <tr>
+                                <th>Date / Time</th>
+                                <th>Action</th>
+                                <th>User</th>
+                                <th>Comments / Assignment</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let item of recordHistoryItems; trackBy: trackHistory">
+                                <td>{{ item.at }}</td>
+                                <td>{{ item.title }}</td>
+                                <td>{{ item.actor }}</td>
+                                <td>
+                                    <div *ngIf="item.comment">{{ item.comment }}</div>
+                                    <div *ngIf="item.assignmentTo || item.assignmentFrom">
+                                        <strong>From:</strong> {{ item.assignmentFrom || '—' }}
+                                        &nbsp; | &nbsp;
+                                        <strong>To:</strong> {{ item.assignmentTo || '—' }}
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </aside>
 </div>

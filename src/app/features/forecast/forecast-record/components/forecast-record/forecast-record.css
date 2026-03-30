@@ -692,6 +692,20 @@ body[data-theme="dark"] .history-item {
   border-left: 2px solid var(--border);
 }
 
+.change-old {
+  border-left: 4px solid #b51f2a;
+  background: rgba(181, 31, 42, 0.06);
+  padding-left: 10px;
+  border-radius: 4px;
+}
+
+.change-new {
+  border-left: 4px solid #047857;
+  background: rgba(4, 120, 87, 0.06);
+  padding-left: 10px;
+  border-radius: 4px;
+}
+
 @media (max-width: 900px) {
   .history-drawer {
     top: 0;

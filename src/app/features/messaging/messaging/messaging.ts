@@ -1,8 +1,9 @@
 import { Component, ChangeDetectorRef, OnInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';   // 👈 ADD THIS
-import { CommonModule } from '@angular/common'; // 👈 ALSO THIS
+import { FormsModule } from '@angular/forms';   // 
+import { CommonModule } from '@angular/common'; // 
 
 import { MessagingService, UserNotification } from '../services/messaging.service';
+import { AuthService } from '../../../auth/auth.service';
 
 @Component({
   standalone: true,
@@ -35,24 +36,47 @@ export class MessagingPage implements OnInit {
 
   selectedMessage: UserNotification | null = null;
 
-  // TODO replace with auth user later
-  userId = 1768502629880;
+  userId: number | null = null;
 
   constructor(
     private messagingService: MessagingService,
+    private authService: AuthService,
     private cdr: ChangeDetectorRef
   ) { }
 
   ngOnInit(): void {
+    this.initUserAndLoad();
+  }
+
+  private initUserAndLoad(): void {
+    const me = this.authService.user;
+
+    if (!me?.id) {
+      this.error = 'User not available';
+      this.loading = false;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.userId = Number(me.id);
     this.load();
   }
 
   load(): void {
+    if (this.userId == null) {
+      this.error = 'No user id available.';
+      this.loading = false;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    const userId = this.userId; // ✅ now TS knows this is number
+
     this.loading = true;
     this.error = null;
     this.cdr.detectChanges();
 
-    this.messagingService.list(this.userId).subscribe({
+    this.messagingService.list(userId).subscribe({
       next: (rows) => {
         this.allResults = rows ?? [];
         this.applyFilters();

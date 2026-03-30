@@ -80,5 +80,9 @@ export function createEmptyForecastRecord(): ForecastRecord {
         sbSpecialistLastName: null,
         sbSpecialistPhone: null,
         sbSpecialistEmail: null,
+
+        //** For published history tracking
+        previous_published_date: null,
+        published_date: null,
     };
 }

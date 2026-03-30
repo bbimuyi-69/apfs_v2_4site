@@ -79,6 +79,10 @@ export interface ForecastRecord {
     sbSpecialistPhone: string | null;
     sbSpecialistEmail: string | null;
 
+    //** For published history tracking
+    previous_published_date?: string | null;
+    published_date?: string | null;
+
     /** Allow backend expansion without breaking frontend */
     [key: string]: any;
 }

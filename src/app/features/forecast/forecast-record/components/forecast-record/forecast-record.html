@@ -1,7 +1,7 @@
 <!-- #region Forecast Record Page Shell -->
 <div class="apfs-page">
     <div class="apfs-shell" *ngIf="form; else noForm" [class.no-rail]="!showRecordRail"
-        [class.has-history]="historyOpen">
+        [class.has-history]="historyOpen || changeLogOpen">
 
         <!-- #region Left Rail: Record Actions -->
         <aside class="record-rail" aria-label="Record actions" *ngIf="showRecordRail">
@@ -48,6 +48,11 @@
                 <button *ngIf="canReject" type="button" class="rail-btn rail-btn-danger" (click)="onReject()"
                     [disabled]="!canReject || isLoading" title="Reject and send back to previous step">
                     Reject &amp; Send Back <span class="rail-icon" aria-hidden="true">↩️</span>
+                </button>
+
+                <button *ngIf="canUnpublish" type="button" class="rail-btn rail-btn-danger" (click)="onUnpublish()"
+                    [disabled]="!canUnpublish || isLoading" title="Unpublish and send back to 4SITE Coordinator">
+                    Unpublish <span class="rail-icon" aria-hidden="true">↩️</span>
                 </button>
 
 
@@ -792,7 +797,8 @@
 
         <!-- #region History Drawer Host (WIP) -->
         <!-- #region History Drawer (overlay) -->
-        <div class="history-backdrop" [class.open]="historyOpen" (click)="closeHistory()"></div>
+        <!-- #region Drawer Host -->
+        <div class="history-backdrop" [class.open]="historyOpen || changeLogOpen" (click)="closeDrawers()"></div>
 
         <aside class="history-drawer" [class.open]="historyOpen" (click)="$event.stopPropagation()">
             <div class="history-head">
@@ -828,9 +834,55 @@
                     </div>
                 </div>
             </div>
-
-
         </aside>
+
+        <aside class="history-drawer" [class.open]="changeLogOpen" (click)="$event.stopPropagation()">
+            <div class="history-head">
+                <h3 class="history-title">Change Log</h3>
+                <button type="button" class="history-close" (click)="closeChangeLog()"
+                    aria-label="Close change log">✖</button>
+            </div>
+
+            <div class="history-body">
+                <div *ngIf="changeLogLoading" class="history-empty">
+                    Loading change log…
+                </div>
+
+                <div *ngIf="!changeLogLoading && changeLogError" class="history-empty">
+                    {{ changeLogError }}
+                </div>
+
+                <div *ngIf="!changeLogLoading && !changeLogError && changeLogItems.length === 0" class="history-empty">
+                    No change log entries yet.
+                </div>
+
+                <div *ngFor="let c of changeLogItems" class="history-item">
+                    <div class="history-top">
+                        <div class="history-titleline">
+                            <span class="history-title">{{ c.fieldName }}</span>
+
+                        </div>
+
+                        <div class="history-when">{{ c.at }}</div>
+                    </div>
+
+                    <div class="history-meta">
+                        <span class="history-actor">Old Value</span>
+                    </div>
+                    <div class="history-comment change-old">
+                        {{ c.oldValue }}
+                    </div>
+
+                    <div class="history-meta" style="margin-top:10px;">
+                        <span class="history-actor">New Value</span>
+                    </div>
+                    <div class="history-comment change-new">
+                        {{ c.newValue }}
+                    </div>
+                </div>
+            </div>
+        </aside>
+        <!-- #endregion Drawer Host -->
 
         <!-- #endregion History Drawer (overlay) -->
 
