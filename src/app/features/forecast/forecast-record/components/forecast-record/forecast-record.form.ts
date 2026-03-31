@@ -253,14 +253,22 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
 
             primaryContactEmail: new FormControl(record.primaryContactEmail ?? '', {
                 nonNullable: true,
-                validators: [Validators.required, Validators.email, Validators.maxLength(254)],
+                validators: [
+                    Validators.required,
+                    govEmailValidator(),
+                    Validators.maxLength(254)
+                ],
             }),
 
             alternateContactFirstName: new FormControl(record.alternateContactFirstName ?? null),
             alternateContactLastName: new FormControl(record.alternateContactLastName ?? null),
             alternateContactPhone: new FormControl(record.alternateContactPhone ?? null),
             alternateContactEmail: new FormControl(record.alternateContactEmail ?? null, {
-                validators: [Validators.email],
+                validators: [
+                    Validators.required,
+                    govEmailValidator(),
+                    Validators.maxLength(254)
+                ],
             }),
 
             /** Coordinator-updated (role toggled later) */
@@ -364,10 +372,12 @@ export function applyForecastRecordRolePermissions(
     // - in Contracting by Contracting Office (or Admin) — matches your rail behavior
     const canEditRequirementsFields =
         (isRequirementsLane && (isAdmin || isRequirements)) ||
-        (isContractingLane && (isAdmin || isContractingOffice));
+        (isContractingLane && (isAdmin || isContractingOffice)) ||
+        (isCoordinatorLane && (isAdmin || isCoordinator));
 
     const canEditContractingFields =
-        isContractingLane && (isAdmin || isContractingOffice);
+        (isContractingLane && (isAdmin || isContractingOffice)) ||
+        (isCoordinatorLane && (isAdmin || isCoordinator));
 
     const canEditCoordinatorFields =
         isCoordinatorLane && (isAdmin || isCoordinator);
@@ -382,7 +392,7 @@ export function applyForecastRecordRolePermissions(
     setEnabled(form.controls.naicsCode, canEditRequirementsFields);
 
     // Fiscal year (Requirements-owned)
-    setEnabled(form.controls.fiscalYear, isRequirementsLane && (isAdmin || isRequirements));
+    setEnabled(form.controls.fiscalYear, canEditRequirementsFields);
 
     // Place of performance + POCs (Requirements-owned)
     setEnabled(form.controls.placeOfPerformanceCity, canEditRequirementsFields);
@@ -392,31 +402,36 @@ export function applyForecastRecordRolePermissions(
     setEnabled(form.controls.primaryContactPhone, canEditRequirementsFields);
     setEnabled(form.controls.primaryContactEmail, canEditRequirementsFields);
 
+
+    setEnabled(form.controls.competitive, canEditRequirementsFields);
+    setEnabled(form.controls.contractStatus, canEditRequirementsFields);
+    setEnabled(form.controls.incumbent, canEditRequirementsFields);
+    setEnabled(form.controls.contractNumber, canEditRequirementsFields);
+
     // Alternate POC (Requirements-owned)
-    setEnabled(form.controls.alternateContactFirstName, isRequirementsLane && (isAdmin || isRequirements));
-    setEnabled(form.controls.alternateContactLastName, isRequirementsLane && (isAdmin || isRequirements));
-    setEnabled(form.controls.alternateContactPhone, isRequirementsLane && (isAdmin || isRequirements));
-    setEnabled(form.controls.alternateContactEmail, isRequirementsLane && (isAdmin || isRequirements));
+    setEnabled(form.controls.alternateContactFirstName, canEditRequirementsFields);
+    setEnabled(form.controls.alternateContactLastName, canEditRequirementsFields);
+    setEnabled(form.controls.alternateContactPhone, canEditRequirementsFields);
+    setEnabled(form.controls.alternateContactEmail, canEditRequirementsFields);
+
+
+
 
     // Contracting Office section (Contracting-owned)
     setEnabled(form.controls.contractType, canEditContractingFields);
     setEnabled(form.controls.strategicSourcingVehicleUsed, canEditContractingFields);
     setEnabled(form.controls.strategicSourcingVehicle, canEditContractingFields);
     setEnabled(form.controls.typeOfAward, canEditContractingFields);
-    setEnabled(form.controls.competitive, canEditContractingFields);
-    setEnabled(form.controls.contractStatus, canEditContractingFields);
+    setEnabled(form.controls.smallBusinessSetAside, canEditContractingFields);
+    setEnabled(form.controls.smallBusinessProgram, canEditContractingFields);
 
     // Contracting Role Section (Contracting-owned)
-    setEnabled(form.controls.incumbent, canEditContractingFields);
-    setEnabled(form.controls.contractNumber, canEditContractingFields);
     setEnabled(form.controls.estimatedPopStart, canEditContractingFields);
     setEnabled(form.controls.estimatedPopEnd, canEditContractingFields);
     setEnabled(form.controls.anticipatedAwardDate, canEditContractingFields);
     setEnabled(form.controls.estimatedSolicitationReleaseDate, canEditContractingFields);
 
     // Coordinator section (Coordinator-owned)
-    setEnabled(form.controls.smallBusinessSetAside, canEditCoordinatorFields);
-    setEnabled(form.controls.smallBusinessProgram, canEditCoordinatorFields);
     setEnabled(form.controls.sbSpecialistFirstName, canEditCoordinatorFields);
     setEnabled(form.controls.sbSpecialistLastName, canEditCoordinatorFields);
     setEnabled(form.controls.sbSpecialistPhone, canEditCoordinatorFields);
@@ -520,6 +535,30 @@ export function noSpecialCharactersValidator(): ValidatorFn {
         return regex.test(value)
             ? null
             : { invalidCharacters: true };
+    };
+}
+
+export function govEmailValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+        const value = (control.value ?? '').toLowerCase().trim();
+        if (!value) return null; // let required handle empty
+
+        // must be valid email first
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(value)) {
+            return { email: true }; // reuse existing message
+        }
+
+        // allowed domains
+        if (
+            value.endsWith('.mil') ||
+            value.endsWith('.gov') ||
+            value.endsWith('@bvti.com')
+        ) {
+            return null;
+        }
+
+        return { govEmail: true };
     };
 }
 

@@ -20,6 +20,12 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { combineLatest, of, EMPTY, map, shareReplay, tap, Observable } from 'rxjs';
 import { catchError, switchMap, timeout, startWith, delay } from 'rxjs/operators';
 import { ForecastWorkflowLane } from '../../models/forecast-record.enums';
+import {
+  ForecastRecordPrintComponent,
+  ForecastRecordPrintHistoryItem
+} from '../../components/forecast-record-print/forecast-record-print';
+
+
 
 import {
   buildForecastRecordForm,
@@ -61,16 +67,7 @@ import { ApfsOfficeService } from '../../../../../core/services/apfs-offices.ser
 //#endregion
 
 //#region Record History View Model
-type RecordHistoryItemVM = {
-  id: number | string;
-  at: string;                 // formatted timestamp
-  atIso?: string;             // original ISO (optional)
-  title: string;              // “Draft → Requirements”
-  actor: string;              // “HQ_Req@hq.dhs.gov”
-  comment?: string;           // user_comment
-  assignment?: string;        // assignment_display
-  isLatest?: boolean;         // latest === 1
-};
+type RecordHistoryItemVM = ForecastRecordPrintHistoryItem;
 
 type ChangeLogItemVM = {
   id: number | string;
@@ -133,7 +130,7 @@ export function apfsForecastSharePath(id: string | number, mode: 'view' | 'edit'
 @Component({
   selector: 'app-forecast-record',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, ForecastRecordPrintComponent],
   templateUrl: './forecast-record.html',
   styleUrls: ['./forecast-record.css'],
 })
@@ -509,13 +506,14 @@ export class ForecastRecordComponent {
   get canEditContractingSection(): boolean {
     if (!this.isEditMode) return false;
 
-    // ✅ Must be claimed by the current user (admins included)
+    // Must be claimed by the current user
     if (!this.claimedByMe) return false;
 
-    // ✅ Admin/Super Admin can edit any section at any time
+    // Admin / Super Admin can edit any section
     if (this.isAdminOrSuperAdmin) return true;
 
     const lane = this.normalizeRailStatus(this.workflowStatus);
+
     if (lane === 'Draft') {
       return this.hasEditRightsFor('Requirements');
     }
@@ -525,7 +523,10 @@ export class ForecastRecordComponent {
     }
 
     if (lane === 'Contracting') {
-      return this.hasEditRightsFor('Contracting Office');
+      return (
+        this.hasEditRightsFor('Contracting Office') ||
+        this.hasEditRightsFor('APFS Coordinator')
+      );
     }
 
     return false;
@@ -1765,7 +1766,17 @@ export class ForecastRecordComponent {
   }
 
   // ---- Rail button handlers ----
-  onPrintableView(): void { window.print(); }
+  onPrintableView(): void {
+    if (!this.record) return;
+
+    this.closeDrawers();
+    this.printViewOpen = true;
+    this.flushView();
+
+    setTimeout(() => {
+      window.print();
+    }, 50);
+  }
   onCsvDownload(): void { console.warn('CSV download not wired yet'); }
 
   onRecordHistory(): void {
@@ -1814,6 +1825,30 @@ export class ForecastRecordComponent {
     this.historyOpen = false;
     this.changeLogOpen = false;
     this.flushView();
+  }
+
+  printViewOpen = false;
+
+  closePrintView(): void {
+    this.printViewOpen = false;
+    this.flushView();
+  }
+
+  printCurrentRecord(): void {
+    document.body.classList.add('print-record-mode');
+
+    setTimeout(() => {
+      window.print();
+
+      setTimeout(() => {
+        document.body.classList.remove('print-record-mode');
+      }, 500);
+    }, 50);
+  }
+
+  goToCurrentRecordPage(): void {
+    if (!this.recordId) return;
+    this.router.navigate(['/forecast', this.recordId]);
   }
 
   onReassign(): void {
@@ -1946,6 +1981,43 @@ export class ForecastRecordComponent {
     }
   }
 
+  toNativeDateValue(value: string | null | undefined): string {
+    const s = String(value ?? '').trim();
+    if (!s) return '';
+
+    const match = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!match) return '';
+
+    const [, mm, dd, yyyy] = match;
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  onNativeDateChange(
+    event: Event,
+    controlName: 'estimatedPopStart' | 'estimatedPopEnd' | 'estimatedSolicitationReleaseDate' | 'anticipatedAwardDate'
+  ): void {
+    if (!this.form) return;
+
+    const input = event.target as HTMLInputElement;
+    const value = input.value; // yyyy-mm-dd
+
+    const ctrl = this.form.get(controlName);
+    if (!ctrl) return;
+
+    if (!value) {
+      ctrl.setValue(null);
+      ctrl.markAsTouched();
+      ctrl.markAsDirty();
+      return;
+    }
+
+    const [yyyy, mm, dd] = value.split('-');
+    const formatted = `${mm}/${dd}/${yyyy}`;
+
+    ctrl.setValue(formatted);
+    ctrl.markAsTouched();
+    ctrl.markAsDirty();
+  }
 
 
 }

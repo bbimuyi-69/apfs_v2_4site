@@ -52,11 +52,8 @@ export const APFS_COMPETITIVE: OptionItem[] = [
 ];
 
 export const APFS_CONTRACT_STATUS: OptionItem[] = [
-    { value: '', label: '----------' },
     { value: 'NEW', label: 'New' },
     { value: 'RECOMPETE', label: 'Re-compete' },
-    { value: 'BRIDGE', label: 'Bridge' },
-    { value: 'TBD', label: 'TBD' },
 ];
 
 export const APFS_CONTRACT_TYPES: OptionItem[] = [

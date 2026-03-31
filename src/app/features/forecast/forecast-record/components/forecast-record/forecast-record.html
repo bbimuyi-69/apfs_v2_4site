@@ -154,7 +154,7 @@
                         <div class="field" [class.is-invalid]="isInvalid('primaryContactFirstName')">
                             <label>First name <span class="req">*</span></label>
                             <input type="text" formControlName="primaryContactFirstName" />
-                            <div class="hint">Enter the phone number of the primary contact.</div>
+                            <div class="hint">Enter the first name of the primary contact.</div>
                             <div class="error" *ngIf="showError('primaryContactFirstName','required')">
                                 First name is required.
                             </div>
@@ -163,6 +163,7 @@
                         <div class="field" [class.is-invalid]="isInvalid('primaryContactLastName')">
                             <label>Last name <span class="req">*</span></label>
                             <input type="text" formControlName="primaryContactLastName" />
+                            <div class="hint">Enter the last name of the primary contact.</div>
                             <div class="error" *ngIf="showError('primaryContactLastName','required')">
                                 Last name is required.
                             </div>
@@ -173,11 +174,12 @@
                         <div class="field" [class.is-invalid]="isInvalid('primaryContactEmail')">
                             <label>Email <span class="req">*</span></label>
                             <input type="email" formControlName="primaryContactEmail" />
+                            <div class="hint">Enter the email of the primary contact.</div>
                             <div class="error" *ngIf="showError('primaryContactEmail','required')">
                                 Email is required.
                             </div>
                             <div class="error" *ngIf="showError('primaryContactEmail','email')">
-                                Enter a valid email.
+                                A valid government email (.mil, .gov, or @bvti.com) is required.
                             </div>
                         </div>
 
@@ -257,10 +259,10 @@
                 <div class="field" [class.is-invalid]="isInvalid('requirementsTitle')">
                     <label>Requirements title <span class="req">*</span></label>
                     <input type="text" formControlName="requirementsTitle" />
-                    <div class="hint">Enter a brief title to the requirement which will be included in email to
-                        industry.</div>
+                    <div class="hint">Enter a brief title to the requirement.</div>
                     <div class="error" *ngIf="showError('requirementsTitle','required')">
-                        Requirements title is required.
+                        Requirements title is required.Limit word
+                        count to 255.
                     </div>
                     <div class="error" *ngIf="showError('requirementsTitle','maxWords')">Requirements title exceeds 255
                         words.</div>
@@ -344,58 +346,7 @@
                 </div>
                 <!-- #endregion Requirements Fields -->
 
-                <!-- #region Contracting Selects -->
-                <div class="grid-2">
-                    <div class="field" [class.is-invalid]="isInvalid('contractType')">
-                        <label>Contract type <span class="req">*</span></label>
-                        <select formControlName="contractType">
-                            <option *ngFor="let o of contractTypes; trackBy: trackByValue" [value]="o.value">
-                                {{ o.label }}
-                            </option>
-                        </select>
-                        <div class="hint">This field is updated by the Contracting Officer.</div>
-                        <div class="error" *ngIf="showError('contractType','required')">Contract type is required.</div>
-                    </div>
-                    <!-- TODO This needs to drive the Strategic Sourcing Vehicle-->
-                    <div class="field" [class.is-invalid]="isInvalid('strategicSourcingVehicleUsed')">
-                        <label>Will a strategic sourcing vehicle be used? <span class="req">*</span></label>
-                        <select formControlName="strategicSourcingVehicleUsed">
-                            <option *ngFor="let o of yesNoUnknown; trackBy: trackByValue" [value]="o.value">
-                                {{ o.label }}
-                            </option>
-                        </select>
-                        <div class="hint">This field is updated by the Contracting Officer.</div>
-                        <div class="error" *ngIf="showError('strategicSourcingVehicleUsed','required')">This field is
-                            required.</div>
-                    </div>
-                </div>
-
-                <div class="grid-2">
-                    <div class="field" [class.is-invalid]="isInvalid('strategicSourcingVehicle')">
-                        <label>Strategic sourcing vehicle <span class="req">*</span></label>
-                        <select formControlName="strategicSourcingVehicle">
-                            <option *ngFor="let o of strategicSourcingVehicleOptions; trackBy: trackByValue"
-                                [value]="o.value">
-                                {{ o.label }}
-                            </option>
-                        </select>
-                        <div class="hint">This field is updated by the Contracting Officer.</div>
-                        <div class="error" *ngIf="showError('strategicSourcingVehicle','required')">This field is
-                            required.</div>
-                    </div>
-
-                    <div class="field" [class.is-invalid]="isInvalid('typeOfAward')">
-                        <label>Type of award <span class="req">*</span></label>
-                        <select formControlName="typeOfAward">
-                            <option *ngFor="let o of typeOfAwardOptions; trackBy: trackByValue" [value]="o.value">
-                                {{ o.label }}
-                            </option>
-                        </select>
-                        <div class="hint">This field is updated by the Contracting Officer.</div>
-                        <div class="error" *ngIf="showError('typeOfAward','required')">This field is required.</div>
-                    </div>
-                </div>
-
+                <!-- #region Requirements Selects -->
                 <div class="grid-2">
                     <div class="field" [class.is-invalid]="isInvalid('competitive')">
                         <label>Competitive <span class="req">*</span></label>
@@ -420,6 +371,13 @@
                     </div>
                 </div>
 
+
+
+
+
+
+
+
                 <div class="grid-2">
                     <div class="field" [class.is-invalid]="isInvalid('fiscalYear')">
                         <label>Fiscal year <span class="req">*</span></label>
@@ -433,41 +391,7 @@
                     </div>
 
                 </div>
-                <!-- #endregion Contracting Selects -->
-            </section>
-            <!-- #endregion Requirements (Owned by Requirements) -->
 
-
-
-
-
-            <!-- #region Contracting Office (Owned by Contracting Office) -->
-            <section class="sec" id="sec-contracting" [class.readonly]="isEditMode && !canEditContractingSection">
-                <div class="sec-h">
-                    <div class="sec-title">
-                        Contracting Office <span class="sec-sub">Owned by contracting office</span>
-                    </div>
-
-                    <div class="sec-meta">
-                        <span *ngIf="!isEditMode" class="pill ro">
-                            Read-only
-                        </span>
-
-                        <!-- Edit mode, but user cannot edit this section -->
-                        <span *ngIf="isEditMode && !canEditContractingSection" class="pill ro">
-                            Read-only
-                        </span>
-
-                        <!-- Edit mode and user can edit -->
-                        <span *ngIf="isEditMode && canEditContractingSection" class="pill ok">
-                            Editable
-                        </span>
-                    </div>
-                </div>
-
-
-
-                <!-- #region Contracting Text Inputs -->
                 <!-- incumbent/contractNumber -->
                 <div class="grid-2">
 
@@ -493,101 +417,6 @@
                     </div>
                 </div>
 
-
-
-
-                <div class="grid-2">
-                    <div class="field" [class.is-invalid]="isInvalid('estimatedPopStart')">
-                        <label>
-                            Estimated period of performance start <span class="req">*</span>
-                        </label>
-
-                        <input type="text" inputmode="numeric" formControlName="estimatedPopStart"
-                            placeholder="MM/DD/YYYY" (input)="onDateInput($event, 'estimatedPopStart')"
-                            (blur)="onDateInput($event, 'estimatedPopStart')" />
-
-                        <div class="hint">
-                            Enter the date using MM/DD/YYYY format.
-                        </div>
-
-                        <div class="error" *ngIf="showError('estimatedPopStart','required')">
-                            This field is required.
-                        </div>
-
-                        <div class="error" *ngIf="showError('estimatedPopStart','pattern')">
-                            Please use MM/DD/YYYY.
-                        </div>
-                    </div>
-
-                    <div class="field" [class.is-invalid]="isInvalid('estimatedPopEnd')">
-                        <label>
-                            Estimated period of performance end <span class="req">*</span>
-                        </label>
-
-                        <input type="text" inputmode="numeric" formControlName="estimatedPopEnd"
-                            placeholder="MM/DD/YYYY" (input)="onDateInput($event, 'estimatedPopEnd')"
-                            (blur)="onDateInput($event, 'estimatedPopEnd')" />
-
-                        <div class="hint">
-                            Enter the date using MM/DD/YYYY format.
-                        </div>
-
-                        <div class="error" *ngIf="showError('estimatedPopEnd','required')">
-                            This field is required.
-                        </div>
-
-                        <div class="error" *ngIf="showError('estimatedPopEnd','pattern')">
-                            Please use MM/DD/YYYY.
-                        </div>
-                    </div>
-                </div>
-
-
-                <div class="grid-2">
-                    <div class="field" [class.is-invalid]="isInvalid('estimatedSolicitationReleaseDate')">
-                        <label>
-                            Estimated solicitation release date <span class="req">*</span>
-                        </label>
-
-                        <input type="text" inputmode="numeric" formControlName="estimatedSolicitationReleaseDate"
-                            placeholder="MM/DD/YYYY" (input)="onDateInput($event, 'estimatedSolicitationReleaseDate')"
-                            (blur)="onDateInput($event, 'estimatedSolicitationReleaseDate')" />
-
-                        <div class="hint">
-                            Enter the date using MM/DD/YYYY format.
-                        </div>
-
-                        <div class="error" *ngIf="showError('estimatedSolicitationReleaseDate','required')">
-                            This field is required.
-                        </div>
-
-                        <div class="error" *ngIf="showError('estimatedSolicitationReleaseDate','pattern')">
-                            Please use MM/DD/YYYY.
-                        </div>
-                    </div>
-
-                    <div class="field" [class.is-invalid]="isInvalid('anticipatedAwardDate')">
-                        <label>
-                            Anticipated award date <span class="req">*</span>
-                        </label>
-
-                        <input type="text" inputmode="numeric" formControlName="anticipatedAwardDate"
-                            placeholder="MM/DD/YYYY" (input)="onDateInput($event, 'anticipatedAwardDate')"
-                            (blur)="onDateInput($event, 'anticipatedAwardDate')" />
-
-                        <div class="hint">
-                            Enter the date using MM/DD/YYYY format.
-                        </div>
-
-                        <div class="error" *ngIf="showError('anticipatedAwardDate','required')">
-                            This field is required.
-                        </div>
-
-                        <div class="error" *ngIf="showError('anticipatedAwardDate','pattern')">
-                            Please use MM/DD/YYYY.
-                        </div>
-                    </div>
-                </div>
 
                 <!--Place Of Performance-->
                 <div class="grid-2">
@@ -641,22 +470,96 @@
                     </div>
                 </div>
 
-                <!-- #endregion Contracting Text Inputs -->
-            </section>
-            <!-- #endregion Contracting Office (Owned by Contracting Office) -->
+                <!-- #region Alternate Contact -->
+                <div class="subsec">
+                    <div class="hint">Alternate contact information for this requirement.</div>
 
-            <!-- #region Small Business (Owned by APFS Coordinator) -->
-            <section class="sec" id="sec-small-business" [class.readonly]="isEditMode && !canEditCoordinatorSection">
+                    <div class="grid-2">
+                        <div class="field" [class.is-invalid]="isInvalid('alternateContactFirstName')">
+                            <label>First name <span class="req">*</span></label>
+                            <input type="text" formControlName="alternateContactFirstName" />
+                            <div class="hint">Enter the phone number of the alternate contact.</div>
+                            <div class="error" *ngIf="showError('alternateContactFirstName','required')">
+                                First name is required.
+                            </div>
+                        </div>
+
+                        <div class="field" [class.is-invalid]="isInvalid('alternateContactLastName')">
+                            <label>Last name <span class="req">*</span></label>
+                            <input type="text" formControlName="alternateContactLastName" />
+                            <div class="error" *ngIf="showError('alternateContactLastName','required')">
+                                Last name is required.
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="grid-2">
+                        <div class="field" [class.is-invalid]="isInvalid('alternateContactEmail')">
+                            <label>Email <span class="req">*</span></label>
+                            <input type="email" formControlName="alternateContactEmail" />
+                            <div class="error" *ngIf="showError('alternateContactEmail','required')">
+                                Email is required.
+                            </div>
+                            <div class="error" *ngIf="showError('alternateContactEmail','email')">
+                                A valid government email (.mil, .gov, or @bvti.com) is required.
+                            </div>
+                        </div>
+
+                        <div class="field" [class.is-invalid]="isInvalid('alternateContactPhone')">
+                            <label>Alternate contact phone number <span class="req">*</span></label>
+                            <input type="tel" inputmode="tel" autocomplete="tel" formControlName="alternateContactPhone"
+                                placeholder="(203) 555-1234" (input)="onPhoneInput($event, 'alternateContactFirstName')"
+                                (blur)="onPhoneInput($event, 'alternateContactFirstName')" />
+
+                            <div class="hint">Enter the phone number of the alternate contact.</div>
+                            <div class="error" *ngIf="showError('alternateContactPhone','required')">
+                                Alternate contact phone number is required.
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+                <!-- #endregion Primary Contact -->
+
+                <!-- #endregion Contracting Selects -->
+
+
+
+            </section>
+            <!-- #endregion Requirements (Owned by Requirements) -->
+
+
+
+
+
+            <!-- #region Contracting Office (Owned by Contracting Office) -->
+            <section class="sec" id="sec-contracting" [class.readonly]="isEditMode && !canEditContractingSection">
                 <div class="sec-h">
                     <div class="sec-title">
-                        Small Business <span class="sec-sub">Owned by 4SITE coordinator</span>
+                        Contracting Office <span class="sec-sub">Owned by contracting office</span>
                     </div>
 
                     <div class="sec-meta">
-                        <span *ngIf="isEditMode && !canEditCoordinatorSection" class="pill ro">Read-only</span>
-                        <span *ngIf="canEditCoordinatorSection" class="pill ok">Editable</span>
+                        <span *ngIf="!isEditMode" class="pill ro">
+                            Read-only
+                        </span>
+
+                        <!-- Edit mode, but user cannot edit this section -->
+                        <span *ngIf="isEditMode && !canEditContractingSection" class="pill ro">
+                            Read-only
+                        </span>
+
+                        <!-- Edit mode and user can edit -->
+                        <span *ngIf="isEditMode && canEditContractingSection" class="pill ok">
+                            Editable
+                        </span>
                     </div>
                 </div>
+
+
+
+                <!-- #region Contracting Text Inputs -->
                 <!-- smallBusinessSetAside/smallBusinessProgram -->
                 <div class="grid-2">
                     <div class="field" [class.is-invalid]="isInvalid('smallBusinessSetAside')">
@@ -685,6 +588,196 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- TODO This needs to drive the Strategic Sourcing Vehicle-->
+
+
+                <div class="grid-2">
+                    <div class="field" [class.is-invalid]="isInvalid('contractType')">
+                        <label>Contract type <span class="req">*</span></label>
+                        <select formControlName="contractType">
+                            <option *ngFor="let o of contractTypes; trackBy: trackByValue" [value]="o.value">
+                                {{ o.label }}
+                            </option>
+                        </select>
+                        <div class="hint">This field is updated by the Contracting Officer.</div>
+                        <div class="error" *ngIf="showError('contractType','required')">Contract type is required.</div>
+                    </div>
+
+                    <div class="field" [class.is-invalid]="isInvalid('strategicSourcingVehicleUsed')">
+                        <label>Will a strategic sourcing vehicle be used? <span class="req">*</span></label>
+                        <select formControlName="strategicSourcingVehicleUsed">
+                            <option *ngFor="let o of yesNoUnknown; trackBy: trackByValue" [value]="o.value">
+                                {{ o.label }}
+                            </option>
+                        </select>
+                        <div class="hint">This field is updated by the Contracting Officer.</div>
+                        <div class="error" *ngIf="showError('strategicSourcingVehicleUsed','required')">This field is
+                            required.</div>
+                    </div>
+
+
+                </div>
+
+
+                <div class="grid-2">
+                    <div class="field" [class.is-invalid]="isInvalid('strategicSourcingVehicle')">
+                        <label>Strategic sourcing vehicle <span class="req">*</span></label>
+                        <select formControlName="strategicSourcingVehicle">
+                            <option *ngFor="let o of strategicSourcingVehicleOptions; trackBy: trackByValue"
+                                [value]="o.value">
+                                {{ o.label }}
+                            </option>
+                        </select>
+                        <div class="hint">This field is updated by the Contracting Officer.</div>
+                        <div class="error" *ngIf="showError('strategicSourcingVehicle','required')">This field is
+                            required.</div>
+                    </div>
+
+                    <div class="field" [class.is-invalid]="isInvalid('typeOfAward')">
+                        <label>Type of award <span class="req">*</span></label>
+                        <select formControlName="typeOfAward">
+                            <option *ngFor="let o of typeOfAwardOptions; trackBy: trackByValue" [value]="o.value">
+                                {{ o.label }}
+                            </option>
+                        </select>
+                        <div class="hint">This field is updated by the Contracting Officer.</div>
+                        <div class="error" *ngIf="showError('typeOfAward','required')">This field is required.</div>
+                    </div>
+                </div>
+
+
+
+
+
+
+                <div class="grid-2">
+                    <div class="field" [class.is-invalid]="isInvalid('estimatedPopStart')">
+                        <label>
+                            Estimated period of performance start <span class="req">*</span>
+                        </label>
+
+                        <div class="date-input-wrap">
+                            <input type="date" class="date-input native-date"
+                                [value]="toNativeDateValue(form?.get('estimatedPopStart')?.value)"
+                                [disabled]="form?.get('estimatedPopStart')?.disabled"
+                                (change)="onNativeDateChange($event, 'estimatedPopStart')" />
+                            <span class="date-icon" aria-hidden="true">📅</span>
+                        </div>
+
+                        <div class="hint">
+                            Select the date from the calendar.
+                        </div>
+
+                        <div class="error" *ngIf="showError('estimatedPopStart','required')">
+                            This field is required.
+                        </div>
+
+                        <div class="error" *ngIf="showError('estimatedPopStart','pattern')">
+                            Please use MM/DD/YYYY.
+                        </div>
+                    </div>
+
+                    <div class="field" [class.is-invalid]="isInvalid('estimatedPopEnd')">
+                        <label>
+                            Estimated period of performance end <span class="req">*</span>
+                        </label>
+
+                        <div class="date-input-wrap">
+                            <input type="date" class="date-input native-date"
+                                [value]="toNativeDateValue(form?.get('estimatedPopEnd')?.value)"
+                                [disabled]="form?.get('estimatedPopEnd')?.disabled"
+                                (change)="onNativeDateChange($event, 'estimatedPopEnd')" />
+                            <span class="date-icon" aria-hidden="true">📅</span>
+                        </div>
+
+                        <div class="hint">
+                            Select the date from the calendar.
+                        </div>
+
+                        <div class="error" *ngIf="showError('estimatedPopEnd','required')">
+                            This field is required.
+                        </div>
+
+                        <div class="error" *ngIf="showError('estimatedPopEnd','pattern')">
+                            Please use MM/DD/YYYY.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="field" [class.is-invalid]="isInvalid('estimatedSolicitationReleaseDate')">
+                        <label>
+                            Estimated solicitation release date <span class="req">*</span>
+                        </label>
+
+                        <div class="date-input-wrap">
+                            <input type="date" class="date-input native-date"
+                                [value]="toNativeDateValue(form?.get('estimatedSolicitationReleaseDate')?.value)"
+                                [disabled]="form?.get('estimatedSolicitationReleaseDate')?.disabled"
+                                (change)="onNativeDateChange($event, 'estimatedSolicitationReleaseDate')" />
+                            <span class="date-icon" aria-hidden="true">📅</span>
+                        </div>
+
+                        <div class="hint">
+                            Select the date from the calendar.
+                        </div>
+
+                        <div class="error" *ngIf="showError('estimatedSolicitationReleaseDate','required')">
+                            This field is required.
+                        </div>
+
+                        <div class="error" *ngIf="showError('estimatedSolicitationReleaseDate','pattern')">
+                            Please use MM/DD/YYYY.
+                        </div>
+                    </div>
+
+                    <div class="field" [class.is-invalid]="isInvalid('anticipatedAwardDate')">
+                        <label>
+                            Anticipated award date <span class="req">*</span>
+                        </label>
+
+                        <div class="date-input-wrap">
+                            <input type="date" class="date-input native-date"
+                                [value]="toNativeDateValue(form?.get('anticipatedAwardDate')?.value)"
+                                [disabled]="form?.get('anticipatedAwardDate')?.disabled"
+                                (change)="onNativeDateChange($event, 'anticipatedAwardDate')" />
+                            <span class="date-icon" aria-hidden="true">📅</span>
+                        </div>
+
+                        <div class="hint">
+                            Select the date from the calendar.
+                        </div>
+
+                        <div class="error" *ngIf="showError('anticipatedAwardDate','required')">
+                            This field is required.
+                        </div>
+
+                        <div class="error" *ngIf="showError('anticipatedAwardDate','pattern')">
+                            Please use MM/DD/YYYY.
+                        </div>
+                    </div>
+                </div>
+
+
+
+                <!-- #endregion Contracting Text Inputs -->
+            </section>
+            <!-- #endregion Contracting Office (Owned by Contracting Office) -->
+
+            <!-- #region Small Business (Owned by APFS Coordinator) -->
+            <section class="sec" id="sec-small-business" [class.readonly]="isEditMode && !canEditCoordinatorSection">
+                <div class="sec-h">
+                    <div class="sec-title">
+                        Small Business <span class="sec-sub">Owned by 4SITE coordinator</span>
+                    </div>
+
+                    <div class="sec-meta">
+                        <span *ngIf="isEditMode && !canEditCoordinatorSection" class="pill ro">Read-only</span>
+                        <span *ngIf="canEditCoordinatorSection" class="pill ok">Editable</span>
+                    </div>
+                </div>
+
                 <!-- sbSpecialistFirstName/sbSpecialistLastName -->
                 <div class="grid-2">
                     <div class="field" [class.is-invalid]="isInvalid('sbSpecialistFirstName')">
@@ -910,5 +1003,26 @@
         <div class="apfs-loading">Loading…</div>
     </ng-template>
     <!-- #endregion No Form Template -->
+
+    <div class="record-print-overlay" *ngIf="printViewOpen">
+        <div class="record-print-overlay__toolbar">
+            <button type="button" class="btn-primary" (click)="printCurrentRecord()">
+                Print
+            </button>
+
+            <button type="button" class="btn-secondary" (click)="goToCurrentRecordPage()" *ngIf="recordId">
+                Go To Record Page
+            </button>
+
+            <button type="button" class="btn-ghost" (click)="closePrintView()">
+                Close
+            </button>
+        </div>
+
+        <div class="record-print-overlay__body">
+            <app-forecast-record-print [record]="record" [historyItems]="historyItems">
+            </app-forecast-record-print>
+        </div>
+    </div>
 </div>
 <!-- #endregion Forecast Record Page Shell -->

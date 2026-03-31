@@ -13,3 +13,45 @@ body {
   background: var(--bg);
   color: var(--text);
 }
+
+@media print {
+  body.print-record-mode .apfs-page>*:not(.record-print-overlay) {
+    display: none !important;
+  }
+
+  body.print-record-mode .record-print-overlay {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    z-index: 999999 !important;
+    overflow: visible !important;
+  }
+
+  body.print-record-mode .record-print-overlay__toolbar {
+    display: none !important;
+  }
+
+  body.print-record-mode .record-print-overlay__body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    overflow: visible !important;
+  }
+
+  body.print-record-mode .record-print-overlay__body app-forecast-record-print {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+    background: #fff !important;
+  }
+
+  body.print-record-mode .hist-title,
+  body.print-record-mode .hist {
+    display: none !important;
+  }
+}

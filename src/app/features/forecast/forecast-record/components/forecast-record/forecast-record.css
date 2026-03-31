@@ -706,6 +706,80 @@ body[data-theme="dark"] .history-item {
   border-radius: 4px;
 }
 
+/* Date input shell */
+.date-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.date-input {
+  width: 100%;
+  padding-right: 44px !important;
+}
+
+/* Calendar icon */
+.date-icon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 16px;
+  line-height: 1;
+  opacity: 0.72;
+}
+
+/* Nice focus treatment */
+.date-input-wrap input:focus {
+  box-shadow: 0 0 0 3px rgba(11, 90, 134, 0.12);
+}
+
+/* Invalid state support */
+.field.is-invalid .date-input-wrap input {
+  border-color: #c62828;
+}
+
+.field.is-invalid .date-icon {
+  opacity: 0.9;
+}
+
+/* Optional hover polish */
+.date-input-wrap:hover .date-icon {
+  opacity: 1;
+}
+
+
+/* Hide ugly native styling but keep functionality */
+.native-date {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+}
+
+/* Keep your icon aligned */
+.date-input-wrap {
+  position: relative;
+}
+
+.date-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* Make whole field clickable */
+.native-date::-webkit-calendar-picker-indicator {
+  position: absolute;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
 @media (max-width: 900px) {
   .history-drawer {
     top: 0;
@@ -754,5 +828,71 @@ body[data-theme="dark"] .history-item {
 
   .apfs-actions {
     flex-direction: column;
+  }
+
+  /* =========================
+   Shared printable record overlay
+   ========================= */
+  .record-print-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    background: rgba(0, 0, 0, 0.14);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .record-print-overlay__toolbar {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .record-print-overlay__body {
+    flex: 1 1 auto;
+    overflow: auto;
+    background: #f3f3f3;
+    padding: 18px;
+  }
+
+  .record-print-overlay__body app-forecast-record-print {
+    display: block;
+    max-width: 1060px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 10px 14px 28px;
+  }
+
+  @media print {
+    body * {
+      visibility: hidden !important;
+    }
+
+    .record-print-overlay,
+    .record-print-overlay * {
+      visibility: visible !important;
+    }
+
+    .record-print-overlay {
+      position: absolute !important;
+      inset: 0 !important;
+      width: 100% !important;
+      background: #fff !important;
+      z-index: 9999 !important;
+    }
+
+    .record-print-overlay__toolbar {
+      display: none !important;
+    }
+
+    .record-print-overlay__body {
+      padding: 0 !important;
+      margin: 0 !important;
+      background: #fff !important;
+    }
   }
 }

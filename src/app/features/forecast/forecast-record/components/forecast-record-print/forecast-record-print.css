@@ -1,0 +1,107 @@
+:host {
+    display: block;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #333;
+}
+
+/* ================= HEADER ================= */
+.apfs-recordprint__top {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.apfs-recordprint__system {
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.apfs-recordprint__recordline {
+    font-size: 14px;
+}
+
+.apfs-recordprint__recordline .num {
+    font-size: 20px;
+    margin-left: 6px;
+}
+
+.seal {
+    width: 80px;
+    margin-left: 10px;
+}
+
+/* ================= TABLE ================= */
+.tbl,
+.hist {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 8px;
+}
+
+.tbl td,
+.tbl th,
+.hist td,
+.hist th {
+    border: 1px solid #dddddd;
+    /* lighter like PDF */
+    padding: 3px 5px;
+    /* tighter */
+    font-size: 11px;
+    vertical-align: top;
+}
+
+/* column ratios tuned */
+.tbl td:nth-child(1),
+.tbl th:nth-child(1),
+.tbl td:nth-child(3),
+.tbl th:nth-child(3) {
+    width: 20%;
+}
+
+.tbl td:nth-child(2),
+.tbl th:nth-child(2),
+.tbl td:nth-child(4),
+.tbl th:nth-child(4) {
+    width: 30%;
+}
+
+/* header cells */
+.tbl th {
+    background: #f7f7f7;
+    font-weight: 600;
+}
+
+/* zebra striping */
+.tbl tr:nth-child(even),
+.hist tr:nth-child(even) {
+    background: #f3f3f3;
+}
+
+/* ================= HISTORY ================= */
+.hist-title {
+    text-align: center;
+    font-size: 13px;
+    margin: 6px 0 4px;
+}
+
+.hist th {
+    background: #f7f7f7;
+    font-weight: 500;
+    font-size: 10.5px;
+}
+
+.hist td {
+    font-size: 10.5px;
+    padding: 2px 4px;
+}
+
+/* ================= PRINT ================= */
+/* forecast-record-print.css */
+@media print {
+
+    .hist-title,
+    .hist {
+        display: none !important;
+    }
+}

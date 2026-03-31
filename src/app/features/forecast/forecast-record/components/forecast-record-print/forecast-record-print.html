@@ -1,0 +1,160 @@
+<div class="apfs-recordprint" *ngIf="record">
+
+    <!-- HEADER -->
+    <div class="apfs-recordprint__top">
+        <div>
+            <div class="apfs-recordprint__system">
+                Forecasting System for Industry Tracking and Engagement (4SITE)
+            </div>
+
+            <div class="apfs-recordprint__recordline">
+                Forecast Record Number:
+                <span class="num">{{ record.apfsNumber }}</span>
+            </div>
+        </div>
+
+        <img class="seal" src="/assets/images/logo.svg" alt="DHS seal" />
+    </div>
+
+    <!-- TOP TABLE -->
+    <table class="tbl">
+        <tr>
+            <th>Component:</th>
+            <td>{{ record.component }}</td>
+            <th>Published Date:</th>
+            <td>{{ publishedDate }}</td>
+        </tr>
+
+        <tr>
+            <th>Requirements Office:</th>
+            <td>{{ record['requirementsOffice'] }}</td>
+            <th>Previously Published On:</th>
+            <td>{{ previouslyPublishedOn }}</td>
+        </tr>
+
+        <tr>
+            <th>Contracting Office:</th>
+            <td>{{ record['contractingOffice'] }}</td>
+            <td></td>
+            <td></td>
+        </tr>
+
+        <tr>
+            <th>4SITE Coordinator Office:</th>
+            <td>{{ record['coordinatorOffice'] }}</td>
+            <td></td>
+            <td></td>
+        </tr>
+    </table>
+
+    <!-- MAIN TABLE -->
+    <table class="tbl">
+        <tr>
+            <td><b>NAICS:</b></td>
+            <td>{{ record.naicsCode }}</td>
+            <td><b>Competition:</b></td>
+            <td>{{ record.competitive }}</td>
+        </tr>
+
+        <tr>
+            <td><b>Small Business Set-Aside:</b></td>
+            <td>{{ record.smallBusinessSetAside }}</td>
+            <td><b>Small Business Program:</b></td>
+            <td>{{ record.smallBusinessProgram }}</td>
+        </tr>
+
+        <tr>
+            <td><b>Contract Vehicle:</b></td>
+            <td>{{ contractVehicle }}</td>
+            <td><b>Contract Type:</b></td>
+            <td>{{ record.contractType }}</td>
+        </tr>
+
+        <tr>
+            <td><b>Contract Complete:</b></td>
+            <td>{{ record.incumbent }}</td>
+            <td><b>Contract Status:</b></td>
+            <td>{{ record.contractStatus }}</td>
+        </tr>
+
+        <tr>
+            <td><b>Estimated Period Of Performance:</b></td>
+            <td colspan="3">{{ performance }}</td>
+        </tr>
+
+        <tr>
+            <td><b>Estimated Solicitation Release:</b></td>
+            <td>{{ record.estimatedSolicitationReleaseDate }}</td>
+            <td><b>Anticipated Award Date:</b></td>
+            <td>{{ record.anticipatedAwardDate }}</td>
+        </tr>
+
+        <tr>
+            <td><b>Estimated Dollar Range:</b></td>
+            <td>{{ record.dollarRange }}</td>
+            <td><b>Fiscal Year:</b></td>
+            <td>{{ record.fiscalYear }}</td>
+        </tr>
+
+        <tr>
+            <td><b>Requirements Title:</b></td>
+            <td colspan="3">{{ record.requirementsTitle }}</td>
+        </tr>
+
+        <tr>
+            <td><b>Description:</b></td>
+            <td colspan="3">{{ record.requirement }}</td>
+        </tr>
+
+        <tr>
+            <td><b>Place of Performance:</b></td>
+            <td>{{ place }}</td>
+            <td><b>Primary POC Name:</b></td>
+            <td>{{ pocName }}</td>
+        </tr>
+
+        <tr>
+            <td><b>Primary POC Phone:</b></td>
+            <td>{{ record.primaryContactPhone }}</td>
+            <td><b>Primary POC Email:</b></td>
+            <td>{{ record.primaryContactEmail }}</td>
+        </tr>
+
+        <tr>
+            <td><b>Small Business Specialist/4SITE Coordinator Name:</b></td>
+            <td>{{ coordName }}</td>
+            <td></td>
+            <td></td>
+        </tr>
+
+        <tr>
+            <td><b>Small Business Specialist/4SITE Coordinator Phone:</b></td>
+            <td>{{ record.sbSpecialistPhone }}</td>
+            <td><b>Email:</b></td>
+            <td>{{ record.sbSpecialistEmail }}</td>
+        </tr>
+    </table>
+
+    <!-- HISTORY -->
+    <h3 class="hist-title">Record History</h3>
+
+    <table class="hist">
+        <tr>
+            <th>Date/Time</th>
+            <th>Moved From</th>
+            <th>Moved To</th>
+            <th>Assignment</th>
+        </tr>
+
+        <tr *ngFor="let h of historyItems; trackBy: trackByHistory">
+            <td>{{ h.at }}</td>
+            <td>{{ h.fromState }}</td>
+            <td>{{ h.toState }}</td>
+            <td>
+                <div *ngIf="h.assignmentTo">To: {{ h.assignmentTo }}</div>
+                <div *ngIf="h.assignmentFrom">From: {{ h.assignmentFrom }}</div>
+            </td>
+        </tr>
+    </table>
+
+</div>
