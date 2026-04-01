@@ -72,12 +72,18 @@
               </li>
 
               <li *ngIf="auth.user?.role === 'Admin' || auth.user?.role === 'Super Admin'">
+                <a routerLink="/reports/record-count" (click)="closeDropdowns()">
+                  Record Count Report
+                </a>
+              </li>
+
+              <li *ngIf="auth.user?.role === 'Admin' || auth.user?.role === 'Super Admin'">
                 <a routerLink="/reports/forecast-summary" (click)="closeDropdowns()">
                   Forecast Summary Report
                 </a>
               </li>
 
-              <li *ngIf="auth.user?.role === 'Super Admin'">
+              <li *ngIf="auth.user?.role === 'Admin' || auth.user?.role === 'Super Admin'">
                 <a routerLink="/reports/office-performance" (click)="closeDropdowns()">
                   Office Performance Report
                 </a>

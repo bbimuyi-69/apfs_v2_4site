@@ -1,0 +1,395 @@
+<div class="apfs-report">
+    <h1 class="apfs-title">Record Count Report</h1>
+    <div class="apfs-subtitle">Press "Filter Report" to generate the report.</div>
+
+    <section class="apfs-panel">
+        <div class="apfs-panel__hdr">Record Count Report</div>
+        <div class="apfs-panel__body">
+            This report counts and lists records based on several criteria. If filtering on a given time period only
+            records with histories within the time period will be listed. Histories are created when a record is
+            created, assigned, released, approved, or rejected. This report can also be filtered to users, components,
+            offices, and record status. If none of the filter criteria are selected, the report will return results
+            based on all records in 4SITE. The results will return a table containing a hyperlink to the individual
+            records, the Component, Dollar Range and the Requirements Title. Once the report is run the criteria can
+            be updated by clicking on the "Show Filters" button, changing the desired criteria, and clicking the
+            "Filter Report" button.
+        </div>
+    </section>
+
+    <section class="apfs-section" *ngIf="showFilters && !resultsVisible">
+        <h2 class="apfs-h2">Filters</h2>
+
+        <div class="apfs-note">All filter fields are optional.</div>
+
+        <div class="apfs-form apfs-form--wide">
+            <label class="apfs-label">Status</label>
+            <select class="apfs-input" [(ngModel)]="status" name="status">
+                <option value="all">All Records</option>
+                <option value="new">New</option>
+                <option value="reCompete">Re-compete</option>
+            </select>
+            <div class="apfs-help">
+                Get a count for the total number of newly created records, records worked in a particular state, or all
+                records.
+            </div>
+
+            <label class="apfs-label">Component</label>
+            <textarea class="apfs-input apfs-textarea" [(ngModel)]="componentText" name="componentText"></textarea>
+            <div class="apfs-help">
+                The component(s) that own the records. Use comma-separated values.
+            </div>
+
+            <label class="apfs-label">Office</label>
+            <textarea class="apfs-input apfs-textarea" [(ngModel)]="officeText" name="officeText"></textarea>
+            <div class="apfs-help">
+                The office(s) that own the records. Use comma-separated values.
+            </div>
+
+            <label class="apfs-label">Start Date</label>
+            <input class="apfs-input apfs-input--date" type="date" [(ngModel)]="startDate" name="startDate" />
+            <div class="apfs-help">
+                Filter report by the selected time period, only includes records that were worked on within the selected
+                time period; defaults to anytime.
+            </div>
+
+            <label class="apfs-label">End Date</label>
+            <input class="apfs-input apfs-input--date" type="date" [(ngModel)]="endDate" name="endDate" />
+            <div class="apfs-help">
+                Filter report by the selected time period, only includes records that were worked on within the selected
+                time period; defaults to anytime.
+            </div>
+
+            <label class="apfs-label">Creation Date After</label>
+            <input class="apfs-input apfs-input--date" type="date" [(ngModel)]="createdAfter" name="createdAfter" />
+            <div class="apfs-help">
+            </div>
+
+            <label class="apfs-label">Creation Date Before</label>
+            <input class="apfs-input apfs-input--date" type="date" [(ngModel)]="createdBefore" name="createdBefore" />
+            <div class="apfs-help">
+            </div>
+
+
+
+            <div class="apfs-actions">
+                <button class="apfs-btn apfs-btn--primary" type="button" (click)="run()">Filter Report ▼</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="apfs-section" *ngIf="resultsVisible">
+        <h2 class="apfs-h2">Results ({{ total }})</h2>
+
+        <div class="apfs-toolbar">
+            <div class="apfs-toolbar__left">
+                <button class="apfs-btn apfs-btn--ghost" type="button" (click)="exportCsv()">CSV</button>
+                <button class="apfs-btn apfs-btn--ghost" type="button" (click)="exportPdf()">PDF</button>
+                <button class="apfs-btn apfs-btn--ghost" type="button" (click)="toggleFilters()">
+                    Show Filters ▼
+                </button>
+            </div>
+
+            <div class="apfs-alert apfs-alert--success" *ngIf="lastRan">
+                {{ filterLabel }}
+                <span class="apfs-alert__x" (click)="lastRan=false" role="button" aria-label="Close">×</span>
+            </div>
+
+            <div></div>
+        </div>
+
+        <div class="apfs-divider"></div>
+
+        <div class="apfs-table-wrap">
+            <table class="apfs-table apfs-table--records">
+                <thead>
+                    <tr>
+                        <th (click)="setSort('apfsNumber')" class="apfs-sortable">
+                            4SITE Number <span class="apfs-sort-icon">{{ sortArrow('apfsNumber') }}</span>
+                        </th>
+                        <th (click)="setSort('component')" class="apfs-sortable">
+                            Component <span class="apfs-sort-icon">{{ sortArrow('component') }}</span>
+                        </th>
+                        <th (click)="setSort('dollarRange')" class="apfs-sortable">
+                            Dollar Range <span class="apfs-sort-icon">{{ sortArrow('dollarRange') }}</span>
+                        </th>
+                        <th (click)="setSort('requirementsTitle')" class="apfs-sortable">
+                            Requirements Title <span class="apfs-sort-icon">{{ sortArrow('requirementsTitle') }}</span>
+                        </th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <tr *ngFor="let row of pagedRows; trackBy: trackRow">
+                        <td>
+                            <button class="apfs-link apfs-link--btn" type="button" (click)="openRecord(row)">
+                                {{ row.apfsNumber }}
+                            </button>
+                        </td>
+                        <td>{{ row.component }}</td>
+                        <td>{{ row.dollarRange }}</td>
+                        <td>{{ row.requirementsTitle }}</td>
+                    </tr>
+
+                    <tr *ngIf="!pagedRows.length">
+                        <td colspan="4">No records to display.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="apfs-pager">
+            <div class="apfs-pager__left">
+                Show
+                <select [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange()">
+                    <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }}</option>
+                </select>
+                entries
+            </div>
+
+            <div class="apfs-pager__middle">
+                Showing {{ showingStart }} to {{ showingEnd }} of {{ total }} entries
+            </div>
+
+            <div class="apfs-pager__right">
+                <button class="apfs-pagebtn" type="button" (click)="changePage(currentPage - 1)"
+                    [disabled]="currentPage === 1">
+                    Previous
+                </button>
+
+                <button *ngFor="let p of pageNumbers" class="apfs-pagebtn" type="button"
+                    [class.apfs-pagebtn--active]="p === currentPage" (click)="changePage(p)">
+                    {{ p }}
+                </button>
+
+                <button class="apfs-pagebtn" type="button" (click)="changePage(currentPage + 1)"
+                    [disabled]="currentPage === totalPages">
+                    Next
+                </button>
+            </div>
+        </div>
+    </section>
+</div>
+
+<div class="apfs-drawer__backdrop" *ngIf="showFilters && resultsVisible" (click)="toggleFilters()">
+    <section class="apfs-drawer apfs-drawer--filters" (click)="$event.stopPropagation()">
+        <div class="apfs-drawer__hdr">
+            <div class="apfs-drawer__title">Filters</div>
+            <button class="apfs-drawer__close" type="button" aria-label="Close" (click)="toggleFilters()">×</button>
+        </div>
+
+        <div class="apfs-drawer__body">
+            <div class="apfs-note apfs-note--drawer">All filter fields are optional.</div>
+
+            <label class="apfs-label">Status</label>
+            <select class="apfs-input" [(ngModel)]="status" name="drawerStatus">
+                <option value="all">All Records</option>
+                <option value="new">New</option>
+                <option value="reCompete">Re-compete</option>
+            </select>
+
+            <label class="apfs-label">Component</label>
+            <textarea class="apfs-input apfs-textarea" [(ngModel)]="componentText"
+                name="drawerComponentText"></textarea>
+
+            <label class="apfs-label">Office</label>
+            <textarea class="apfs-input apfs-textarea" [(ngModel)]="officeText" name="drawerOfficeText"></textarea>
+
+            <label class="apfs-label">Start Date</label>
+            <input class="apfs-input apfs-input--date" type="date" [(ngModel)]="startDate" name="startDate" />
+            <div class="apfs-help">
+                Filter report by the selected time period, only includes records that were worked on within the selected
+                time period; defaults to anytime.
+            </div>
+
+            <label class="apfs-label">End Date</label>
+            <input class="apfs-input apfs-input--date" type="date" [(ngModel)]="endDate" name="endDate" />
+            <div class="apfs-help">
+                Filter report by the selected time period, only includes records that were worked on within the selected
+                time period; defaults to anytime.
+            </div>
+
+            <label class="apfs-label">Creation Date After</label>
+            <input class="apfs-input apfs-input--date" type="date" [(ngModel)]="createdAfter" name="createdAfter" />
+            <div class="apfs-help">
+            </div>
+
+            <label class="apfs-label">Creation Date Before</label>
+            <input class="apfs-input apfs-input--date" type="date" [(ngModel)]="createdBefore" name="createdBefore" />
+            <div class="apfs-help">
+            </div>
+
+            <div class="apfs-actions apfs-actions--drawer">
+                <button class="apfs-btn apfs-btn--primary" type="button" (click)="run()">Filter Report ▼</button>
+                <button class="apfs-btn" type="button" (click)="reset()">Reset</button>
+            </div>
+        </div>
+    </section>
+</div>
+
+<div class="apfs-recordpanel__backdrop" *ngIf="recordPanelOpen" (click)="closeRecordPanel()">
+    <aside class="apfs-recordpanel" (click)="$event.stopPropagation()">
+        <div class="apfs-recordpanel__hdr">
+            <div class="apfs-recordpanel__title">Forecast Record</div>
+            <button class="apfs-recordpanel__close" type="button" aria-label="Close"
+                (click)="closeRecordPanel()">×</button>
+        </div>
+
+        <div class="apfs-recordpanel__body">
+            <div class="apfs-recordpanel__meta" *ngIf="recordPanelLoading">
+                Loading record {{ selectedRecordId }}...
+            </div>
+
+            <div class="apfs-recordprint" *ngIf="!recordPanelLoading && selectedRecord">
+                <div class="apfs-recordprint__top">
+                    <div class="apfs-recordprint__titleblock">
+                        <div class="apfs-recordprint__system">Forecasting System for Industry Tracking and Engagement
+                            (4SITE)</div>
+
+                        <div class="apfs-recordprint__recordline">
+                            <span class="apfs-recordprint__label">Forecast Record Number:</span>
+                            <span class="apfs-recordprint__number">{{ selectedRecord.apfsNumber }}</span>
+                        </div>
+                    </div>
+
+                    <div class="apfs-recordprint__actions">
+                        <button class="apfs-btn apfs-btn--ghost" type="button" (click)="goToRecord()">Go To Record
+                            Page</button>
+                        <button class="apfs-btn apfs-btn--primary" type="button" (click)="printRecord()">Print</button>
+                    </div>
+
+                    <div class="apfs-recordprint__seal">
+                        <img src="/assets/images/logo.svg" alt="DHS seal" />
+                    </div>
+                </div>
+
+                <table class="apfs-recordprint__table apfs-recordprint__table--top">
+                    <tr>
+                        <th>Component:</th>
+                        <th>{{ selectedRecord.component }}</th>
+                        <th>Published Date:</th>
+                        <th></th>
+                    </tr>
+                    <tr>
+                        <th>Requirements Office:</th>
+                        <td>{{ selectedRecord['requirementsOffice'] }}</td>
+                        <th>Previously Published On:</th>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <th>Contracting Office:</th>
+                        <td>{{ selectedRecord['contractingOffice'] }}</td>
+                        <th></th>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <th>4SITE Coordinator Office:</th>
+                        <td>{{ selectedRecord['coordinatorOffice'] }}</td>
+                        <th></th>
+                        <td></td>
+                    </tr>
+                </table>
+
+                <table class="apfs-recordprint__table apfs-recordprint__table--spaced">
+                    <tbody>
+                        <tr>
+                            <td><strong>NAICS:</strong></td>
+                            <td>{{ selectedRecord.naicsCode }}</td>
+                            <td><strong>Competition:</strong></td>
+                            <td>{{ selectedRecord.competitive }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Small Business Set-Aside:</strong></td>
+                            <td>{{ selectedRecord.smallBusinessSetAside }}</td>
+                            <td><strong>Small Business Program:</strong></td>
+                            <td>{{ selectedRecord.smallBusinessProgram }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Contract Vehicle:</strong></td>
+                            <td>{{ selectedRecord.strategicSourcingVehicle || 'None' }}</td>
+                            <td><strong>Contract Type:</strong></td>
+                            <td>{{ selectedRecord.contractType }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Contract Complete:</strong></td>
+                            <td>{{ selectedRecord.typeOfAward || 'None' }}</td>
+                            <td><strong>Contract Status:</strong></td>
+                            <td>{{ selectedRecord.contractStatus }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Estimated Period Of Performance:</strong></td>
+                            <td colspan="3"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Estimated Solicitation Release:</strong></td>
+                            <td>{{ selectedRecord.estimatedSolicitationReleaseDate }}</td>
+                            <td><strong>Anticipated Award Date:</strong></td>
+                            <td>{{ selectedRecord.anticipatedAwardDate }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Estimated Dollar Range:</strong></td>
+                            <td>{{ selectedRecord.dollarRange }}</td>
+                            <td><strong>Fiscal Year:</strong></td>
+                            <td>{{ selectedRecord.fiscalYear }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Requirements Title:</strong></td>
+                            <td colspan="3">{{ selectedRecord.requirementsTitle }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Description:</strong></td>
+                            <td colspan="3">{{ selectedRecord.requirement }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Place of Performance:</strong></td>
+                            <td>{{ selectedRecord['placeOfPerformance'] }}</td>
+                            <td><strong>Primary POC Name:</strong></td>
+                            <td>{{ selectedRecord['primaryPOCName'] }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Primary POC Phone:</strong></td>
+                            <td>{{ selectedRecord['primaryPOCPhone'] }}</td>
+                            <td><strong>Primary POC Email:</strong></td>
+                            <td>{{ selectedRecord['primaryPOCEmail'] }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Small Business Specialist/4SITE Coordinator Name:</strong></td>
+                            <td colspan="3">{{ selectedRecord['smallBusinessAPFSCoordinatorName'] }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Small Business Specialist/4SITE Coordinator Phone:</strong></td>
+                            <td>{{ selectedRecord['smallBusinessAPFSCoordinatorPhone'] }}</td>
+                            <td><strong>Small Business Specialist/4SITE Coordinator Email:</strong></td>
+                            <td>{{ selectedRecord['smallBusinessAPFSCoordinatorEmail'] }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="apfs-recordhistory" *ngIf="recordHistoryItems.length">
+                    <div class="apfs-recordhistory__heading">Record History</div>
+
+                    <table class="apfs-recordhistory__table">
+                        <thead>
+                            <tr>
+                                <th>Date/Time</th>
+                                <th>Moved From</th>
+                                <th>Moved To</th>
+                                <th>Assignment</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let item of recordHistoryItems; trackBy: trackHistory">
+                                <td>{{ item.at }}</td>
+                                <td>{{ item.movedFrom }}</td>
+                                <td>{{ item.movedTo }}</td>
+                                <td>
+                                    <div><strong>To:</strong> {{ item.assignmentTo || 'unassigned' }}</div>
+                                    <div><strong>From:</strong> {{ item.assignmentFrom || '—' }}</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </aside>
+</div>

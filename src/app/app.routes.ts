@@ -17,6 +17,7 @@ import { ForecastRecordComponent } from './features/forecast/forecast-record/com
 import { RejectCommentComponent } from './features/forecast/forecast-record/components/reject-comment/reject-comment';
 import { ForwardCommentComponent } from './features/forecast/forecast-record/components/forward-comment/forward-comment';
 import { TimelinessReportComponent } from './features/reports/timeliness-report/timeliness-report';
+import { RecordCountReport } from './features/reports/record-count/record-count-report';
 import { MessagingPage } from './features/messaging/messaging/messaging';
 
 
@@ -173,6 +174,12 @@ export const routes: Routes = [
         loadComponent: () =>
             import('./features/reports/anticipated-awards-report/anticipated-awards-report')
                 .then(m => m.AnticipatedAwardsReport)
+    },
+    {
+        path: 'reports/record-count',
+        loadComponent: () =>
+            import('./features/reports/record-count/record-count-report')
+                .then(m => m.RecordCountReport)
     },
 
     {

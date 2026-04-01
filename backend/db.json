@@ -315,7 +315,7 @@
   ],
   "forecastRecords": [
     {
-      "workflowStatus": "APFS Coordinator",
+      "workflowStatus": "Contracting",
       "requirementsOffice": "OCIO",
       "contractingOffice": "DHS HQ/NPPD/FPS/East CCG",
       "coordinatorOffice": null,
@@ -331,7 +331,7 @@
       "strategicSourcingVehicle": "",
       "typeOfAward": "BPA_CALL",
       "competitive": "COMPETITIVE_DELIVERY_ORDER",
-      "contractStatus": "NEW",
+      "contractStatus": "RECOMPETE",
       "incumbent": "booxze",
       "contractNumber": "12345",
       "fiscalYear": "2026",
@@ -356,13 +356,26 @@
       "id": 1774624675129,
       "component": "DHS HQ",
       "apfsNumber": "4SITE-2026-DHSHQ-2789",
-      "status": "APFS Coordinator",
+      "status": "Contracting",
       "createdAt": "2026-03-27T15:17:55.129Z",
-      "updatedAt": "2026-03-31T00:36:40.245Z",
+      "updatedAt": "2026-03-31T20:41:03.543Z",
       "assignedToUserId": "1768504324245",
       "assignedToName": "Honest Abe",
-      "assignedAt": "2026-03-30T17:56:17.987Z",
+      "assignedAt": "2026-03-31T20:41:03.543Z",
       "history": [
+        {
+          "id": 1774917400245,
+          "time": "2026-03-31T00:36:40.245Z",
+          "user_display": "HQ_Admin@hq.dhs.gov",
+          "user_comment": "zxcvzxcvzxc",
+          "assignment_display": "Honest Abe",
+          "assignment_id": "1768504324245",
+          "forecast_id": 1774624675129,
+          "previous_state_id": 2,
+          "new_state_id": 3,
+          "latest": 1,
+          "user_id": "1768504324245"
+        },
         {
           "id": 1774893377987,
           "time": "2026-03-30T17:56:17.987Z",
@@ -373,7 +386,7 @@
           "forecast_id": 1774624675129,
           "previous_state_id": 2,
           "new_state_id": 2,
-          "latest": 1,
+          "latest": 0,
           "user_id": "1768504324245"
         },
         {
@@ -728,6 +741,55 @@
           "user_id": "1768502629880"
         }
       ]
+    },
+    {
+      "workflowStatus": "Draft",
+      "requirementsOffice": "OCIO",
+      "contractingOffice": null,
+      "coordinatorOffice": null,
+      "transitionComment": "",
+      "requirementsTitle": "test report",
+      "requirement": "test report",
+      "smallBusinessSetAside": null,
+      "smallBusinessProgram": null,
+      "dollarRange": "250K_1M",
+      "naicsCode": null,
+      "contractType": null,
+      "strategicSourcingVehicleUsed": null,
+      "strategicSourcingVehicle": "",
+      "typeOfAward": null,
+      "competitive": "COMPETITIVE_DELIVERY_ORDER",
+      "contractStatus": "NEW",
+      "incumbent": "",
+      "contractNumber": null,
+      "fiscalYear": null,
+      "estimatedPopStart": null,
+      "estimatedPopEnd": null,
+      "estimatedSolicitationReleaseDate": null,
+      "anticipatedAwardDate": null,
+      "placeOfPerformanceCity": null,
+      "placeOfPerformanceState": null,
+      "primaryContactFirstName": "Honest",
+      "primaryContactLastName": "Abe",
+      "primaryContactPhone": "",
+      "primaryContactEmail": "HQ_Admin@hq.dhs.gov",
+      "alternateContactFirstName": null,
+      "alternateContactLastName": null,
+      "alternateContactPhone": null,
+      "alternateContactEmail": null,
+      "sbSpecialistFirstName": null,
+      "sbSpecialistLastName": null,
+      "sbSpecialistPhone": null,
+      "sbSpecialistEmail": null,
+      "id": 1774959829673,
+      "component": "DHS HQ",
+      "apfsNumber": "4SITE-2026-DHSHQ-1499",
+      "status": "Draft",
+      "createdAt": "2026-03-31T12:23:49.673Z",
+      "updatedAt": "2026-03-31T12:23:49.673Z",
+      "assignedToUserId": 1768504324245,
+      "assignedToName": "Honest Abe",
+      "assignedAt": "2026-03-31T12:23:49.673Z"
     }
   ],
   "recordHistory": [
@@ -1313,6 +1375,58 @@
       "forecast_id": 1774624675129,
       "previous_state_id": 2,
       "new_state_id": 3,
+      "latest": 0,
+      "user_id": "1768504324245"
+    },
+    {
+      "id": 1774959829673,
+      "time": "2026-03-31T12:23:49.673Z",
+      "user_display": "HQ_Admin@hq.dhs.gov",
+      "user_comment": "Created",
+      "assignment_display": null,
+      "assignment_id": null,
+      "forecast_id": 1774959829673,
+      "previous_state_id": null,
+      "new_state_id": 0,
+      "latest": 0,
+      "user_id": "1768504324245"
+    },
+    {
+      "id": 1774959829673,
+      "time": "2026-03-31T12:23:49.673Z",
+      "user_display": "HQ_Admin@hq.dhs.gov",
+      "user_comment": "Claimed",
+      "assignment_display": "Honest Abe",
+      "assignment_id": 1768504324245,
+      "forecast_id": 1774959829673,
+      "previous_state_id": 0,
+      "new_state_id": 0,
+      "latest": 1,
+      "user_id": "1768504324245"
+    },
+    {
+      "id": 1774989656253,
+      "time": "2026-03-31T20:40:56.253Z",
+      "user_display": "HQ_Admin@hq.dhs.gov",
+      "user_comment": "?\n/",
+      "assignment_display": "Honest Abe",
+      "assignment_id": "1768504324245",
+      "forecast_id": 1774624675129,
+      "previous_state_id": 3,
+      "new_state_id": 2,
+      "latest": 0,
+      "user_id": "1768504324245"
+    },
+    {
+      "id": 1774989663543,
+      "time": "2026-03-31T20:41:03.543Z",
+      "user_display": "HQ_Admin@hq.dhs.gov",
+      "user_comment": "Claimed",
+      "assignment_display": "Honest Abe",
+      "assignment_id": "1768504324245",
+      "forecast_id": 1774624675129,
+      "previous_state_id": 2,
+      "new_state_id": 2,
       "latest": 1,
       "user_id": "1768504324245"
     }
@@ -2395,6 +2509,14 @@
   ],
   "apfs_usernotification": [
     {
+      "id": 1774989656253,
+      "time": "2026-03-31T20:40:56.253Z",
+      "subject": "Forecast Record Rejected",
+      "body": "Forecast 4SITE-2026-DHSHQ-2789 \"testing change log\" was rejected and sent back to Contracting. Comment: ?\n/",
+      "read": 0,
+      "user_id": 1768504324245
+    },
+    {
       "id": 1774893365677,
       "time": "2026-03-30T17:56:05.677Z",
       "subject": "Forecast Record Rejected",
@@ -2476,6 +2598,15 @@
     }
   ],
   "apfs_forecastchangelog": [
+    {
+      "id": 1774962083164,
+      "field_name": "contractStatus",
+      "field_old_value": "NEW",
+      "field_new_value": "RECOMPETE",
+      "date_changed": "2026-03-31T13:01:23.123Z",
+      "forecast_id": 1774624675129,
+      "is_public": 1
+    },
     {
       "id": 1774626356288,
       "field_name": "sbSpecialistFirstName",
