@@ -780,6 +780,49 @@ body[data-theme="dark"] .history-item {
   cursor: pointer;
 }
 
+
+/* =========================
+   PRINT OVERLAY (GLOBAL)
+   ========================= */
+.record-print-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(0, 0, 0, 0.14);
+  display: flex;
+  flex-direction: column;
+}
+
+.record-print-overlay__toolbar {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.record-print-overlay__body {
+  flex: 1 1 auto;
+  overflow: auto;
+  background: #f3f3f3;
+  padding: 18px;
+}
+
+.record-print-overlay__body app-forecast-record-print {
+  display: block;
+  max-width: 1060px;
+  margin: 0 auto;
+  background: #fff;
+  padding: 10px 14px 28px;
+}
+
+/* =========================
+   PRINT MODE (ISOLATION)
+   ========================= */
+
+
 @media (max-width: 900px) {
   .history-drawer {
     top: 0;
@@ -830,69 +873,27 @@ body[data-theme="dark"] .history-item {
     flex-direction: column;
   }
 
-  /* =========================
-   Shared printable record overlay
-   ========================= */
-  .record-print-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 1200;
-    background: rgba(0, 0, 0, 0.14);
-    display: flex;
-    flex-direction: column;
-  }
+}
 
-  .record-print-overlay__toolbar {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-    box-shadow: var(--shadow-sm);
+@media print {
+  .record-print-overlay {
+    display: block !important;
+    position: static !important;
+    inset: auto !important;
+    background: #fff !important;
   }
 
   .record-print-overlay__body {
-    flex: 1 1 auto;
-    overflow: auto;
-    background: #f3f3f3;
-    padding: 18px;
+    overflow: visible !important;
+    padding: 0 !important;
+    background: #fff !important;
   }
 
   .record-print-overlay__body app-forecast-record-print {
-    display: block;
-    max-width: 1060px;
-    margin: 0 auto;
-    background: #fff;
-    padding: 10px 14px 28px;
-  }
-
-  @media print {
-    body * {
-      visibility: hidden !important;
-    }
-
-    .record-print-overlay,
-    .record-print-overlay * {
-      visibility: visible !important;
-    }
-
-    .record-print-overlay {
-      position: absolute !important;
-      inset: 0 !important;
-      width: 100% !important;
-      background: #fff !important;
-      z-index: 9999 !important;
-    }
-
-    .record-print-overlay__toolbar {
-      display: none !important;
-    }
-
-    .record-print-overlay__body {
-      padding: 0 !important;
-      margin: 0 !important;
-      background: #fff !important;
-    }
+    display: block !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
   }
 }

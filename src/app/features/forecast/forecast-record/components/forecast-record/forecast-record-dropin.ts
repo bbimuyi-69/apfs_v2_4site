@@ -1266,13 +1266,6 @@ export class ForecastRecordComponent {
   }
 
   onSave(): void {
-    console.log('[onSave] clicked', {
-      recordId: this.recordId,
-      route: this.recordId ? 'onSaveRecord' : 'onSaveDraft',
-      anticipatedAwardDate: this.form?.get('anticipatedAwardDate')?.value,
-      recordCreatedAt: (this.record as any)?.createdAt
-    });
-
     this.saveMode = this.recordId ? 'record' : 'draft';
 
     if (this.recordId) {
@@ -1296,11 +1289,12 @@ export class ForecastRecordComponent {
 
   //#region Save / Submit
   onSaveDraft(): void {
-    console.log('[onSaveDraft] ENTER', {
+    console.log('[onSaveDraft]', {
       recordId: this.recordId,
-      anticipatedAwardDate: this.form?.get('anticipatedAwardDate')?.value,
-      recordCreatedAt: (this.record as any)?.createdAt
+      willCall: this.recordId ? 'update' : 'create-path',
     });
+
+    console.log('[onSaveDraft] ENTER', { recordId: this.recordId });
 
     if (this.isSaving) {
       console.log('[onSaveDraft] blocked: already saving');
@@ -1311,7 +1305,6 @@ export class ForecastRecordComponent {
     if (!this.canSave) return;
 
     if (!this.confirmPastAnticipatedAwardDateWarning()) {
-      console.log('[onSaveDraft] cancelled by warning popup');
       return;
     }
 
@@ -1336,6 +1329,8 @@ export class ForecastRecordComponent {
       }
     }
 
+    console.log('[onSaveDraft] after getRawValue', { recordId: this.recordId });
+
     if (!this.recordId) {
       delete raw.apfsNumber;
       delete raw.component;
@@ -1348,6 +1343,8 @@ export class ForecastRecordComponent {
     const request$ = this.recordId
       ? this.service.update(payload)
       : this.service.create(payload);
+
+    console.log('[onSaveDraft] BEFORE request subscribe', { recordId: this.recordId });
 
     request$
       .pipe(delay(2000))
@@ -1376,7 +1373,6 @@ export class ForecastRecordComponent {
         },
       });
   }
-
 
   //Nav Rail on Approve & Send
   onApproveAndSend(): void {
@@ -1471,12 +1467,6 @@ export class ForecastRecordComponent {
 
 
   onSaveRecord(): void {
-    console.log('[onSaveRecord] ENTER', {
-      recordId: this.recordId,
-      anticipatedAwardDate: this.form?.get('anticipatedAwardDate')?.value,
-      recordCreatedAt: (this.record as any)?.createdAt
-    });
-
     if (this.isSaving) {
       console.log('[onSaveRecord] blocked: already saving');
       return;
@@ -1487,7 +1477,6 @@ export class ForecastRecordComponent {
     if (!this.canSave) return;
 
     if (!this.confirmPastAnticipatedAwardDateWarning()) {
-      console.log('[onSaveRecord] cancelled by warning popup');
       return;
     }
 
@@ -1526,6 +1515,7 @@ export class ForecastRecordComponent {
         next: (updated) => {
           this.record = updated;
 
+          // rebuild form so workflowStatus reflects server truth
           this.form = buildForecastRecordForm(updated);
           this.wireNaicsTypeahead();
           this.submitted = false;
@@ -2253,106 +2243,7 @@ export class ForecastRecordComponent {
     }, 500);
   }
 
-  onCsvDownload(): void {
-    if (!this.record) {
-      console.error('No record to export');
-      return;
-    }
-
-    const r: any = this.record;
-
-    // --- helper to safely stringify ---
-    const csv = (v: unknown): string => {
-      const s = String(v ?? '');
-      return `"${s.replace(/"/g, '""')}"`;
-    };
-
-    // --- format date helper ---
-    const fmtDate = (v: any): string => {
-      if (!v) return '';
-      const d = new Date(v);
-      if (isNaN(d.getTime())) return String(v);
-      return `${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')
-        }/${d.getFullYear()}`;
-    };
-
-    // --- build flat row matching your export ---
-    const row: Record<string, any> = {
-      '4SITE Number': r.apfsNumber,
-      'Component': r.component,
-
-      'Requirements Office': r.requirementsOffice,
-      'Contracting Office': r.contractingOffice,
-      'Coordinator Office': r.coordinatorOffice,
-
-      'Requirements Title': r.requirementsTitle,
-      'Requirement': r.requirement,
-
-      'Dollar Range': r.dollarRange,
-      'NAICS Code': r.naicsCode,
-
-      'Competitive': r.competitive,
-      'Contract Status': r.contractStatus,
-      'Fiscal Year': r.fiscalYear,
-
-      'Incumbent': r.incumbent,
-      'Contract Number': r.contractNumber,
-
-      'Place of Performance City': r.placeOfPerformanceCity,
-      'Place of Performance State': r.placeOfPerformanceState,
-
-      'Estimated POP Start': fmtDate(r.estimatedPopStart),
-      'Estimated POP End': fmtDate(r.estimatedPopEnd),
-      'Estimated Solicitation Release Date': fmtDate(r.estimatedSolicitationReleaseDate),
-      'Anticipated Award Date': fmtDate(r.anticipatedAwardDate),
-
-      'Contract Type': r.contractType,
-      'Strategic Sourcing Vehicle Used': r.strategicSourcingVehicleUsed,
-      'Strategic Sourcing Vehicle': r.strategicSourcingVehicle,
-
-      'Small Business Set Aside': r.smallBusinessSetAside,
-      'Small Business Program': r.smallBusinessProgram,
-
-      'SB Specialist First Name': r.sbSpecialistFirstName,
-      'SB Specialist Last Name': r.sbSpecialistLastName,
-      'SB Specialist Phone': r.sbSpecialistPhone,
-      'SB Specialist Email': r.sbSpecialistEmail,
-
-      'Primary Contact First Name': r.primaryContactFirstName,
-      'Primary Contact Last Name': r.primaryContactLastName,
-      'Primary Contact Email': r.primaryContactEmail,
-      'Primary Contact Phone': r.primaryContactPhone,
-
-      'Alternate Contact First Name': r.alternateContactFirstName,
-      'Alternate Contact Last Name': r.alternateContactLastName,
-      'Alternate Contact Email': r.alternateContactEmail,
-      'Alternate Contact Phone': r.alternateContactPhone,
-
-      'Workflow Status': r.workflowStatus,
-      'Created At': fmtDate(r.createdAt),
-      'Updated At': fmtDate(r.updatedAt),
-    };
-
-    // --- headers ---
-    const headers = Object.keys(row);
-
-    // --- build CSV ---
-    const csvContent = [
-      headers.map(csv).join(','),          // header row
-      headers.map(h => csv(row[h])).join(',') // data row
-    ].join('\n');
-
-    // --- download ---
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${r.apfsNumber || 'forecast-record'}.csv`;
-    a.click();
-
-    URL.revokeObjectURL(url);
-  }
+  onCsvDownload(): void { console.warn('CSV download not wired yet'); }
 
   onRecordHistory(): void {
     this.changeLogOpen = false;
@@ -2546,27 +2437,28 @@ export class ForecastRecordComponent {
   }
 
   private shouldWarnPastAnticipatedAwardDate(): boolean {
-    const raw = this.form?.get('anticipatedAwardDate')?.value;
-    const date = this.parseRuleDate(raw);
+    const anticipatedRaw = this.form?.get('anticipatedAwardDate')?.value;
+    const anticipated = this.parseRuleDate(anticipatedRaw);
+    if (!anticipated) return false;
 
-    if (!date) return false;
+    const initiated = this.parseRuleDate((this.record as any)?.createdAt);
+    if (!initiated) return false;
 
     const today = this.toRuleStartOfDay(new Date());
-    const award = this.toRuleStartOfDay(date);
+    const anticipatedDay = this.toRuleStartOfDay(anticipated);
 
-    const isPast = award.getTime() < today.getTime();
+    const isPast = anticipatedDay.getTime() < today.getTime();
 
-    console.log('[Award Date Check]', {
-      raw,
-      parsed: award,
-      today,
-      isPast
-    });
+    const daysFromInitiationToAward = this.daysBetweenRuleDates(
+      anticipatedDay,
+      initiated
+    );
 
-    return isPast;
+    const isWithin30DaysOfInitiation =
+      daysFromInitiationToAward >= 0 && daysFromInitiationToAward <= 30;
+
+    return isPast && isWithin30DaysOfInitiation;
   }
-
-
 
   private getPastAnticipatedAwardDateWarningMessage(): string {
     return [
@@ -2579,11 +2471,7 @@ export class ForecastRecordComponent {
   }
 
   private confirmPastAnticipatedAwardDateWarning(): boolean {
-    const shouldWarn = this.shouldWarnPastAnticipatedAwardDate();
-
-    console.log('[confirmPastAnticipatedAwardDateWarning]', { shouldWarn });
-
-    if (!shouldWarn) {
+    if (!this.shouldWarnPastAnticipatedAwardDate()) {
       return true;
     }
 

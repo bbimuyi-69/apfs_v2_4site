@@ -15,43 +15,78 @@ body {
 }
 
 @media print {
-  body.print-record-mode .apfs-page>*:not(.record-print-overlay) {
-    display: none !important;
+  @page {
+    size: auto;
+    margin: 0.5in;
   }
 
-  body.print-record-mode .record-print-overlay {
-    display: block !important;
-    position: absolute !important;
-    inset: 0 !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    background: #fff !important;
-    z-index: 999999 !important;
+  html,
+  body {
+    height: auto !important;
+    min-height: 0 !important;
     overflow: visible !important;
-  }
-
-  body.print-record-mode .record-print-overlay__toolbar {
-    display: none !important;
-  }
-
-  body.print-record-mode .record-print-overlay__body {
+    background: #fff !important;
     margin: 0 !important;
     padding: 0 !important;
-    background: #fff !important;
-    overflow: visible !important;
   }
 
-  body.print-record-mode .record-print-overlay__body app-forecast-record-print {
-    display: block !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    max-width: none !important;
-    background: #fff !important;
+  @media print {
+    @page {
+      size: auto;
+      margin: 0.5in;
+    }
+
+    html,
+    body {
+      margin: 0 !important;
+      padding: 0 !important;
+      height: auto !important;
+      min-height: 0 !important;
+      overflow: visible !important;
+      background: #fff !important;
+    }
+
+    /* 🚨 REMOVE ENTIRE APP FROM LAYOUT */
+    body.print-record-mode>*:not(.record-print-overlay) {
+      display: none !important;
+    }
+
+    /* flatten overlay */
+    body.print-record-mode .record-print-overlay {
+      display: block !important;
+      position: static !important;
+      inset: auto !important;
+      width: auto !important;
+      height: auto !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #fff !important;
+      box-shadow: none !important;
+    }
+
+    body.print-record-mode .record-print-overlay__toolbar {
+      display: none !important;
+    }
+
+    body.print-record-mode .record-print-overlay__body {
+      display: block !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: visible !important;
+      background: #fff !important;
+    }
+
+    /* 🚨 MAKE PRINT COMPONENT ROOT */
+    body.print-record-mode app-forecast-record-print,
+    body.print-record-mode .apfs-recordprint {
+      display: block !important;
+      position: static !important;
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #fff !important;
+      overflow: visible !important;
+    }
   }
 
-  body.print-record-mode .hist-title,
-  body.print-record-mode .hist {
-    display: none !important;
-  }
 }

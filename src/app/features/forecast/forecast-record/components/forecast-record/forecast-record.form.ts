@@ -1,14 +1,11 @@
-// forecast-record.form.ts (drop-in replacement)
+// forecast-record.form.ts (updated)
+
+// ✅ Adds componentId (numeric) to hold organization_id while component remains display label
+//    - component: string label (e.g., "DHS HQ")
+//    - componentId: number | null (e.g., 71)
 //
-// ✅ Adds 3 office dropdown controls:
-//    - requirementsOffice
-//    - contractingOffice
-//    - coordinatorOffice
-//
-// ✅ Adds transitionComment control (UI-only action field) to support onTransition validation
-//
-// ✅ Locks component from being edited via permissions (component will also hard-lock from auth)
-// ✅ Keeps everything else as-is
+// ✅ component & componentId are system-managed and always disabled
+// ✅ Everything else unchanged
 
 import {
     AbstractControl,
@@ -21,8 +18,6 @@ import {
 
 import { ForecastRecord } from '../../models/forecast-record.model';
 import { ForecastWorkflowLane } from '../../models/forecast-record.enums';
-import { ApfsOfficeService } from 'src/app/core/services/apfs-offices.service';
-
 
 /** --- Comment required rule: all transitions except Draft → Requirements --- */
 type Transition = { from: ForecastWorkflowLane; to: ForecastWorkflowLane };
@@ -43,7 +38,16 @@ export type ForecastRecordFormGroup = FormGroup<{
     workflowStatus: FormControl<ForecastWorkflowLane>;
 
     /** Top section */
+    /** Display label, e.g. "DHS HQ" */
     component: FormControl<string | null>;
+
+    /** ✅ NEW: underlying organization_id (e.g. 71) */
+    componentId: FormControl<number | null>;
+
+    /** Offices (IDs) */
+    requirementsOfficeId: FormControl<string | null>;
+    contractingOfficeId: FormControl<string | null>;
+    coordinatorOfficeId: FormControl<string | null>;
 
     /** ✅ NEW: office dropdowns */
     requirementsOffice: FormControl<string | null>;
@@ -56,7 +60,7 @@ export type ForecastRecordFormGroup = FormGroup<{
     requirementsTitle: FormControl<string>;
     requirement: FormControl<string>;
 
-    //    programLevel: FormControl<string | null>;
+    // programLevel: FormControl<string | null>;
 
     /** APFS Coordinator updated fields */
     smallBusinessSetAside: FormControl<string | null>;
@@ -70,7 +74,7 @@ export type ForecastRecordFormGroup = FormGroup<{
     contractType: FormControl<string | null>;
     strategicSourcingVehicleUsed: FormControl<string | null>;
     strategicSourcingVehicle: FormControl<string | null>;
-    typeOfAward: FormControl<string | null>;
+    // typeOfAward: FormControl<string | null>;
 
     competitive: FormControl<string | null>;
     contractStatus: FormControl<string | null>;
@@ -117,17 +121,27 @@ export type UserProfileLike = {
     role: 'Requirements' | 'Contracting Office' | 'APFS Coordinator' | string;
     title?: string;
     office?: string;
+    officeId?: number | null;
     component?: string;
     employeeType?: string;
     isActive?: boolean;
+    isSuperuser?: number;
 };
 
 type ForecastRecordWithOffices = ForecastRecord & {
     requirementsOffice?: string | null;
     contractingOffice?: string | null;
     coordinatorOffice?: string | null;
+    // ID fields from ForecastRecordDto
+    requirementsOfficeId?: string | null;
+    contractingOfficeId?: string | null;
+    coordinatorOfficeId?: string | null;
     workflowStatus?: ForecastWorkflowLane; // if your model already has it, great
     status?: any; // legacy
+
+    /** Optional: if your model already tracks org ID */
+    componentId?: number | null;
+    organization_id?: number | null;
 };
 
 export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordFormGroup {
@@ -139,6 +153,29 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
             (r.status as ForecastWorkflowLane) ??
             ForecastWorkflowLane.Draft) as ForecastWorkflowLane;
 
+    // Try to pick up an existing org ID from the record if present
+    const initialComponentId =
+        r.componentId ??
+        r.organization_id ??
+        null;
+
+    // Prefer ID fields when present (new shape), else fall back to legacy name fields
+    const initialRequirementsOfficeId =
+        r.requirementsOfficeId ??
+        null;
+
+    const initialContractingOfficeId =
+        r.contractingOfficeId ??
+        null;
+
+    const initialCoordinatorOfficeId =
+        r.coordinatorOfficeId ??
+        null;
+
+    // For display labels, prefer the name fields, but you could also resolve from ID later if needed
+    const initialRequirementsOfficeLabel = r.requirementsOffice ?? null;
+    const initialContractingOfficeLabel = r.contractingOffice ?? null;
+    const initialCoordinatorOfficeLabel = r.coordinatorOffice ?? null;
 
     //this is the main form builder with new fields added and validation as needed
     //Look here for adding new fields to the form        
@@ -150,15 +187,32 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
             /** ✅ Real workflow lane - keep disabled */
             workflowStatus: new FormControl({ value: lane, disabled: true }, { nonNullable: true }),
 
-            /** Editable by requester (role toggled later) */
+            /**
+             * Editable label for display (but system will keep it disabled)
+             * Example: "DHS HQ"
+             */
             component: new FormControl(record.component ?? null, {
                 validators: [Validators.required],
             }),
 
-            /** ✅ NEW: offices (not required yet) */
-            requirementsOffice: new FormControl(r.requirementsOffice ?? null),
-            contractingOffice: new FormControl(r.contractingOffice ?? null),
-            coordinatorOffice: new FormControl(r.coordinatorOffice ?? null),
+            /**
+             * ✅ NEW: underlying organization_id (numeric)
+             * Example: 71
+             * This is what you should send in your API payload.
+             */
+            componentId: new FormControl(initialComponentId, {
+                nonNullable: false,
+            }),
+
+            /** Offices: IDs (what we post to backend), labels (what we show) */
+
+            requirementsOfficeId: new FormControl(initialRequirementsOfficeId),
+            contractingOfficeId: new FormControl(initialContractingOfficeId),
+            coordinatorOfficeId: new FormControl(initialCoordinatorOfficeId),
+
+            requirementsOffice: new FormControl(initialRequirementsOfficeLabel),
+            contractingOffice: new FormControl(initialContractingOfficeLabel),
+            coordinatorOffice: new FormControl(initialCoordinatorOfficeLabel),
 
             /** ✅ NEW: UI-only action field used during transitions */
             transitionComment: new FormControl('', { nonNullable: true }),
@@ -173,7 +227,7 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
                 validators: [Validators.required, Validators.maxLength(600), noSpecialCharactersValidator()],
             }),
 
-            //programLevel: new FormControl(record.programLevel ?? null),
+            // programLevel: new FormControl(record.programLevel ?? null),
 
             /** APFS Coordinator updated fields (role toggled later) */
             smallBusinessSetAside: new FormControl(record.smallBusinessSetAside ?? null),
@@ -187,7 +241,7 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
             contractType: new FormControl(record.contractType ?? null),
             strategicSourcingVehicleUsed: new FormControl(record.strategicSourcingVehicleUsed ?? null),
             strategicSourcingVehicle: new FormControl(record.strategicSourcingVehicle ?? null),
-            typeOfAward: new FormControl(record.typeOfAward ?? null),
+            // typeOfAward: new FormControl(record.typeOfAward ?? null),
 
             competitive: new FormControl(record.competitive ?? null),
             contractStatus: new FormControl(record.contractStatus ?? null),
@@ -203,7 +257,6 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
 
 
             /** Dates (role toggled later) */
-            //estimatedPopStart: new FormControl(record.estimatedPopStart ?? null),
             estimatedPopStart: new FormControl(record.estimatedPopStart ?? null, {
                 validators: [Validators.required,
                 Validators.pattern(/^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/),
@@ -225,11 +278,6 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
                 ],
             }),
 
-
-
-
-
-
             placeOfPerformanceCity: new FormControl(record.placeOfPerformanceCity ?? null),
             placeOfPerformanceState: new FormControl(record.placeOfPerformanceState ?? null),
 
@@ -241,7 +289,6 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
                 nonNullable: true,
                 validators: [Validators.required, Validators.maxLength(100)],
             }),
-            //            primaryContactPhone: new FormControl(record.primaryContactPhone ?? null),
             primaryContactPhone: new FormControl(record.primaryContactPhone ?? '', {
                 nonNullable: true,
                 validators: [
@@ -265,7 +312,6 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
             alternateContactPhone: new FormControl(record.alternateContactPhone ?? null),
             alternateContactEmail: new FormControl(record.alternateContactEmail ?? null, {
                 validators: [
-                    Validators.required,
                     govEmailValidator(),
                     Validators.maxLength(254)
                 ],
@@ -283,7 +329,12 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
                 ],
             }),
 
-            sbSpecialistEmail: new FormControl(record.sbSpecialistEmail ?? null),
+            sbSpecialistEmail: new FormControl(record.sbSpecialistEmail ?? null, {
+                validators: [
+                    govEmailValidator(),
+                    Validators.maxLength(254)
+                ],
+            }),
         },
         { updateOn: 'change' }
     ) as ForecastRecordFormGroup;
@@ -295,81 +346,78 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
     hardDisable(form.controls.apfsNumber);
     hardDisable(form.controls.workflowStatus);
     hardDisable(form.controls.component);
+    hardDisable(form.controls.componentId);
 
     return form;
 }
 
 /**
  * Apply role-based enablement.
- * Call this AFTER enabling the form in edit mode.
- * This is where the role-based field enablement logic lives.
- * this is not what makes a field required though - that is done in the component on transition actions
- * //PAY ATTENTION
- * this is what disables fields via css
  */
 export function applyForecastRecordRolePermissions(
     form: ForecastRecordFormGroup,
     profile: UserProfileLike | null | undefined,
     opts?: { claimedByMe?: boolean }
+
 ): void {
     const role = (profile?.role ?? '').trim().toLowerCase();
     const isRequirements = role === 'requirements';
     const isContractingOffice = role === 'contracting office' || role === 'contracting';
     const isCoordinator = role === 'apfs coordinator';
     const isAdmin = role === 'admin' || role.includes('admin');
+    const claimedByMe = opts?.claimedByMe !== false; // default true
 
-    // ✅ Claim gate: if the record is not claimed by the current user, lock everything down.
-    // Note: Admin/Super Admin still must claim (per your rule).
-    const claimedByMe = opts?.claimedByMe !== false; // default true for backwards compatibility
-
-    // ---- Offices edit window ----
+    // Offices edit window
     const lane = form.controls.workflowStatus.value;
     const officesEditableWindow =
-        lane === ForecastWorkflowLane.Draft || lane === ForecastWorkflowLane.Requirements || lane === ForecastWorkflowLane.Contracting;
+        lane === ForecastWorkflowLane.Draft ||
+        lane === ForecastWorkflowLane.Requirements ||
+        lane === ForecastWorkflowLane.Contracting;
 
-    const canEditOffices = isAdmin || isRequirements || (isContractingOffice && officesEditableWindow);
+    const canEditOffices =
+        isAdmin ||
+        isRequirements ||
+        (isContractingOffice && officesEditableWindow);
+    // Requirements office: ID + label always controlled by system/profile, not user
+    hardDisable(form.controls.requirementsOfficeId);
+    hardDisable(form.controls.requirementsOffice);
+
+    // Contracting / coordinator: enable/disable on *ID* controls
+    setEnabled(form.controls.contractingOfficeId, canEditOffices);
+    setEnabled(form.controls.coordinatorOfficeId, canEditOffices);
+
+    // Labels follow IDs; we generally leave them enabled/readonly in the template
+    hardDisable(form.controls.contractingOffice);
+    hardDisable(form.controls.coordinatorOffice);
 
     // System-managed fields always disabled
     hardDisable(form.controls.apfsNumber);
     hardDisable(form.controls.workflowStatus);
 
-    // ✅ Component is system-set from auth; keep it disabled always here too.
+    // ✅ Component fields are system-set from auth; keep them disabled always here too.
     hardDisable(form.controls.component);
+    hardDisable(form.controls.componentId);
 
-    // ✅ Claim lock: if not claimed-by-me, force the entire form (except system fields) into read-only.
+    // Claim lock
     if (!claimedByMe) {
         Object.keys(form.controls).forEach((k) => {
-            if (k === 'apfsNumber' || k === 'workflowStatus' || k === 'component') return;
+            if (k === 'apfsNumber' || k === 'workflowStatus' || k === 'component' || k === 'componentId') return;
             hardDisable((form.controls as any)[k]);
         });
         return;
     }
 
-    // ✅ Offices — editable only in Draft/Requirements by Requirements role
-    hardDisable(form.controls.requirementsOffice);
-    setEnabled(form.controls.contractingOffice, canEditOffices);
-    setEnabled(form.controls.coordinatorOffice, canEditOffices);
-
-    // ✅ transitionComment is NOT role-based — it's action-based.
-    // Keep it enabled so the UI can use it when user clicks a transition button.
-    // (If you render it only inside an action panel, it’s fine to leave enabled always.)
+    // transitionComment always enabled
     setEnabled(form.controls.transitionComment, true);
 
-    // Lane gating: keep validation aligned to the workflow lane.
-    // Admin/Super Admin can bypass role restrictions, but NOT lane restrictions (so validation stays in-lane).
+    // Lane gating and role gating (unchanged)
     const laneStr = String(lane ?? '').trim().toLowerCase();
 
     const isDraftLane = lane === ForecastWorkflowLane.Draft;
     const isRequirementsLane = lane === ForecastWorkflowLane.Draft || lane === ForecastWorkflowLane.Requirements;
     const isContractingLane = lane === ForecastWorkflowLane.Contracting;
-
-    // Some enum builds don't include a Coordinator member. We keep lane-gating robust by
-    // matching on the string value (e.g. 'Coordinator' or 'APFS Coordinator').
     const isCoordinatorLane = laneStr.includes('coordinator');
 
-    // Requirements fields are editable:
-    // - in Draft/Requirements by Requirements (or Admin)
-    // - in Contracting by Contracting Office (or Admin) — matches your rail behavior
     const canEditRequirementsFields =
         (isRequirementsLane && (isAdmin || isRequirements)) ||
         (isContractingLane && (isAdmin || isContractingOffice)) ||
@@ -385,7 +433,6 @@ export function applyForecastRecordRolePermissions(
     // Requirements section
     setEnabled(form.controls.requirementsTitle, canEditRequirementsFields);
     setEnabled(form.controls.requirement, canEditRequirementsFields);
-    //setEnabled(form.controls.programLevel, canEditRequirementsFields);
 
     // Value classification (Requirements-owned)
     setEnabled(form.controls.dollarRange, canEditRequirementsFields);
@@ -421,7 +468,7 @@ export function applyForecastRecordRolePermissions(
     setEnabled(form.controls.contractType, canEditContractingFields);
     setEnabled(form.controls.strategicSourcingVehicleUsed, canEditContractingFields);
     setEnabled(form.controls.strategicSourcingVehicle, canEditContractingFields);
-    setEnabled(form.controls.typeOfAward, canEditContractingFields);
+    //setEnabled(form.controls.typeOfAward, canEditContractingFields);
     setEnabled(form.controls.smallBusinessSetAside, canEditContractingFields);
     setEnabled(form.controls.smallBusinessProgram, canEditContractingFields);
 
@@ -447,16 +494,12 @@ export function applyForecastRecordRolePermissions(
 function lockDownByDefault(form: ForecastRecordFormGroup) {
     const keysToDisable: Array<keyof ForecastRecordFormGroup['controls']> = [
         // ✅ offices default disabled until perms apply
+        'requirementsOfficeId',
+        'contractingOfficeId',
+        'coordinatorOfficeId',
         'requirementsOffice',
         'contractingOffice',
         'coordinatorOffice',
-
-        // leave transitionComment enabled by default? up to you.
-        // If you want it hidden/only used in actions panel but still editable:
-        // DON'T disable it here.
-        // If you want it disabled unless UI action panel opens, comment this in/out accordingly:
-        // 'transitionComment',
-
         'smallBusinessSetAside',
         'smallBusinessProgram',
         'dollarRange',
@@ -464,7 +507,6 @@ function lockDownByDefault(form: ForecastRecordFormGroup) {
         'contractType',
         'strategicSourcingVehicleUsed',
         'strategicSourcingVehicle',
-        'typeOfAward',
         'competitive',
         'contractStatus',
         'incumbent',
@@ -481,8 +523,6 @@ function lockDownByDefault(form: ForecastRecordFormGroup) {
 
     keysToDisable.forEach((k) => hardDisable(form.controls[k]));
 }
-
-
 
 /** Enable/disable helpers */
 function setEnabled(control: AbstractControl, enabled: boolean) {
@@ -506,11 +546,9 @@ function maxWords(limit: number) {
 export function formatUsPhoneWithExt(raw: string): string {
     if (!raw) return '';
 
-    // Split extension if user typed x / ext
     const extMatch = raw.match(/(?:ext\.?|x)\s*(\d{1,6})$/i);
     const ext = extMatch ? extMatch[1] : null;
 
-    // Remove all non-digits from main number
     const digits = raw.replace(/\D/g, '').slice(0, 10);
 
     let formatted = digits;
@@ -525,7 +563,6 @@ export function formatUsPhoneWithExt(raw: string): string {
 }
 
 export function noSpecialCharactersValidator(): ValidatorFn {
-    // Allow letters, numbers, space, and common punctuation
     const regex = /^[a-zA-Z0-9\s.,\-()'"/:&]*$/;
 
     return (control: AbstractControl): ValidationErrors | null => {
@@ -541,20 +578,16 @@ export function noSpecialCharactersValidator(): ValidatorFn {
 export function govEmailValidator(): ValidatorFn {
     return (control: AbstractControl): ValidationErrors | null => {
         const value = (control.value ?? '').toLowerCase().trim();
-        if (!value) return null; // let required handle empty
+        if (!value) return null;
 
-        // must be valid email first
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(value)) {
-            return { email: true }; // reuse existing message
+            return { email: true };
         }
 
-        // allowed domains
-        if (
-            value.endsWith('.mil') ||
-            value.endsWith('.gov') ||
-            value.endsWith('@bvti.com')
-        ) {
+        const domain = value.split('@')[1] || '';
+
+        if (domain.endsWith('.gov') || domain.endsWith('.mil')) {
             return null;
         }
 

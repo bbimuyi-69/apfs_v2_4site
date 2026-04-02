@@ -1,5 +1,4 @@
-// src\app\features\forecast\forecast-record\components\forecast-record\forecast-record.ts
-
+//Readme: 
 /**
  * FORECAST RECORD QUICK LINKS
  * - Form build + always-required validators: buildForecastRecordForm (forecast-record.form.ts)
@@ -10,6 +9,9 @@
  * - Template gates: canEditRequirementsSection / canEditContractingSection (this file + html)
  */
 
+
+
+
 //#region Imports
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, inject } from '@angular/core';
@@ -18,6 +20,12 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { combineLatest, of, EMPTY, map, shareReplay, tap, Observable } from 'rxjs';
 import { catchError, switchMap, timeout, startWith, delay } from 'rxjs/operators';
 import { ForecastWorkflowLane } from '../../models/forecast-record.enums';
+import {
+  ForecastRecordPrintComponent,
+  ForecastRecordPrintHistoryItem
+} from '../../components/forecast-record-print/forecast-record-print';
+
+
 
 import {
   buildForecastRecordForm,
@@ -35,35 +43,33 @@ import {
   ForecastChangeLogRow
 } from '../../services/forecast-record.service';
 
+
 import {
   APFS_COMPETITIVE,
   APFS_CONTRACT_STATUS,
   APFS_FISCAL_YEARS,
   APFS_PROGRAM_LEVELS,
+  APFS_SMALL_BUSINESS_PROGRAM,
   APFS_SMALL_BUSINESS_SET_ASIDE,
-  APFS_TYPE_OF_AWARD,
   APFS_YES_NO_UNKNOWN,
   US_STATES_WITH_NA,
   OptionItem,
+  APFS_CONTRACT_TYPES,
+  APFS_DOLLAR_RANGES,
+  APFS_STRATEGIC_SOURCING_VEHICLES,
+  APFS_NAICS_CODES,
 } from '../../models/forecast-record.lookups';
 
 import { AuthService } from '../../../../../auth/auth.service';
 import { ApfsOfficeService } from '../../../../../core/services/apfs-offices.service';
-import { ApfsLookupsService } from '../../../../../core/services/apfs-lookups.service';
-import { ApfsOrganizationService } from '../../../../../core/services/apfs-organization.service';
+// REMOTE ONLY
+// import { ApfsLookupsService } from '../../../../../core/services/apfs-lookups.service';
+
 //#endregion
 
 //#region Record History View Model
-type RecordHistoryItemVM = {
-  id: number | string;
-  at: string;                 // formatted timestamp
-  atIso?: string;             // original ISO (optional)
-  title: string;              // “Draft → Requirements”
-  actor: string;              // “HQ_Req@hq.dhs.gov”
-  comment?: string;           // user_comment
-  assignment?: string;        // assignment_display
-  isLatest?: boolean;         // latest === 1
-};
+type RecordHistoryItemVM = ForecastRecordPrintHistoryItem;
+
 type ChangeLogItemVM = {
   id: number | string;
   at: string;
@@ -73,7 +79,9 @@ type ChangeLogItemVM = {
   newValue: string;
   isPublic?: boolean;
 };
+
 //#endregion
+
 
 //#region Types
 type RailStatus =
@@ -123,7 +131,7 @@ export function apfsForecastSharePath(id: string | number, mode: 'view' | 'edit'
 @Component({
   selector: 'app-forecast-record',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, ForecastRecordPrintComponent],
   templateUrl: './forecast-record.html',
   styleUrls: ['./forecast-record.css'],
 })
@@ -136,11 +144,11 @@ export class ForecastRecordComponent {
   private readonly service = inject(ForecastRecordService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly auth = inject(AuthService);
-  private readonly lookups = inject(ApfsLookupsService);
+  // REMOTE ONLY
+  // private readonly lookups = inject(ApfsLookupsService);
   private readonly officeSvc = inject(ApfsOfficeService);
-  private readonly orgService = inject(ApfsOrganizationService);
 
-  hasSavedRecord = false;
+  hasSavedRecord = false; // ✅ HERE to track if we have saved at least once
   saveSuccessMessage = false;
   isSaving = false;
   justSaved = false;
@@ -148,16 +156,28 @@ export class ForecastRecordComponent {
 
   //#endregion
 
+  /**
+   * LOOKUP MODE SWITCH
+   *
+   * LOCAL:
+   *  - USE_RUNTIME_LOOKUPS = false
+   *  - Uses static constants
+   *
+   * REMOTE:
+   *  - USE_RUNTIME_LOOKUPS = true
+   *  - Uncomment ApfsLookupsService import + inject
+   */
+  private readonly USE_RUNTIME_LOOKUPS = false;
+
   //#region Lookups
   readonly programLevels = APFS_PROGRAM_LEVELS;
   readonly smallBusinessSetAsideOptions = APFS_SMALL_BUSINESS_SET_ASIDE;
 
-  // DB-backed, loaded at runtime
-  smallBusinessProgramOptions: OptionItem[] = [];
-  dollarRanges: OptionItem[] = [];
-  naicsCodes: OptionItem[] = [];
-  contractTypes: OptionItem[] = [];
-  strategicSourcingVehicleOptions: OptionItem[] = [];
+  smallBusinessProgramOptions: OptionItem[] = APFS_SMALL_BUSINESS_PROGRAM;
+  dollarRanges: OptionItem[] = APFS_DOLLAR_RANGES;
+  naicsCodes: OptionItem[] = APFS_NAICS_CODES;
+  contractTypes: OptionItem[] = APFS_CONTRACT_TYPES;
+  strategicSourcingVehicleOptions: OptionItem[] = APFS_STRATEGIC_SOURCING_VEHICLES;
 
   readonly yesNoUnknown = APFS_YES_NO_UNKNOWN;
 
@@ -167,7 +187,6 @@ export class ForecastRecordComponent {
   readonly fiscalYears = APFS_FISCAL_YEARS;
   readonly stateOptions = US_STATES_WITH_NA;
 
-  /** Current user's organization id (from /me -> auth user) */
   private get myOrganizationId(): number | null {
     const u: any = (this.auth as any).user ?? (this.auth as any).session?.user ?? null;
     const raw = u?.organization_id ?? u?.organizationId ?? null;
@@ -175,10 +194,10 @@ export class ForecastRecordComponent {
     return Number.isFinite(n) ? n : null;
   }
 
-  // Offices from API (loaded once, scoped by organization)
+  // ✅ Offices from API (loaded once)
   private readonly officeOptions$ = this.officeSvc.getPublicOptions({
     active: 1,
-    organizationId: this.myOrganizationId ?? undefined,
+    organizationId: this.myOrganizationId ?? undefined
   }).pipe(shareReplay(1));
 
   readonly requirementsOfficeOptions$ = this.officeOptions$.pipe(
@@ -186,8 +205,8 @@ export class ForecastRecordComponent {
       rows
         .filter(r => r.office_assignment_permissions_level_id === 1)
         .map(r => ({
-          value: String(r.id),       // ID string
-          label: r.full_name,        // human readable
+          value: String(r.id),
+          label: r.full_name
         }))
     )
   );
@@ -196,10 +215,7 @@ export class ForecastRecordComponent {
     map(rows =>
       rows
         .filter(r => r.office_assignment_permissions_level_id === 2)
-        .map(r => ({
-          value: String(r.id),
-          label: r.full_name,
-        }))
+        .map(r => ({ value: String(r.id), label: r.full_name }))
     )
   );
 
@@ -207,14 +223,11 @@ export class ForecastRecordComponent {
     map(rows =>
       rows
         .filter(r => r.office_assignment_permissions_level_id === 3)
-        .map(r => ({
-          value: String(r.id),
-          label: r.full_name,
-        }))
+        .map(r => ({ value: String(r.id), label: r.full_name }))
     )
   );
 
-  // Section anchors for scroll-to-first-invalid
+  //Constants for sectional scrolling
   private readonly SECTION_IDS = [
     '#sec-record-info',
     '#sec-requirements',
@@ -227,23 +240,26 @@ export class ForecastRecordComponent {
   trackByValue(_: number, item: OptionItem) {
     return item.value;
   }
-
-  // NAICS typeahead results
-  filteredNaicsCodes$: Observable<OptionItem[]> = of([]);
   //#endregion
 
   //#region State
   form: ForecastRecordFormGroup | null = null;
   recordId: string | null = null;
+
+  /** ✅ API record reference */
   record: ForecastRecord | null = null;
 
   isEditMode = false;
   isLoading = true;
   loadError: string | null = null;
 
+  /** Cached per-load; safe to re-read anytime */
   private userProfile: UserProfileLike | null = null;
+
+  /** Submit-driven validation UI */
   submitted = false;
 
+  /** Record Actions rail permissions */
   rail: RailPermissions = {
     canReassign: false,
     canSave: false,
@@ -251,14 +267,23 @@ export class ForecastRecordComponent {
     canApproveSend: false,
     canDelete: false,
   };
+
+  // ✅ NAICS typeahead results (safe default)
+  filteredNaicsCodes$: Observable<OptionItem[]> = of([]);
+  private allOffices: { id: number; full_name: string }[] = [];
   //#endregion
 
   //#region History Drawer State
+  //#region Drawer State
   historyOpen = false;
   changeLogOpen = false;
   changeLogLoading = false;
   changeLogError: string | null = null;
   changeLogRows: ForecastChangeLogRow[] = [];
+
+  //#region History Drawer: View Model
+
+  //#region History Drawer: Client-only helpers
   private stateName(stateId: any): string {
     const n = Number(stateId);
     if (n === 0) return 'Draft';
@@ -272,6 +297,7 @@ export class ForecastRecordComponent {
   private formatWhen(iso: any): string {
     if (!iso) return '—';
     const d = new Date(iso);
+    // compact but readable
     return d.toLocaleString(undefined, {
       month: 'short',
       day: '2-digit',
@@ -280,6 +306,7 @@ export class ForecastRecordComponent {
       minute: '2-digit',
     });
   }
+
   private formatFieldLabel(field: any): string {
     const raw = String(field ?? '').trim();
     if (!raw) return 'Unknown field';
@@ -296,6 +323,11 @@ export class ForecastRecordComponent {
     const s = String(value).trim();
     return s || '—';
   }
+
+  //#endregion
+
+
+
   get historyItems(): RecordHistoryItemVM[] {
     const anyRecord: any = this.record as any;
 
@@ -328,6 +360,7 @@ export class ForecastRecordComponent {
         (h.assignment_display ?? h.assignedToName ?? '')?.toString().trim() || undefined;
 
       const isLatest = Number(h.latest) === 1;
+
       const hasTransition = from != null && to != null;
 
       const title =
@@ -352,6 +385,7 @@ export class ForecastRecordComponent {
       };
     });
   }
+
   get changeLogItems(): ChangeLogItemVM[] {
     if (!Array.isArray(this.changeLogRows) || this.changeLogRows.length === 0) {
       return [];
@@ -372,9 +406,15 @@ export class ForecastRecordComponent {
     });
   }
 
+
+
   //#endregion
 
+  //#endregion
+
+
   //#region Derived Getters (lane, role, sections, rail)
+  /** Canonical lane */
   get workflowStatus(): ForecastWorkflowLane | null {
     return this.form?.get('workflowStatus')?.value ?? null;
   }
@@ -387,10 +427,12 @@ export class ForecastRecordComponent {
     return this.workflowStatus === ForecastWorkflowLane.Published;
   }
 
+  /** Role label for UI */
   get roleLabel(): string {
     return this.userProfile?.role ?? 'Unknown';
   }
 
+  /** Hide rail for /forecast/new */
   get showRecordRail(): boolean {
     if (!this.recordId) return false;
     const railStatus = this.normalizeRailStatus(this.workflowStatus);
@@ -399,7 +441,8 @@ export class ForecastRecordComponent {
 
   private hasEditRightsFor(role: 'Requirements' | 'Contracting Office' | 'APFS Coordinator'): boolean {
     const r = (this.userProfile?.role ?? '').trim().toLowerCase();
-    // Admin/Super Admin: can edit any section at any time (claim still enforced elsewhere)
+
+    // ✅ Admin/Super Admin: can edit any section at any time (claim still enforced elsewhere)
     if (r === 'admin' || r.includes('admin')) return true;
 
     if (role === 'Requirements') return r === 'requirements';
@@ -408,6 +451,8 @@ export class ForecastRecordComponent {
     return r === 'contracting' || r === 'contracting office';
   }
 
+
+  //This is new for claiming to edit Tbrown 03/03/2026
   private get claimedByMe(): boolean {
     const assigned = Number(this.record?.assignedToUserId ?? 0);
     const me = Number(this.userProfile?.id ?? 0);
@@ -431,20 +476,27 @@ export class ForecastRecordComponent {
 
     return null;
   }
+  //End This is new for claiming to edit
 
   private get isAdminOrSuperAdmin(): boolean {
     const r = (this.userProfile?.role ?? '').trim().toLowerCase();
-    const isSuperUser = this.userProfile?.isSuperuser === 1;
-    return r === 'admin' || r.includes('admin') || isSuperUser;
+    return r === 'admin' || r.includes('admin');
   }
 
+
+  //PAY ATTENTION
+  //This is better loging for being lane aware and can being ediatble by multiple roles
   get canEditRequirementsSection(): boolean {
     if (!this.isEditMode) return false;
+
+    // ✅ Must be claimed by the current user (admins included)
     if (!this.claimedByMe) return false;
 
+    // ✅ Admin/Super Admin can edit any section at any time
     if (this.isAdminOrSuperAdmin) return true;
 
     const lane = this.normalizeRailStatus(this.workflowStatus);
+
     if (lane === 'Draft') {
       return this.hasEditRightsFor('Requirements');
     }
@@ -459,7 +511,6 @@ export class ForecastRecordComponent {
 
     return false;
   }
-
   get canEditCoordinatorSection(): boolean {
     if (!this.isEditMode) return false;
     if (!this.claimedByMe) return false;
@@ -467,12 +518,19 @@ export class ForecastRecordComponent {
     return this.hasEditRightsFor('APFS Coordinator');
   }
 
+  //PAY ATTENTION
+  //This is better loging for being lane aware and can being ediatble by multiple roles
   get canEditContractingSection(): boolean {
     if (!this.isEditMode) return false;
+
+    // Must be claimed by the current user
     if (!this.claimedByMe) return false;
+
+    // Admin / Super Admin can edit any section
     if (this.isAdminOrSuperAdmin) return true;
 
     const lane = this.normalizeRailStatus(this.workflowStatus);
+
     if (lane === 'Draft') {
       return this.hasEditRightsFor('Requirements');
     }
@@ -491,18 +549,18 @@ export class ForecastRecordComponent {
     return false;
   }
 
+
   get canEditClassificationSection(): boolean {
-    return (
-      this.isEditMode &&
-      (this.canEditCoordinatorSection || this.canEditContractingSection || this.canEditRequirementsSection)
-    );
+    return this.isEditMode && (this.canEditCoordinatorSection || this.canEditContractingSection || this.canEditRequirementsSection);
   }
 
+  // --- Rail convenience getters ---
   get canReassign(): boolean { return this.rail.canReassign; }
   get canSave(): boolean { return this.rail.canSave; }
   get canUnassign(): boolean { return this.rail.canUnassign; }
   get canApproveSend(): boolean { return this.rail.canApproveSend; }
 
+  /** Delete enablement based on API record assignment + current user */
   get canDelete(): boolean {
     if (!this.recordId) return false;
     if (this.isLoading) return false;
@@ -564,6 +622,10 @@ export class ForecastRecordComponent {
     return false;
   }
 
+
+  //this is the primary section of role based fields required to move from state to state
+  //PAY ATTENTION
+  //this allows the form to move for4ward in the workflow only if these fields are filled out
   private getRoleRequiredControls(): Array<keyof ForecastRecordFormGroup['controls']> {
     const role = this.normalizeRailRole();
     const status = this.normalizeRailStatus(this.workflowStatus);
@@ -573,22 +635,23 @@ export class ForecastRecordComponent {
 
     if (role === 'Requirements' && (effectiveLane === 'Requirements' || effectiveLane === 'Draft')) {
       return [
+
         'requirementsOfficeId',
         'contractingOfficeId',
         'coordinatorOfficeId',
-        // 'requirementsOffice',
-        // 'contractingOffice',
-        // 'coordinatorOffice',
+
         'primaryContactFirstName',
         'primaryContactLastName',
         'primaryContactEmail',
         'primaryContactPhone',
         'requirementsTitle',
         'requirement',
+        //'programLevel',
+        // Value Classification now required
         'dollarRange',
         'naicsCode',
-        'placeOfPerformanceCity',
-        'placeOfPerformanceState',
+
+        //Contracting Section fields now required in Requirements lane
         'contractType',
         'strategicSourcingVehicleUsed',
         'strategicSourcingVehicle',
@@ -601,6 +664,11 @@ export class ForecastRecordComponent {
         'estimatedPopEnd',
         'anticipatedAwardDate',
         'estimatedSolicitationReleaseDate',
+
+        // Place of Performance now required
+        'placeOfPerformanceCity',
+        'placeOfPerformanceState',
+
       ];
     }
 
@@ -611,6 +679,8 @@ export class ForecastRecordComponent {
         'strategicSourcingVehicle',
         'competitive',
         'contractStatus',
+
+        // Value Classification now required
         'dollarRange',
         'naicsCode',
       ];
@@ -624,6 +694,7 @@ export class ForecastRecordComponent {
         'sbSpecialistLastName',
         'sbSpecialistPhone',
         'sbSpecialistEmail',
+
       ];
     }
 
@@ -648,36 +719,9 @@ export class ForecastRecordComponent {
 
     this.form.updateValueAndValidity({ emitEvent: false });
   }
-
-  private wireStrategicSourcingVehicleToggle(): void {
-    if (!this.form) return;
-
-    const usedCtrl = this.form.get('strategicSourcingVehicleUsed');
-    const vehicleCtrl = this.form.get('strategicSourcingVehicle');
-
-    if (!usedCtrl || !vehicleCtrl) return;
-
-    const apply = (v: unknown) => {
-      const isYes = String(v ?? '').toUpperCase() === 'YES';
-
-      console.log('[SSV toggle] strategicSourcingVehicleUsed:', v);
-
-      if (isYes) {
-        vehicleCtrl.enable({ emitEvent: false });
-      } else {
-        vehicleCtrl.setValue('', { emitEvent: false });
-        vehicleCtrl.disable({ emitEvent: false });
-      }
-    };
-
-    apply(usedCtrl.value);
-    usedCtrl.valueChanges.subscribe(apply);
-  }
   //#endregion
 
-  //#endregion
-
-  //#region Rail / Permissions / Normalization helpers
+  //#region Rail / Permissions / Normalization
   private normalizeRailStatus(raw: unknown): RailStatus {
     const s = String(raw ?? '').trim();
     if (!s) return 'Unknown';
@@ -705,22 +749,41 @@ export class ForecastRecordComponent {
     if (roleRaw === 'requirements') return 'Requirements';
     if (roleRaw === 'contracting office' || roleRaw === 'contracting') return 'Contracting';
     if (roleRaw === 'apfs coordinator' || roleRaw.includes('coordinator')) return 'APFS Coordinator';
-    if (roleRaw === 'super admin' || roleRaw === 'superadmin' || roleRaw.includes('super admin') || this.userProfile?.isSuperuser) return 'Super Admin';
+
+    // ✅ Super Admin before Admin (since it also contains 'admin')
+    if (roleRaw === 'super admin' || roleRaw === 'superadmin' || roleRaw.includes('super admin')) return 'Super Admin';
+
     if (roleRaw === 'admin' || roleRaw.includes('admin')) return 'Admin';
 
     return 'Viewer';
   }
 
+  private computeAssignedToMe(status: RailStatus, role: string): boolean {
+    const roleNorm = role.trim().toLowerCase();
+
+    if (!this.isEditMode) return false;
+
+    if (status === 'Requirements') return roleNorm === 'requirements';
+    if (status === 'Contracting') return roleNorm === 'contracting office' || roleNorm === 'contracting';
+    if (status === 'APFS Coordinator') return roleNorm === 'apfs coordinator';
+
+    if (status === 'Draft') return true;
+
+    return false;
+  }
+
   private computeRailPermissions(): void {
     const status = this.normalizeRailStatus(this.workflowStatus);
     const role = this.normalizeRailRole();
-    const isAdmin = role === 'Admin' || role === 'Super Admin' || this.userProfile?.isSuperuser === 1;
+    const isAdmin = role === 'Admin' || role === 'Super Admin';
     const isCoordinator = role === 'APFS Coordinator';
     const claimedByMe = this.claimedByMe;
 
+
+
     const canReassign =
       status !== 'Published' &&
-      isAdmin;
+      (isAdmin);
 
     const canSave =
       status !== 'Published' &&
@@ -749,7 +812,7 @@ export class ForecastRecordComponent {
 
     const canDelete =
       status !== 'Published' &&
-      status === 'Draft' &&
+      (status === 'Draft') &&
       (claimedByMe || isAdmin);
 
     this.rail = { canReassign, canSave, canUnassign, canApproveSend, canDelete };
@@ -765,9 +828,14 @@ export class ForecastRecordComponent {
       this.form.disable({ emitEvent: false });
     }
 
+    // ✅ Always lock component from auth after permissions toggles
     this.lockComponentFromAuth();
+
     this.computeRailPermissions();
   }
+
+
+
   //#endregion
 
   //#region View / UI Refresh Utilities
@@ -784,6 +852,7 @@ export class ForecastRecordComponent {
 
       if (!invalidEl) return;
 
+      // 1️⃣ prefer explicit known sections
       let section: HTMLElement | null = null;
 
       for (const sel of this.SECTION_IDS) {
@@ -791,8 +860,10 @@ export class ForecastRecordComponent {
         if (found) { section = found; break; }
       }
 
+      // 2️⃣ fallback to nearest generic section
       section ??= invalidEl.closest<HTMLElement>('section.sec');
 
+      // 3️⃣ scroll (use your slowed scroll)
       if (section) {
         const y = section.getBoundingClientRect().top + window.scrollY - 80;
         this.smoothScrollTo(y, 900);
@@ -803,6 +874,7 @@ export class ForecastRecordComponent {
       invalidEl.focus({ preventScroll: true });
     });
   }
+
 
   private smoothScrollTo(yTarget: number, duration = 700): void {
     const yStart = window.scrollY;
@@ -827,8 +899,40 @@ export class ForecastRecordComponent {
     requestAnimationFrame(step);
   }
 
+
+
   private focusAfterAction(): void {
-    // placeholder utility
+    // placeholder utility if you want to focus a known element after actions
+  }
+
+  private wireStrategicSourcingVehicleToggle(): void {
+
+    if (!this.form) return;
+
+    const usedCtrl = this.form.get('strategicSourcingVehicleUsed');
+    const vehicleCtrl = this.form.get('strategicSourcingVehicle');
+
+    if (!usedCtrl || !vehicleCtrl) return;
+
+    const apply = (v: unknown) => {
+      const isYes = String(v ?? '').toUpperCase() === 'YES';
+
+      console.log('[SSV toggle] strategicSourcingVehicleUsed:', v);
+
+      if (isYes) {
+        vehicleCtrl.enable({ emitEvent: false });
+      } else {
+        // clear + lock when NO/TBD/blank
+        vehicleCtrl.setValue('', { emitEvent: false }); // or null if you prefer
+        vehicleCtrl.disable({ emitEvent: false });
+      }
+    };
+
+    // initial state (important on edit/load)
+    apply(usedCtrl.value);
+
+    // reactive
+    usedCtrl.valueChanges.subscribe(apply);
   }
   //#endregion
 
@@ -836,11 +940,6 @@ export class ForecastRecordComponent {
   private extractUserProfileFromAuth(): UserProfileLike | null {
     const u: any = (this.auth as any).user ?? (this.auth as any).session?.user ?? null;
     if (!u) return null;
-
-    const officeId =
-      u.officeId ??
-      u.office_id ??
-      null;
 
     return {
       id: u.id ?? 0,
@@ -850,138 +949,28 @@ export class ForecastRecordComponent {
       role: u.role ?? 'User',
       title: u.title,
       office: u.office,
-      officeId,
+      officeId: u.officeId ?? u.office_id ?? null,
       component: u.component,
       employeeType: u.employeeType,
-      isActive: u.active,
+      isActive: u.isActive,
+      isSuperuser: u.isSuperuser ?? u.is_superuser ?? 0,
     };
   }
 
-  /**
-   * For NEW records:
-   * - Use the authenticated user's organization_id
-   * - Lookup that org via ApfsOrganizationService
-   * - Patch componentId (numeric) and component (label)
-   */
-  private initComponentFromAuthForNewRecord(): void {
-    if (!this.form) return;
-    if (this.recordId) return;
-
-    const compCtrl = this.form.get('component');
-    const compIdCtrl = this.form.get('componentId');
-    if (!compCtrl || !compIdCtrl) return;
-
-    // If already set, do nothing
-    if (compIdCtrl.value != null && compCtrl.value) return;
-
-    const authUser: any = (this.auth as any).user ?? (this.auth as any).session?.user ?? null;
-    const rawOrg =
-      authUser?.organization_id ??
-      authUser?.organizationId ??
-      this.myOrganizationId;
-
-    const orgId = rawOrg != null ? Number(rawOrg) : null;
-    if (!orgId || !Number.isFinite(orgId)) {
-      // Fallback: keep component label from user profile if present
-      if (!compCtrl.value && this.userProfile?.component) {
-        compCtrl.setValue(this.userProfile.component, { emitEvent: false });
-      }
-      return;
-    }
-
-    this.orgService.getOrganizations({ activeOnly: true }).subscribe({
-      next: (orgs: any[]) => {
-        const org = (orgs ?? []).find(o => Number((o as any).id) === orgId);
-        const label =
-          (org as any)?.full_name ??
-          (org as any)?.acronym ??
-          (org as any)?.name ??
-          authUser?.organizationName ??
-          authUser?.organizationAcronym ??
-          this.userProfile?.component ??
-          null;
-
-        compIdCtrl.setValue(orgId, { emitEvent: false });
-        if (label) {
-          compCtrl.setValue(label, { emitEvent: false });
-        }
-      },
-      error: (err) => {
-        console.error('[ForecastRecord] initComponentFromAuthForNewRecord: org lookup failed', err);
-        compIdCtrl.setValue(orgId, { emitEvent: false });
-        if (!compCtrl.value && this.userProfile?.component) {
-          compCtrl.setValue(this.userProfile.component, { emitEvent: false });
-        }
-      },
-    });
-  }
-
-  /**
- * For EXISTING records:
- * - Use the record's componentId
- * - Lookup that org via ApfsOrganizationService
- * - Patch componentId (numeric) and component (label)
- */
-  private initComponentFromRecordForExisting(): void {
-    if (!this.form) return;
-    if (!this.recordId) return;
-
-    const compCtrl = this.form.get('component');
-    const compIdCtrl = this.form.get('componentId');
-    if (!compCtrl || !compIdCtrl) return;
-
-    // If component already has a label, don't override
-    if (compCtrl.value) return;
-
-    const rawId =
-      (this.record as any)?.componentId ??
-      compIdCtrl.value;
-
-    const orgId = rawId != null ? Number(rawId) : null;
-    if (!orgId || !Number.isFinite(orgId)) return;
-
-    this.orgService.getOrganizations({ activeOnly: true }).subscribe({
-      next: (orgs: any[]) => {
-        const org = (orgs ?? []).find(o => Number((o as any).id) === orgId);
-        const label =
-          (org as any)?.full_name ??
-          (org as any)?.acronym ??
-          (org as any)?.name ??
-          String(orgId);
-
-        compIdCtrl.setValue(orgId, { emitEvent: false });
-        compCtrl.setValue(label, { emitEvent: false });
-      },
-      error: (err) => {
-        console.error('[ForecastRecord] initComponentFromRecordForExisting: org lookup failed', err);
-        compIdCtrl.setValue(orgId, { emitEvent: false });
-        // leave compCtrl empty if we can't resolve a label
-      },
-    });
-  }
-
-
+  // ✅ New: always set + disable component from auth
   private lockComponentFromAuth(): void {
     if (!this.form) return;
 
-    const compCtrl = this.form.get('component');
-    const compIdCtrl = this.form.get('componentId');
-    if (!compCtrl) return;
+    const ctrl = this.form.get('component');
+    if (!ctrl) return;
 
-    if (!this.recordId) {
-      // NEW record: derive from current user/org
-      this.initComponentFromAuthForNewRecord();
-    } else {
-      // EXISTING record: derive from record.componentId
-      this.initComponentFromRecordForExisting();
-    }
+    const comp = (this.userProfile?.component ?? null) as any;
 
-
-    // Always keep them read-only
-    compCtrl.disable({ emitEvent: false });
-    if (compIdCtrl) compIdCtrl.disable({ emitEvent: false });
+    ctrl.setValue(comp, { emitEvent: false });
+    ctrl.disable({ emitEvent: false });
   }
 
+  // ✅ New: optional seed (does not overwrite)
   private hydrateOfficeFromProfile(): void {
     if (!this.form) return;
 
@@ -991,18 +980,15 @@ export class ForecastRecordComponent {
     const idCtrl = this.form.get('requirementsOfficeId');
     const labelCtrl = this.form.get('requirementsOffice');
 
-    // If we already have ID or label set, don't override
     const hasId = !!idCtrl?.value;
     const hasLabel = !!labelCtrl?.value;
 
     if (!officeId && !officeName) return;
 
-    // 1) If we have officeId from profile, use it
     if (!hasId && officeId != null) {
       idCtrl?.setValue(String(officeId), { emitEvent: false });
     }
 
-    // 2) If no officeId but we have a name and allOffices is loaded, try to match
     if (!hasId && !officeId && officeName && this.allOffices.length) {
       const match = this.allOffices.find(
         o => o.full_name.toLowerCase() === officeName.toLowerCase()
@@ -1012,12 +998,10 @@ export class ForecastRecordComponent {
       }
     }
 
-    // 3) Always set label if we have a name and label is empty
     if (!hasLabel && officeName) {
       labelCtrl?.setValue(officeName, { emitEvent: false });
     }
   }
-
 
   private hydratePrimaryContactFromProfile(): void {
     if (!this.form) return;
@@ -1045,6 +1029,7 @@ export class ForecastRecordComponent {
     this.computeRailPermissions();
   }
 
+
   private triggerValidationUI(): boolean {
     if (!this.form) return false;
 
@@ -1061,6 +1046,9 @@ export class ForecastRecordComponent {
     return true;
   }
 
+  //#endregion
+
+  //#region NAICS Typeahead
   private filterNaics(value: string | null): OptionItem[] {
     const search = (value ?? '').toLowerCase();
 
@@ -1086,6 +1074,10 @@ export class ForecastRecordComponent {
   //#endregion
 
   //#region Claim helpers
+  /**
+   * For /forecast/new we "claim" immediately so the creator can edit.
+   * Admin/Super Admin also must be claimed (per your rule), so we do the same.
+   */
   private claimNewRecordToCurrentUser(base: ForecastRecord): ForecastRecord {
     const meId = Number(this.userProfile?.id ?? this.currentUserId ?? 0);
     if (!meId) return base;
@@ -1102,31 +1094,25 @@ export class ForecastRecordComponent {
     } as any;
   }
   //#endregion
-  private allOffices: { id: number; full_name: string }[] = [];
-  //#region Lifecycle
-  ngOnInit(): void {
-    this.userProfile = this.extractUserProfileFromAuth();
 
-    console.log(this.userProfile);
-    // initial shell (treat as a new record until route resolves)
-    const initial = this.claimNewRecordToCurrentUser(createEmptyForecastRecord());
-    this.record = initial;
-    this.form = buildForecastRecordForm(initial);
-    this.wireNaicsTypeahead();
+  private loadDbLookups(): void {
+    if (!this.USE_RUNTIME_LOOKUPS) {
+      this.officeOptions$.subscribe(rows => {
+        this.allOffices = rows.map(r => ({ id: r.id, full_name: r.full_name }));
+      });
+      return;
+    }
 
-    this.hasSavedRecord = true;
-    this.submitted = false;
+    // REMOTE ONLY: uncomment ApfsLookupsService import + inject before enabling runtime lookups.
+    const runtimeLookups = (this as any).lookups;
+    if (!runtimeLookups) {
+      this.officeOptions$.subscribe(rows => {
+        this.allOffices = rows.map(r => ({ id: r.id, full_name: r.full_name }));
+      });
+      return;
+    }
 
-    this.lockComponentFromAuth();
-    this.applyAccessState();
-    this.wireStrategicSourcingVehicleToggle();
-    this.hydratePrimaryContactFromProfile();
-    this.hydrateOfficeFromProfile();
-    this.isLoading = true;
-    this.flushView();
-
-    // DB-backed lookups
-    this.lookups.getSmallBusinessPrograms().subscribe(list => {
+    runtimeLookups.getSmallBusinessPrograms().subscribe((list: OptionItem[]) => {
       this.smallBusinessProgramOptions = [
         { value: '', label: '----------' },
         ...(list ?? []),
@@ -1134,7 +1120,7 @@ export class ForecastRecordComponent {
       this.flushView();
     });
 
-    this.lookups.getDollarRanges().subscribe(list => {
+    runtimeLookups.getDollarRanges().subscribe((list: OptionItem[]) => {
       this.dollarRanges = [
         { value: '', label: '----------' },
         ...(list ?? []),
@@ -1142,7 +1128,7 @@ export class ForecastRecordComponent {
       this.flushView();
     });
 
-    this.lookups.getContractTypes().subscribe(list => {
+    runtimeLookups.getContractTypes().subscribe((list: OptionItem[]) => {
       this.contractTypes = [
         { value: '', label: '----------' },
         ...(list ?? []),
@@ -1150,7 +1136,7 @@ export class ForecastRecordComponent {
       this.flushView();
     });
 
-    this.lookups.getContractVehicles().subscribe(list => {
+    runtimeLookups.getContractVehicles().subscribe((list: OptionItem[]) => {
       this.strategicSourcingVehicleOptions = [
         { value: '', label: '----------' },
         ...(list ?? []),
@@ -1158,7 +1144,7 @@ export class ForecastRecordComponent {
       this.flushView();
     });
 
-    this.lookups.getNaicsCodes().subscribe(list => {
+    runtimeLookups.getNaicsCodes().subscribe((list: OptionItem[]) => {
       this.naicsCodes = [
         { value: '', label: 'Select…' },
         ...(list ?? []),
@@ -1169,6 +1155,34 @@ export class ForecastRecordComponent {
     this.officeOptions$.subscribe(rows => {
       this.allOffices = rows.map(r => ({ id: r.id, full_name: r.full_name }));
     });
+  }
+
+  //#region Lifecycle
+  ngOnInit(): void {
+    this.userProfile = this.extractUserProfileFromAuth();
+    console.log(this.userProfile)
+    // initial shell (treat as a new record until route resolves)
+    const initial = this.claimNewRecordToCurrentUser(createEmptyForecastRecord());
+    this.record = initial;
+    this.form = buildForecastRecordForm(initial);
+    this.wireNaicsTypeahead();
+    this.hasSavedRecord = true;
+    this.submitted = false;
+
+
+
+    // ✅ lock component from auth (read-only)
+    this.lockComponentFromAuth();
+
+
+    this.applyAccessState();
+    this.wireStrategicSourcingVehicleToggle();
+    this.hydratePrimaryContactFromProfile();
+    this.hydrateOfficeFromProfile(); // 👈 ADD THIS
+    this.isLoading = true;
+    this.flushView();
+
+    this.loadDbLookups();
 
     combineLatest([this.route.paramMap, this.route.queryParamMap])
       .pipe(
@@ -1179,6 +1193,7 @@ export class ForecastRecordComponent {
 
           this.loadError = null;
 
+          // /forecast/new
           if (!idParam || idParam === 'new') {
             this.recordId = null;
             this.record = this.claimNewRecordToCurrentUser(createEmptyForecastRecord());
@@ -1188,19 +1203,21 @@ export class ForecastRecordComponent {
 
             this.form = buildForecastRecordForm(this.record);
             this.wireNaicsTypeahead();
-
             this.submitted = false;
 
+            // ✅ lock component from auth
             this.lockComponentFromAuth();
+
             this.applyAccessState();
             this.wireStrategicSourcingVehicleToggle();
             this.hydratePrimaryContactFromProfile();
-            this.hydrateOfficeFromProfile();
+            this.hydrateOfficeFromProfile();   // ✅ ADD THIS
             this.flushView();
 
             return EMPTY;
           }
 
+          // /forecast/:id
           this.recordId = idParam;
           this.isEditMode = wantsEdit;
 
@@ -1227,7 +1244,9 @@ export class ForecastRecordComponent {
         this.wireNaicsTypeahead();
         this.submitted = false;
 
+        // ✅ lock component from auth
         this.lockComponentFromAuth();
+
         this.applyAccessState();
         this.wireStrategicSourcingVehicleToggle();
         this.hydratePrimaryContactFromProfile();
@@ -1238,10 +1257,14 @@ export class ForecastRecordComponent {
   }
   //#endregion
 
+
+
+
   selectNaics(option: { value: string; label: string }) {
     this.form?.get('naicsCode')?.setValue(option.value);
     this.openNaics = false;
   }
+
   onSave(): void {
     this.saveMode = this.recordId ? 'record' : 'draft';
 
@@ -1263,6 +1286,7 @@ export class ForecastRecordComponent {
 
     return this.saveMode === 'record' ? 'Save Record' : 'Save Draft';
   }
+
   //#region Save / Submit
   onSaveDraft(): void {
     console.log('[onSaveDraft]', {
@@ -1286,9 +1310,9 @@ export class ForecastRecordComponent {
     this.saveSuccessMessage = false;
     this.loadError = null;
     this.flushView();
+
     const raw = this.form.getRawValue() as any;
 
-    // Enforce "claim" on create
     if (!this.recordId) {
       const meId = Number(this.userProfile?.id ?? this.currentUserId ?? 0);
       if (meId) {
@@ -1301,24 +1325,25 @@ export class ForecastRecordComponent {
       }
     }
 
+    console.log('[onSaveDraft] after getRawValue', { recordId: this.recordId });
+
     if (!this.recordId) {
       delete raw.apfsNumber;
       delete raw.component;
     }
 
-    const outgoingAny = this.normalizeOutgoing(
-      this.recordId
-        ? { ...raw, id: Number(this.recordId) }
-        : raw
-    );
-    const payload: ForecastRecord = outgoingAny as ForecastRecord;
+    const payload: ForecastRecord = this.recordId
+      ? ({ ...raw, id: Number(this.recordId) } as ForecastRecord)
+      : (raw as ForecastRecord);
 
     const request$ = this.recordId
       ? this.service.update(payload)
       : this.service.create(payload);
 
+    console.log('[onSaveDraft] BEFORE request subscribe', { recordId: this.recordId });
+
     request$
-      .pipe(delay(500))
+      .pipe(delay(2000))
       .subscribe({
         next: () => {
           this.hasSavedRecord = true;
@@ -1345,7 +1370,9 @@ export class ForecastRecordComponent {
       });
   }
 
+  //Nav Rail on Approve & Send
   onApproveAndSend(): void {
+    console.log('[onApproveAndSend]');
     if (!this.form) return;
     if (!this.recordId) return;
 
@@ -1357,8 +1384,10 @@ export class ForecastRecordComponent {
       return;
     }
 
+    // ✅ highlights missing fields + focuses first invalid
     if (!this.triggerValidationUI()) return;
 
+    // 2) save current form data BEFORE routing to comment screen
     const raw = this.form.getRawValue() as any;
 
     const idNum = Number(this.recordId);
@@ -1367,18 +1396,20 @@ export class ForecastRecordComponent {
       return;
     }
 
+    // merge to avoid wiping fields not represented by the form
     const base: ForecastRecord = this.record ?? ({ id: idNum } as ForecastRecord);
 
     const recordToSave: ForecastRecord = this.normalizeOutgoing({
       ...base,
       ...raw,
       id: idNum,
-    }) as ForecastRecord;
+    });
 
     this.loadError = null;
 
     this.service.update(recordToSave).subscribe({
       next: () => {
+        // ✅ Keep your “Draft → Requirements is instant” rule
         if (
           this.isLane(fromLaneRaw, ForecastWorkflowLane.Draft) &&
           this.isLane(toLane, ForecastWorkflowLane.Requirements)
@@ -1387,6 +1418,7 @@ export class ForecastRecordComponent {
           return;
         }
 
+        // ✅ otherwise route to forward/comment screen
         this.router.navigate(['/forecast', this.recordId, 'forward'], {
           queryParams: { from: fromLaneRaw, to: toLane, returnTo: 'record' },
         });
@@ -1399,6 +1431,8 @@ export class ForecastRecordComponent {
   }
 
   get approveButtonLabel(): string {
+    // Label is based on the NEXT lane.
+    // If the next step is Published, this is the final action.
     const fromLaneRaw = this.form?.controls.workflowStatus.value ?? this.workflowStatus;
     const next = this.nextLaneFromAny(fromLaneRaw);
     return next === ForecastWorkflowLane.Published ? 'Save & Publish' : 'Approve & Send';
@@ -1422,11 +1456,14 @@ export class ForecastRecordComponent {
   }
 
 
+
+
   onSaveRecord(): void {
     if (this.isSaving) {
       console.log('[onSaveRecord] blocked: already saving');
       return;
     }
+
     if (!this.form) return;
     if (!this.recordId) return;
     if (!this.canSave) return;
@@ -1435,13 +1472,12 @@ export class ForecastRecordComponent {
     if (!Number.isFinite(idNum)) return;
 
     if (!this.triggerValidationUI()) return;
+
     this.saveMode = 'record';
     this.isSaving = true;
     this.justSaved = false;
     this.saveSuccessMessage = false;
     this.loadError = null;
-
-
 
     const raw = this.form.getRawValue() as any;
     const base: ForecastRecord = this.record ?? ({ id: idNum } as ForecastRecord);
@@ -1456,49 +1492,53 @@ export class ForecastRecordComponent {
       ...raw,
       id: idNum,
       workflowStatus: nextLane,
-    }) as ForecastRecord;
+    });
 
     this.isLoading = true;
     this.flushView();
 
-    this.service.update(recordToSave).subscribe({
-      next: (updated) => {
-        this.record = updated;
+    this.service.update(recordToSave)
+      .pipe(delay(2000))
+      .subscribe({
+        next: (updated) => {
+          this.record = updated;
 
-        this.form = buildForecastRecordForm(updated);
-        this.wireNaicsTypeahead();
-        this.submitted = false;
+          // rebuild form so workflowStatus reflects server truth
+          this.form = buildForecastRecordForm(updated);
+          this.wireNaicsTypeahead();
+          this.submitted = false;
 
-        this.lockComponentFromAuth();
-        this.hydrateOfficeFromProfile();
-        this.applyAccessState();
-        this.wireStrategicSourcingVehicleToggle();
-        this.hydratePrimaryContactFromProfile();
+          this.lockComponentFromAuth();
+          this.hydrateOfficeFromProfile();
+          this.applyAccessState();
+          this.wireStrategicSourcingVehicleToggle();
+          this.hydratePrimaryContactFromProfile();
 
-        this.hasSavedRecord = true;
-        this.saveSuccessMessage = true;
-        this.justSaved = true;
-        this.isSaving = false;
-        this.isLoading = false;
-        this.flushView();
+          this.hasSavedRecord = true;
+          this.saveSuccessMessage = true;
+          this.justSaved = true;
+          this.isSaving = false;
+          this.isLoading = false;
+          this.flushView();
 
-        setTimeout(() => {
+          setTimeout(() => {
+            this.justSaved = false;
+            this.saveSuccessMessage = false;
+            this.flushView?.();
+          }, 3000);
+        },
+        error: (e: any) => {
+          console.error('[onSaveRecord] save failed', e);
+          this.loadError = e?.error?.message ?? e?.message ?? 'Save failed. Please try again.';
+          this.isSaving = false;
           this.justSaved = false;
           this.saveSuccessMessage = false;
-          this.flushView?.();
-        }, 3000);
-      },
-      error: (e: any) => {
-        console.error('[onSaveRecord] save failed', e);
-        this.loadError = e?.error?.message ?? e?.message ?? 'Save failed. Please try again.';
-        this.isSaving = false;
-        this.justSaved = false;
-        this.saveSuccessMessage = false;
-        this.isLoading = false;
-        this.flushView();
-      },
-    });
+          this.isLoading = false;
+          this.flushView();
+        },
+      });
   }
+
   //#endregion
 
   //#region Delete
@@ -1580,6 +1620,7 @@ export class ForecastRecordComponent {
     if (!this.isEditMode) return false;
     if (this.isPublished) return false;
 
+    // ✅ NEW RULE: never in Draft or Requirements (check raw first)
     const raw = String(this.workflowStatus ?? '').trim();
     if (raw === 'Draft' || raw === 'Requirements') return false;
 
@@ -1587,6 +1628,7 @@ export class ForecastRecordComponent {
     const role = this.normalizeRailRole();
     const isAdmin = role === 'Admin';
 
+    // must be in the owning lane
     if (
       (status === 'Requirements' && role !== 'Requirements') ||
       (status === 'Contracting' && role !== 'Contracting') ||
@@ -1595,6 +1637,7 @@ export class ForecastRecordComponent {
       if (!isAdmin) return false;
     }
 
+    // must be assigned or elevated
     if (!this.isAssignee && !isAdmin) return false;
 
     return true;
@@ -1614,6 +1657,9 @@ export class ForecastRecordComponent {
 
     return true;
   }
+
+  //this might not be needed at some point
+  //this might not be needed at some point
   onTransition(toLane: ForecastWorkflowLane) {
     if (!this.form) return;
     if (!this.recordId) return;
@@ -1626,29 +1672,22 @@ export class ForecastRecordComponent {
     console.log('toLane:', toLane);
     console.groupEnd();
 
+    // ✅ HARD exemption: Draft → Requirements (no comment, no forward screen)
     if (this.isLane(fromLane, ForecastWorkflowLane.Draft) && this.isLane(toLane, ForecastWorkflowLane.Requirements)) {
       this.performTransition(toLane);
       return;
     }
 
+    // everything else -> forward screen
     this.router.navigate(['/forecast', this.recordId, 'forward'], {
       queryParams: { from: fromLane, to: toLane, returnTo: 'record' },
     });
   }
 
-  /**
-   * Normalize outgoing payload before calling API.
-   * - Empty strings → null for selected fields
-   * - Ensure componentId ↔ component_id are present and consistent
-   *   (defaulting from myOrganizationId if needed)
-   * - Remove the display-only "component" label so the backend uses IDs only
-   */
-  /**
- * Normalize outgoing payload before calling API.
- * - Empty strings → null for selected fields
- * - Ensure componentId is present (defaulting from myOrganizationId if needed)
- * - Remove the display-only "component" label so the backend uses IDs only
- */
+
+
+
+  /** Optional: scrub/shape raw form values if needed */
   private normalizeOutgoing(v: any): any {
     if (v.dollarRange === '') v.dollarRange = null;
     if (v.naicsCode === '') v.naicsCode = null;
@@ -1656,17 +1695,14 @@ export class ForecastRecordComponent {
     const defaultOrgId = this.myOrganizationId;
     const hasCompId = v.componentId != null && v.componentId !== '';
 
-    // If no componentId set on the form, default it from the current user's org
     if (!hasCompId && defaultOrgId != null) {
       v.componentId = defaultOrgId;
     }
 
-    // We no longer send component_id at all
     if (Object.prototype.hasOwnProperty.call(v, 'component_id')) {
       delete v.component_id;
     }
 
-    // Component is a display label only; backend uses IDs
     if (Object.prototype.hasOwnProperty.call(v, 'component')) {
       delete v.component;
     }
@@ -1674,25 +1710,15 @@ export class ForecastRecordComponent {
     return v;
   }
 
-  private getCurrentUserForReject(): { userId: string; userDisplay: string } | null {
-    const userIdNum = this.currentUserId;
-    if (userIdNum == null) {
-      console.warn('[ForecastRecord] Reject called without authenticated user');
-      return null;
-    }
-
-    const userId = String(userIdNum);
-
-    const first = (this.userProfile?.firstName ?? '').trim();
-    const last = (this.userProfile?.lastName ?? '').trim();
-    const name = `${first} ${last}`.trim();
-    const email = (this.userProfile?.email ?? '').trim();
-
-    const userDisplay = name || email || userId;
-
-    return { userId, userDisplay };
-  }
-
+  /**
+   * Robust next-lane resolver.
+   * Works whether workflowStatus is:
+   * - enum value
+   * - 'Contracting'
+   * - 'Contracting Office'
+   * - 'APFS Coordinator'
+   * - etc.
+   */
   private nextLaneFromAny(from: unknown): ForecastWorkflowLane | null {
     const s = String(from ?? '').trim().toLowerCase();
     if (!s) return null;
@@ -1706,6 +1732,8 @@ export class ForecastRecordComponent {
     return this.nextLaneStrict(this.normalizeLane(from));
   }
 
+
+  /** Strict mapping when the value already matches the enum */
   private nextLaneStrict(from: ForecastWorkflowLane | null): ForecastWorkflowLane | null {
     switch (from) {
       case ForecastWorkflowLane.Draft:
@@ -1721,9 +1749,13 @@ export class ForecastRecordComponent {
     }
   }
 
+
+  /** Handles enum vs string comparisons safely */
   private isLane(value: unknown, lane: ForecastWorkflowLane): boolean {
     return String(value ?? '').trim().toLowerCase() === String(lane ?? '').trim().toLowerCase();
   }
+
+
 
   private performTransition(toLane: ForecastWorkflowLane): void {
     if (!this.form) return;
@@ -1755,6 +1787,7 @@ export class ForecastRecordComponent {
 
           this.lockComponentFromAuth();
           this.hydrateOfficeFromProfile();
+
           this.applyAccessState();
           this.wireStrategicSourcingVehicleToggle();
           this.hydratePrimaryContactFromProfile();
@@ -1793,14 +1826,11 @@ export class ForecastRecordComponent {
       },
     });
   }
+
   onUnpublish(): void {
     if (!this.canUnpublish) return;
     if (!this.recordId) return;
-    const user = this.getCurrentUserForReject();
-    if (!user) {
-      alert('Cannot unpublish: user id not available.');
-      return;
-    }
+
     const ok = confirm('Unpublish this record and send it back to 4SITE Coordinator?');
     if (!ok) return;
 
@@ -1808,9 +1838,7 @@ export class ForecastRecordComponent {
     this.flushView();
 
     this.service.reject(Number(this.recordId), {
-      comment: 'Unpublished',
-      userId: user.userId,
-      userDisplay: user.userDisplay
+      comment: 'Unpublished'
     }).subscribe({
       next: (resp) => {
         const updated = resp.record;
@@ -1839,9 +1867,10 @@ export class ForecastRecordComponent {
         alert('Unpublish failed. Please try again.');
       },
     });
-  }  //#endregion
+  }
+  //#endregion
 
-  //#region Navigation / Rail Handlers
+  //#region Navigation / Rail Handlers 
   onCancel(): void {
     this.router.navigate(['/dashboard-v2']);
   }
@@ -1850,8 +1879,356 @@ export class ForecastRecordComponent {
     this.router.navigate(['/forecast/new']);
   }
 
-  onPrintableView(): void { window.print(); }
+  // ---- Rail button handlers ----
+  onPrintableView(): void {
+
+    console.log('PRINT RECORD:', this.record);
+    console.log('PRINT HISTORY RAW:', this.historyItems);
+    if (!this.record) {
+      console.error('No record to print');
+      return;
+    }
+
+    const r: any = this.record;
+    const history = Array.isArray(this.historyItems) ? this.historyItems : [];
+
+    const esc = (v: any): string =>
+      String(v ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    const formatDate = (v: any): string => {
+      if (!v) return '';
+      const d = new Date(v);
+      return isNaN(d.getTime()) ? String(v) : d.toLocaleDateString();
+    };
+
+    const publishedHistory = [...history]
+      .filter((x: any) => String(x?.toState || '').toLowerCase() === 'published')
+      .sort(
+        (a: any, b: any) =>
+          new Date(b?.atIso || b?.at || 0).getTime() -
+          new Date(a?.atIso || a?.at || 0).getTime()
+      );
+
+    const publishedDate =
+      formatDate(r?.publishedDate) ||
+      (publishedHistory[0] ? formatDate(publishedHistory[0].atIso || publishedHistory[0].at) : '');
+
+    const previouslyPublishedOn =
+      publishedHistory[1] ? formatDate(publishedHistory[1].atIso || publishedHistory[1].at) : '';
+
+    const performance =
+      [r?.estimatedPopStart, r?.estimatedPopEnd].filter(Boolean).join(' - ');
+
+    const contractVehicle = r?.strategicSourcingVehicle || 'None';
+    const place = [r?.placeOfPerformanceCity, r?.placeOfPerformanceState].filter(Boolean).join(', ');
+    const pocName = [r?.primaryContactFirstName, r?.primaryContactLastName].filter(Boolean).join(' ');
+    const coordName = [r?.sbSpecialistFirstName, r?.sbSpecialistLastName].filter(Boolean).join(' ');
+
+    const historyRows = history.length
+      ? [...history]
+        .sort((a: any, b: any) => {
+          const da = new Date(a?.atIso || a?.at || 0).getTime();
+          const db = new Date(b?.atIso || b?.at || 0).getTime();
+          return da - db; // 👈 ascending (oldest first)
+        })
+        .map((h: any) => {
+
+          const title = String(h?.title || '');
+          const arrow = title.includes('→') ? '→' : '->';
+          const parts = title.split(arrow).map((x: string) => x.trim());
+
+          const movedFrom = parts[0] || '';
+          const movedTo = parts[1] || '';
+
+          return `
+          <tr>
+            <td>${esc(h?.at)}</td>
+            <td>${esc(movedFrom)}</td>
+            <td>${esc(movedTo)}</td>
+            <td>${esc(h?.assignment || '')}</td>
+          </tr>
+        `;
+        }).join('')
+      : `
+    <tr>
+      <td colspan="4" style="text-align:center;">No history available</td>
+    </tr>
+  `;
+
+    const html = `
+    <!doctype html>
+    <html>
+      <head>
+        <title>Forecast Record Print</title>
+        <style>
+          @page { margin: 0.5in; }
+
+          html, body {
+            margin: 0;
+            padding: 0;
+            background: #fff;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #333;
+          }
+
+          .apfs-recordprint {
+            display: block;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+
+          .apfs-recordprint__top {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            margin-bottom: 8px;
+            page-break-inside: avoid;
+          }
+
+          .apfs-recordprint__system {
+            font-size: 14px;
+            margin-bottom: 4px;
+          }
+
+          .apfs-recordprint__recordline {
+            font-size: 14px;
+          }
+
+          .apfs-recordprint__recordline .num {
+            font-size: 20px;
+            margin-left: 6px;
+          }
+
+          .seal {
+            width: 80px;
+            margin-left: 10px;
+          }
+
+          .tbl, .hist {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+            table-layout: fixed;
+          }
+
+          .tbl td, .tbl th, .hist td, .hist th {
+            border: 1px solid #dddddd;
+            padding: 3px 5px;
+            font-size: 11px;
+            vertical-align: top;
+            word-wrap: break-word;
+            overflow-wrap: anywhere;
+          }
+
+          .tbl td:nth-child(1),
+          .tbl th:nth-child(1),
+          .tbl td:nth-child(3),
+          .tbl th:nth-child(3) {
+            width: 20%;
+          }
+
+          .tbl td:nth-child(2),
+          .tbl th:nth-child(2),
+          .tbl td:nth-child(4),
+          .tbl th:nth-child(4) {
+            width: 30%;
+          }
+
+          .tbl th,
+          .hist th {
+            background: #f7f7f7;
+            font-weight: 600;
+          }
+
+          .tbl tr:nth-child(even),
+          .hist tr:nth-child(even) {
+            background: #f3f3f3;
+          }
+
+          .tbl tr,
+          .hist tr {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+
+          .hist-title {
+            text-align: center;
+            font-size: 13px;
+            margin: 6px 0 4px;
+            page-break-after: avoid;
+          }
+
+          .hist th {
+            font-size: 10.5px;
+          }
+
+          .hist td {
+            font-size: 10.5px;
+            padding: 2px 4px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="apfs-recordprint">
+
+          <div class="apfs-recordprint__top">
+            <div>
+              <div class="apfs-recordprint__system">
+                Forecasting System for Industry Tracking and Engagement (4SITE)
+              </div>
+              <div class="apfs-recordprint__recordline">
+                Forecast Record Number:
+                <span class="num">${esc(r?.apfsNumber)}</span>
+              </div>
+            </div>
+
+            <img class="seal" src="${window.location.origin}/assets/images/logo.svg" alt="DHS seal" />
+          </div>
+
+          <table class="tbl">
+            <tr>
+              <th>Component:</th>
+              <td>${esc(r?.component)}</td>
+              <th>Published Date:</th>
+              <td>${esc(publishedDate)}</td>
+            </tr>
+            <tr>
+              <th>Requirements Office:</th>
+              <td>${esc(r?.requirementsOffice)}</td>
+              <th>Previously Published On:</th>
+              <td>${esc(previouslyPublishedOn)}</td>
+            </tr>
+            <tr>
+              <th>Contracting Office:</th>
+              <td>${esc(r?.contractingOffice)}</td>
+              <td></td>
+              <td></td>
+            </tr>
+            <tr>
+              <th>4SITE Coordinator Office:</th>
+              <td>${esc(r?.coordinatorOffice)}</td>
+              <td></td>
+              <td></td>
+            </tr>
+          </table>
+
+          <table class="tbl">
+            <tr>
+              <td><b>NAICS:</b></td>
+              <td>${esc(r?.naicsCode)}</td>
+              <td><b>Competition:</b></td>
+              <td>${esc(r?.competitive)}</td>
+            </tr>
+            <tr>
+              <td><b>Small Business Set-Aside:</b></td>
+              <td>${esc(r?.smallBusinessSetAside)}</td>
+              <td><b>Small Business Program:</b></td>
+              <td>${esc(r?.smallBusinessProgram)}</td>
+            </tr>
+            <tr>
+              <td><b>Contract Vehicle:</b></td>
+              <td>${esc(contractVehicle)}</td>
+              <td><b>Contract Type:</b></td>
+              <td>${esc(r?.contractType)}</td>
+            </tr>
+            <tr>
+              <td><b>Contract Complete:</b></td>
+              <td>${esc(r?.incumbent)}</td>
+              <td><b>Contract Status:</b></td>
+              <td>${esc(r?.contractStatus)}</td>
+            </tr>
+            <tr>
+              <td><b>Estimated Period Of Performance:</b></td>
+              <td colspan="3">${esc(performance)}</td>
+            </tr>
+            <tr>
+              <td><b>Estimated Solicitation Release:</b></td>
+              <td>${esc(r?.estimatedSolicitationReleaseDate)}</td>
+              <td><b>Anticipated Award Date:</b></td>
+              <td>${esc(r?.anticipatedAwardDate)}</td>
+            </tr>
+            <tr>
+              <td><b>Estimated Dollar Range:</b></td>
+              <td>${esc(r?.dollarRange)}</td>
+              <td><b>Fiscal Year:</b></td>
+              <td>${esc(r?.fiscalYear)}</td>
+            </tr>
+            <tr>
+              <td><b>Requirements Title:</b></td>
+              <td colspan="3">${esc(r?.requirementsTitle)}</td>
+            </tr>
+            <tr>
+              <td><b>Description:</b></td>
+              <td colspan="3">${esc(r?.requirement)}</td>
+            </tr>
+            <tr>
+              <td><b>Place of Performance:</b></td>
+              <td>${esc(place)}</td>
+              <td><b>Primary POC Name:</b></td>
+              <td>${esc(pocName)}</td>
+            </tr>
+            <tr>
+              <td><b>Primary POC Phone:</b></td>
+              <td>${esc(r?.primaryContactPhone)}</td>
+              <td><b>Primary POC Email:</b></td>
+              <td>${esc(r?.primaryContactEmail)}</td>
+            </tr>
+            <tr>
+              <td><b>Small Business Specialist/4SITE Coordinator Name:</b></td>
+              <td>${esc(coordName)}</td>
+              <td></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td><b>Small Business Specialist/4SITE Coordinator Phone:</b></td>
+              <td>${esc(r?.sbSpecialistPhone)}</td>
+              <td><b>Email:</b></td>
+              <td>${esc(r?.sbSpecialistEmail)}</td>
+            </tr>
+          </table>
+
+          <h3 class="hist-title">Record History</h3>
+
+          <table class="hist">
+            <tr>
+              <th>Date/Time</th>
+              <th>Moved From</th>
+              <th>Moved To</th>
+              <th>Assignment</th>
+            </tr>
+            ${historyRows}
+          </table>
+        </div>
+      </body>
+    </html>
+  `;
+
+    const win = window.open('', '_blank', 'width=1200,height=900');
+    if (!win) {
+      console.error('Unable to open print window');
+      return;
+    }
+
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+
+    setTimeout(() => {
+      win.focus();
+      win.print();
+      win.close();
+    }, 500);
+  }
+
   onCsvDownload(): void { console.warn('CSV download not wired yet'); }
+
   onRecordHistory(): void {
     this.changeLogOpen = false;
     this.historyOpen = true;
@@ -1899,6 +2276,33 @@ export class ForecastRecordComponent {
     this.changeLogOpen = false;
     this.flushView();
   }
+
+  printViewOpen = false;
+
+  closePrintView(): void {
+    this.printViewOpen = false;
+    this.flushView();
+  }
+
+  printCurrentRecord(): void {
+    document.body.classList.add('print-record-mode');
+
+    setTimeout(() => {
+      window.print();
+
+      setTimeout(() => {
+        document.body.classList.remove('print-record-mode');
+      }, 500);
+    }, 50);
+  }
+
+
+
+  goToCurrentRecordPage(): void {
+    if (!this.recordId) return;
+    this.router.navigate(['/forecast', this.recordId]);
+  }
+
   onReassign(): void {
     if (!this.canReassign) return;
     console.warn('Reassign not wired yet');
@@ -1914,13 +2318,14 @@ export class ForecastRecordComponent {
     const id = Number(this.recordId);
     if (!Number.isFinite(id)) return;
 
-    const meNum = this.currentUserId;
+    const meNum = this.currentUserId;          // number | null
     const me = meNum != null ? String(meNum) : null;
 
     const assigned = this.record.assignedToUserId != null
       ? String(this.record.assignedToUserId)
       : null;
 
+    // Force-unassign if assigned to someone else
     const force = !!assigned && !!me && assigned !== me;
 
     const ok = force
@@ -1942,6 +2347,7 @@ export class ForecastRecordComponent {
 
         this.lockComponentFromAuth();
         this.hydrateOfficeFromProfile();
+
         this.applyAccessState();
         this.wireStrategicSourcingVehicleToggle();
         this.hydratePrimaryContactFromProfile();
@@ -1975,7 +2381,100 @@ export class ForecastRecordComponent {
     return null;
   }
   //#endregion
+
   //Field Validation Helpers like date formatting, phone formatting, etc.
+  private parseRuleDate(value: unknown): Date | null {
+    const s = String(value ?? '').trim();
+    if (!s) return null;
+
+    // MM/DD/YYYY
+    const mmddyyyy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (mmddyyyy) {
+      const month = Number(mmddyyyy[1]) - 1;
+      const day = Number(mmddyyyy[2]);
+      const year = Number(mmddyyyy[3]);
+      const d = new Date(year, month, day);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    // YYYY-MM-DD
+    const yyyymmdd = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (yyyymmdd) {
+      const year = Number(yyyymmdd[1]);
+      const month = Number(yyyymmdd[2]) - 1;
+      const day = Number(yyyymmdd[3]);
+      const d = new Date(year, month, day);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    // ISO / fallback
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  private toRuleStartOfDay(d: Date): Date {
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  }
+
+  private daysBetweenRuleDates(later: Date, earlier: Date): number {
+    const ms =
+      this.toRuleStartOfDay(later).getTime() -
+      this.toRuleStartOfDay(earlier).getTime();
+
+    return Math.floor(ms / 86400000);
+  }
+
+  /**
+   * Business rule:
+   * Warn when:
+   *  1) anticipated award date is in the past
+   *  2) and the anticipated award date is within 30 days of the date
+   *     the requirements officer initiated the record
+   *
+   * For initiation date, use createdAt from the loaded record.
+   */
+  private shouldWarnPastAnticipatedAwardDate(): boolean {
+    const anticipatedRaw = this.form?.get('anticipatedAwardDate')?.value;
+    const anticipated = this.parseRuleDate(anticipatedRaw);
+    if (!anticipated) return false;
+
+    const initiated = this.parseRuleDate((this.record as any)?.createdAt);
+    if (!initiated) return false;
+
+    const today = this.toRuleStartOfDay(new Date());
+    const anticipatedDay = this.toRuleStartOfDay(anticipated);
+
+    const isPast = anticipatedDay.getTime() < today.getTime();
+
+    const daysFromInitiationToAward = this.daysBetweenRuleDates(
+      anticipatedDay,
+      initiated
+    );
+
+    const isWithin30DaysOfInitiation =
+      daysFromInitiationToAward >= 0 && daysFromInitiationToAward <= 30;
+
+    return isPast && isWithin30DaysOfInitiation;
+  }
+
+  private getPastAnticipatedAwardDateWarningMessage(): string {
+    return [
+      'Warning Notification',
+      '',
+      'The anticipated award date occurs in the past and is within 30 days of the date the requirements officer initiated the record.',
+      '',
+      'Select OK to continue or Cancel to return to the record.'
+    ].join('\n');
+  }
+
+  private confirmPastAnticipatedAwardDateWarning(): boolean {
+    if (!this.shouldWarnPastAnticipatedAwardDate()) {
+      return true;
+    }
+
+    return window.confirm(this.getPastAnticipatedAwardDateWarningMessage());
+  }
+
   private formatMmDdYyyy(raw: string): string {
     if (!raw) return '';
     const digits = raw.replace(/\D/g, '').slice(0, 8); // MMDDYYYY
@@ -1990,12 +2489,6 @@ export class ForecastRecordComponent {
 
     return out;
   }
-
-
-
-
-
-
 
   onDateInput(event: Event, controlName: string) {
     const input = event.target as HTMLInputElement;
@@ -2032,6 +2525,43 @@ export class ForecastRecordComponent {
     }
   }
 
+  toNativeDateValue(value: string | null | undefined): string {
+    const s = String(value ?? '').trim();
+    if (!s) return '';
+
+    const match = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!match) return '';
+
+    const [, mm, dd, yyyy] = match;
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  onNativeDateChange(
+    event: Event,
+    controlName: 'estimatedPopStart' | 'estimatedPopEnd' | 'estimatedSolicitationReleaseDate' | 'anticipatedAwardDate'
+  ): void {
+    if (!this.form) return;
+
+    const input = event.target as HTMLInputElement;
+    const value = input.value; // yyyy-mm-dd
+
+    const ctrl = this.form.get(controlName);
+    if (!ctrl) return;
+
+    if (!value) {
+      ctrl.setValue(null);
+      ctrl.markAsTouched();
+      ctrl.markAsDirty();
+      return;
+    }
+
+    const [yyyy, mm, dd] = value.split('-');
+    const formatted = `${mm}/${dd}/${yyyy}`;
+
+    ctrl.setValue(formatted);
+    ctrl.markAsTouched();
+    ctrl.markAsDirty();
+  }
 
 
 }

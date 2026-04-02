@@ -93,4 +93,6 @@ export class ForecastRecordPrintComponent {
       .sort((a, b) => new Date(b.atIso || b.at).getTime() - new Date(a.atIso || a.at).getTime());
     return h[1] ? this.formatDate(h[1].at) : '';
   }
+
+
 }

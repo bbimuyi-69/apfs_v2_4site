@@ -1,4 +1,6 @@
 <!-- #region Forecast Record Page Shell -->
+
+PRINT OPEN = {{ printViewOpen }}
 <div class="apfs-page">
     <div class="apfs-shell" *ngIf="form; else noForm" [class.no-rail]="!showRecordRail"
         [class.has-history]="historyOpen || changeLogOpen">
@@ -175,12 +177,15 @@
                             <label>Email <span class="req">*</span></label>
                             <input type="email" formControlName="primaryContactEmail" />
                             <div class="hint">Enter the email of the primary contact.</div>
-                            <div class="error" *ngIf="showError('primaryContactEmail','required')">
-                                Email is required.
-                            </div>
+
                             <div class="error" *ngIf="showError('primaryContactEmail','email')">
-                                A valid government email (.mil, .gov, or @bvti.com) is required.
+                                Enter a valid email address.
                             </div>
+
+                            <div class="error" *ngIf="showError('primaryContactEmail','govEmail')">
+                                A valid government email (.mil or .gov) is required.
+                            </div>
+
                         </div>
 
                         <div class="field" [class.is-invalid]="isInvalid('primaryContactPhone')">
@@ -205,15 +210,6 @@
                     <div class="hint">
                         Select the office associated with each workflow lane.
                     </div>
-
-                    <!-- Debug (optional) 
-                    <div class="hint mono" style="font-size:12px;">
-                        value={{ form?.get('requirementsOffice')?.value }}
-                        invalid={{ form?.get('requirementsOffice')?.invalid }}
-                        disabled={{ form?.get('requirementsOffice')?.disabled }}
-                        errors={{ form?.get('requirementsOffice')?.errors | json }}
-                    </div>-->
-
                     <div class="grid-3">
                         <div class="field">
                             <label>Requirements office</label>
@@ -224,28 +220,28 @@
                             <div class="hint">Set from your user profile (read-only).</div>
                         </div>
 
-                        <div class="field" [class.is-invalid]="isInvalid('contractingOffice')">
+                        <div class="field" [class.is-invalid]="isInvalid('contractingOfficeId')">
                             <label>Contracting office <span class="req">*</span></label>
-                            <select formControlName="contractingOffice">
+                            <select formControlName="contractingOfficeId">
                                 <option *ngFor="let o of (contractingOfficeOptions$ | async); trackBy: trackByValue"
                                     [value]="o.value">
                                     {{ o.label }}
                                 </option>
                             </select>
-                            <div class="error" *ngIf="showError('contractingOffice','required')">
+                            <div class="error" *ngIf="showError('contractingOfficeId','required')">
                                 Contracting office is required.
                             </div>
                         </div>
 
-                        <div class="field" [class.is-invalid]="isInvalid('coordinatorOffice')">
+                        <div class="field" [class.is-invalid]="isInvalid('coordinatorOfficeId')">
                             <label>4SITE coordinator office <span class="req">*</span></label>
-                            <select formControlName="coordinatorOffice">
+                            <select formControlName="coordinatorOfficeId">
                                 <option *ngFor="let o of (coordinatorOfficeOptions$ | async); trackBy: trackByValue"
                                     [value]="o.value">
                                     {{ o.label }}
                                 </option>
                             </select>
-                            <div class="error" *ngIf="showError('coordinatorOffice','required')">
+                            <div class="error" *ngIf="showError('coordinatorOfficeId','required')">
                                 4SITE coordinator office is required.
                             </div>
                         </div>
@@ -370,14 +366,6 @@
                         <div class="error" *ngIf="showError('contractStatus','required')">This field is required.</div>
                     </div>
                 </div>
-
-
-
-
-
-
-
-
                 <div class="grid-2">
                     <div class="field" [class.is-invalid]="isInvalid('fiscalYear')">
                         <label>Fiscal year <span class="req">*</span></label>
@@ -389,13 +377,10 @@
                         <div class="hint">Choose the status of the anticipated opportunity from the drop down.</div>
                         <div class="error" *ngIf="showError('fiscalYear','required')">This field is required.</div>
                     </div>
-
                 </div>
 
                 <!-- incumbent/contractNumber -->
                 <div class="grid-2">
-
-
                     <div class="field" [class.is-invalid]="isInvalid('incumbent')">
                         <label>Incumbent <span class="req">*</span></label>
                         <input type="text" formControlName="incumbent" />
@@ -497,11 +482,12 @@
                         <div class="field" [class.is-invalid]="isInvalid('alternateContactEmail')">
                             <label>Email <span class="req">*</span></label>
                             <input type="email" formControlName="alternateContactEmail" />
-                            <div class="error" *ngIf="showError('alternateContactEmail','required')">
-                                Email is required.
-                            </div>
                             <div class="error" *ngIf="showError('alternateContactEmail','email')">
-                                A valid government email (.mil, .gov, or @bvti.com) is required.
+                                Enter a valid email address.
+                            </div>
+
+                            <div class="error" *ngIf="showError('alternateContactEmail','govEmail')">
+                                A valid government email (.mil or .gov) is required.
                             </div>
                         </div>
 
@@ -521,11 +507,6 @@
 
                 </div>
                 <!-- #endregion Primary Contact -->
-
-                <!-- #endregion Contracting Selects -->
-
-
-
             </section>
             <!-- #endregion Requirements (Owned by Requirements) -->
 
@@ -534,6 +515,7 @@
 
 
             <!-- #region Contracting Office (Owned by Contracting Office) -->
+            <!-- (unchanged section below) -->
             <section class="sec" id="sec-contracting" [class.readonly]="isEditMode && !canEditContractingSection">
                 <div class="sec-h">
                     <div class="sec-title">
@@ -557,9 +539,7 @@
                     </div>
                 </div>
 
-
-
-                <!-- #region Contracting Text Inputs -->
+                <!-- #region Contract Type/Strategic Vehicle? -->
                 <!-- smallBusinessSetAside/smallBusinessProgram -->
                 <div class="grid-2">
                     <div class="field" [class.is-invalid]="isInvalid('smallBusinessSetAside')">
@@ -574,7 +554,6 @@
                         <div class="error" *ngIf="showError('smallBusinessSetAside','required')">This field is required.
                         </div>
                     </div>
-
                     <div class="field" [class.is-invalid]="isInvalid('smallBusinessProgram')">
                         <label>Small business program <span class="req">*</span></label>
                         <select formControlName="smallBusinessProgram">
@@ -588,9 +567,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- TODO This needs to drive the Strategic Sourcing Vehicle-->
-
 
                 <div class="grid-2">
                     <div class="field" [class.is-invalid]="isInvalid('contractType')">
@@ -615,11 +591,10 @@
                         <div class="error" *ngIf="showError('strategicSourcingVehicleUsed','required')">This field is
                             required.</div>
                     </div>
-
-
                 </div>
+                <!-- end #region Contract Type/Strategic Vehicle? -->
 
-
+                <!-- #region Strategic Vehicle? -->
                 <div class="grid-2">
                     <div class="field" [class.is-invalid]="isInvalid('strategicSourcingVehicle')">
                         <label>Strategic sourcing vehicle <span class="req">*</span></label>
@@ -633,24 +608,13 @@
                         <div class="error" *ngIf="showError('strategicSourcingVehicle','required')">This field is
                             required.</div>
                     </div>
-
-                    <div class="field" [class.is-invalid]="isInvalid('typeOfAward')">
-                        <label>Type of award <span class="req">*</span></label>
-                        <select formControlName="typeOfAward">
-                            <option *ngFor="let o of typeOfAwardOptions; trackBy: trackByValue" [value]="o.value">
-                                {{ o.label }}
-                            </option>
-                        </select>
-                        <div class="hint">This field is updated by the Contracting Officer.</div>
-                        <div class="error" *ngIf="showError('typeOfAward','required')">This field is required.</div>
-                    </div>
                 </div>
+                <!-- #endregion Strategic Sourcing Vehicle Used | Strategic Sourcing Vehicle -->
 
 
 
 
-
-
+                <!-- POP Dates -->
                 <div class="grid-2">
                     <div class="field" [class.is-invalid]="isInvalid('estimatedPopStart')">
                         <label>
@@ -677,7 +641,6 @@
                             Please use MM/DD/YYYY.
                         </div>
                     </div>
-
                     <div class="field" [class.is-invalid]="isInvalid('estimatedPopEnd')">
                         <label>
                             Estimated period of performance end <span class="req">*</span>
@@ -704,7 +667,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="grid-2">
                     <div class="field" [class.is-invalid]="isInvalid('estimatedSolicitationReleaseDate')">
                         <label>
@@ -731,7 +693,6 @@
                             Please use MM/DD/YYYY.
                         </div>
                     </div>
-
                     <div class="field" [class.is-invalid]="isInvalid('anticipatedAwardDate')">
                         <label>
                             Anticipated award date <span class="req">*</span>
@@ -758,26 +719,22 @@
                         </div>
                     </div>
                 </div>
-
-
-
                 <!-- #endregion Contracting Text Inputs -->
             </section>
             <!-- #endregion Contracting Office (Owned by Contracting Office) -->
 
             <!-- #region Small Business (Owned by APFS Coordinator) -->
+            <!-- (unchanged section below) -->
             <section class="sec" id="sec-small-business" [class.readonly]="isEditMode && !canEditCoordinatorSection">
                 <div class="sec-h">
                     <div class="sec-title">
                         Small Business <span class="sec-sub">Owned by 4SITE coordinator</span>
                     </div>
-
                     <div class="sec-meta">
                         <span *ngIf="isEditMode && !canEditCoordinatorSection" class="pill ro">Read-only</span>
                         <span *ngIf="canEditCoordinatorSection" class="pill ok">Editable</span>
                     </div>
                 </div>
-
                 <!-- sbSpecialistFirstName/sbSpecialistLastName -->
                 <div class="grid-2">
                     <div class="field" [class.is-invalid]="isInvalid('sbSpecialistFirstName')">
@@ -832,7 +789,12 @@
                         <input type="text" formControlName="sbSpecialistEmail" />
                         <div class="hint">Enter the email address of the Small Business Specialist/4SITE Coordinator POC
                             for this anticipated requirement in the text box provided.</div>
-                        <div class="error" *ngIf="showError('sbSpecialistEmail','required')">This field is required.
+                        <div class="error" *ngIf="showError('sbSpecialistEmail','email')">
+                            Enter a valid email address.
+                        </div>
+
+                        <div class="error" *ngIf="showError('sbSpecialistEmail','govEmail')">
+                            A valid government email (.mil or .gov) is required.
                         </div>
                     </div>
                 </div>
@@ -864,19 +826,11 @@
 
                 </button>
 
+                <div style="position:fixed;top:0;left:0;background:red;color:white;z-index:999999">
+                    PRINT OPEN = {{ printViewOpen }}
+                </div>
 
 
-                <!--<button type="button" class="btn-primary" (click)="recordId ? onSubmit() : onSaveDraft()"
-                    [disabled]="!canSave || isLoading">
-                    {{ recordId ? 'Save Record' : 'Save Draft' }}
-                </button>-->
-
-
-                <!--
-        <button type="button" class="btn-secondary" (click)="onSubmit()" [disabled]="!canApproveSend || isLoading">
-          Submit
-        </button>
-        -->
 
                 <button type="button" class="btn-ghost" (click)="onCancel()">Cancel</button>
             </div>
@@ -981,7 +935,26 @@
 
         <!-- #endregion History Drawer Host (WIP) -->
 
+        <!-- #region Print Overlay -->
+        <div class="record-print-overlay" *ngIf="printViewOpen" (click)="closePrintView()">
+            <div class="record-print-overlay__body" (click)="$event.stopPropagation()">
+                <div class="record-print-overlay__toolbar">
+                    <button type="button" class="btn-primary" (click)="printCurrentRecord()">
+                        Print
+                    </button>
+                    <button type="button" class="btn-ghost" (click)="closePrintView()">
+                        Close
+                    </button>
+                </div>
+
+                <app-forecast-record-print [record]="record" [historyItems]="historyItems">
+                </app-forecast-record-print>
+            </div>
+        </div>
+        <!-- #endregion Print Overlay -->
+
     </div>
+
 
     <!-- #region Debug Panel (optional) 
     <div class="hint mono" style="font-size:12px;">
@@ -1004,25 +977,6 @@
     </ng-template>
     <!-- #endregion No Form Template -->
 
-    <div class="record-print-overlay" *ngIf="printViewOpen">
-        <div class="record-print-overlay__toolbar">
-            <button type="button" class="btn-primary" (click)="printCurrentRecord()">
-                Print
-            </button>
 
-            <button type="button" class="btn-secondary" (click)="goToCurrentRecordPage()" *ngIf="recordId">
-                Go To Record Page
-            </button>
-
-            <button type="button" class="btn-ghost" (click)="closePrintView()">
-                Close
-            </button>
-        </div>
-
-        <div class="record-print-overlay__body">
-            <app-forecast-record-print [record]="record" [historyItems]="historyItems">
-            </app-forecast-record-print>
-        </div>
-    </div>
 </div>
 <!-- #endregion Forecast Record Page Shell -->

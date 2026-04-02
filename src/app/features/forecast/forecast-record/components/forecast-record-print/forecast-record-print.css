@@ -96,12 +96,76 @@
     padding: 2px 4px;
 }
 
-/* ================= PRINT ================= */
-/* forecast-record-print.css */
+.apfs-recordprint,
+.apfs-recordprint__page {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    box-sizing: border-box;
+}
+
+.tbl,
+.hist {
+    width: 100%;
+    table-layout: fixed;
+}
+
+.tbl tr,
+.hist tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+.tbl td,
+.tbl th,
+.hist td,
+.hist th {
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+}
+
 @media print {
 
-    .hist-title,
-    .hist {
-        display: none !important;
+    :host,
+    .apfs-recordprint,
+    .apfs-recordprint__page {
+        display: block !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
     }
+
+    .tbl,
+    .hist {
+        page-break-inside: auto;
+        break-inside: auto;
+    }
+}
+
+.apfs-recordprint {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.apfs-recordprint__top {
+    page-break-inside: avoid;
+}
+
+.tbl,
+.hist {
+    page-break-inside: auto;
+}
+
+.tbl tr,
+.hist tr {
+    page-break-inside: avoid;
+}
+
+.hist-title {
+    page-break-after: avoid;
 }
