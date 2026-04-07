@@ -152,7 +152,7 @@ export class ForecastRecordComponent {
   saveSuccessMessage = false;
   isSaving = false;
   justSaved = false;
-  saveMode: 'draft' | 'record' = 'draft';
+
 
   //#endregion
 
@@ -1273,7 +1273,7 @@ export class ForecastRecordComponent {
       recordCreatedAt: (this.record as any)?.createdAt
     });
 
-    this.saveMode = this.recordId ? 'record' : 'draft';
+
 
     if (this.recordId) {
       this.onSaveRecord();
@@ -1283,15 +1283,17 @@ export class ForecastRecordComponent {
   }
 
   get saveButtonLabel(): string {
+    const isExistingRecord = !!this.recordId;
+
     if (this.isSaving) {
-      return this.saveMode === 'record' ? 'Saving Record...' : 'Saving Draft...';
+      return isExistingRecord ? 'Saving Record...' : 'Saving Draft...';
     }
 
     if (this.justSaved) {
-      return this.saveMode === 'record' ? '✔ Record Saved' : '✔ Draft Saved';
+      return isExistingRecord ? '✔ Record Saved' : '✔ Draft Saved';
     }
 
-    return this.saveMode === 'record' ? 'Save Record' : 'Save Draft';
+    return isExistingRecord ? 'Save Record' : 'Save Draft';
   }
 
   //#region Save / Submit
@@ -1315,7 +1317,7 @@ export class ForecastRecordComponent {
       return;
     }
 
-    this.saveMode = 'draft';
+
     this.isSaving = true;
     this.justSaved = false;
     this.saveSuccessMessage = false;
@@ -1496,7 +1498,7 @@ export class ForecastRecordComponent {
 
     if (!this.triggerValidationUI()) return;
 
-    this.saveMode = 'record';
+
     this.isSaving = true;
     this.justSaved = false;
     this.saveSuccessMessage = false;

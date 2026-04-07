@@ -1,0 +1,216 @@
+.apfs-report {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 16px 18px 40px;
+    color: #222;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.apfs-title {
+    margin: 0 0 6px;
+    font-size: 34px;
+    font-weight: 500;
+}
+
+.apfs-subtitle {
+    font-size: 12px;
+    margin-bottom: 10px;
+}
+
+.apfs-panel {
+    border: 1px solid #2a67a0;
+    border-radius: 2px;
+    overflow: hidden;
+    margin: 10px 0 26px;
+    background: #fff;
+}
+
+.apfs-panel__hdr {
+    padding: 10px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(#3b86c4, #2d6ea6);
+}
+
+.apfs-panel__body {
+    padding: 12px;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.apfs-section {
+    margin-top: 10px;
+}
+
+.apfs-h2 {
+    margin: 0 0 10px;
+    font-size: 28px;
+    font-weight: 500;
+}
+
+.apfs-divider {
+    height: 1px;
+    background: #ddd;
+    margin: 10px 0 18px;
+}
+
+.apfs-note {
+    max-width: 760px;
+    padding: 10px 12px;
+    border: 1px solid #9ac6e8;
+    background: #cfe8f6;
+    color: #1c4d73;
+    font-size: 11px;
+    border-radius: 2px;
+    margin: 0 0 12px;
+}
+
+.apfs-form {
+    max-width: 760px;
+}
+
+.apfs-label {
+    display: block;
+    margin: 12px 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #333;
+}
+
+.apfs-input {
+    width: 100%;
+    height: 32px;
+    border: 1px solid #cfcfcf;
+    border-radius: 2px;
+    padding: 4px 8px;
+    font-size: 12px;
+    outline: none;
+    background: #fff;
+}
+
+.apfs-input:focus {
+    border-color: #6aa6d6;
+    box-shadow: 0 0 0 2px rgba(106, 166, 214, 0.25);
+}
+
+.apfs-help {
+    margin-top: 6px;
+    font-size: 11px;
+    color: #666;
+    line-height: 1.4;
+}
+
+.apfs-actions {
+    margin-top: 16px;
+}
+
+.apfs-btn {
+    border: 1px solid #cfcfcf;
+    background: #f5f5f5;
+    color: #111;
+    border-radius: 2px;
+    padding: 6px 10px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.apfs-btn--ghost {
+    background: #efefef;
+}
+
+.apfs-btn--primary {
+    border-color: #1f5f8f;
+    background: linear-gradient(#3b86c4, #2d6ea6);
+    color: #fff;
+    font-weight: 700;
+}
+
+.apfs-resultsHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.apfs-tableToolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    margin: 8px 0 10px;
+}
+
+.apfs-toolbar__left {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.apfs-alert {
+    min-width: 170px;
+    padding: 10px 12px;
+    border-radius: 2px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.apfs-alert--success {
+    background: #c8efc2;
+    border: 1px solid #8bd087;
+    color: #2c6a2a;
+}
+
+.apfs-alert__x {
+    cursor: pointer;
+    font-weight: 900;
+    opacity: 0.65;
+}
+
+.apfs-tableWrap {
+    overflow: auto;
+}
+
+.apfs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.apfs-table th,
+.apfs-table td {
+    border-top: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    padding: 10px 8px;
+    text-align: left;
+    vertical-align: top;
+}
+
+.apfs-table th {
+    font-size: 11px;
+    font-weight: 700;
+    background: #fff;
+    color: #222;
+}
+
+.apfs-link {
+    color: #1b66a8;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.apfs-link:hover {
+    text-decoration: underline;
+}
+
+.apfs-drawer__empty {
+    margin-top: 10px;
+    background: #dbeafe;
+    border: 1px solid #93c5fd;
+    padding: 10px 12px;
+    border-radius: 3px;
+    color: #1e3a8a;
+}

@@ -1,1 +1,117 @@
-<p>delayed-approval-report works!</p>
+<div class="apfs-report">
+    <h1 class="apfs-title">Delayed Approvals Report</h1>
+    <div class="apfs-subtitle">Press "Filter Report" to generate the report.</div>
+
+    <section class="apfs-panel">
+        <div class="apfs-panel__hdr">Delayed Approvals Report</div>
+        <div class="apfs-panel__body">
+            This report shows a list of all records that have been awaiting approval for longer than a selected
+            number of days. The results will return a table containing a hyperlink to the individual records,
+            Component, Status, Days Awaiting Approval, Assigned Office, and Requirements Title. Once the report
+            is run the criteria can be updated by clicking on the "Show Filters" button, changing the desired
+            criteria, and clicking the "Filter Report" button. Clicking "Home" or the 4SITE Icon will return you
+            to the Dashboard.
+        </div>
+    </section>
+
+    <section class="apfs-section" *ngIf="showFilters">
+        <h2 class="apfs-h2">Filters</h2>
+
+        <div class="apfs-note">All filter fields are optional. Use commas for multiple values.</div>
+
+        <div class="apfs-form">
+            <label class="apfs-label">Component</label>
+            <input class="apfs-input" [(ngModel)]="componentsText" name="componentsText"
+                placeholder="e.g. DHS HQ/CISA, DHS HQ/MGMT" />
+
+            <label class="apfs-label">Record Status</label>
+            <input class="apfs-input" [(ngModel)]="statusesText" name="statusesText"
+                placeholder="Requirements, Contracting, 4SITE Coordinator" />
+            <div class="apfs-help">
+                Defaults to approval lanes only.
+            </div>
+
+            <label class="apfs-label">Days Delayed</label>
+            <input class="apfs-input" type="number" min="1" [(ngModel)]="daysDelayed" name="daysDelayed" />
+            <div class="apfs-help">
+                Minimum number of days the record has been awaiting approval before it is included.
+            </div>
+
+            <label class="apfs-label">Creation Date After</label>
+            <input class="apfs-input" type="date" [(ngModel)]="creationDateAfter" name="creationDateAfter" />
+
+            <label class="apfs-label">Creation Date Before</label>
+            <input class="apfs-input" type="date" [(ngModel)]="creationDateBefore" name="creationDateBefore" />
+
+            <label class="apfs-label">Fiscal Year</label>
+            <input class="apfs-input" [(ngModel)]="fiscalYearsText" name="fiscalYearsText"
+                placeholder="e.g. 2025, 2026" />
+
+            <div class="apfs-actions">
+                <button class="apfs-btn apfs-btn--primary" type="button" (click)="run()">
+                    Filter Report ▼
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <section class="apfs-section" *ngIf="(summary$ | async) as s">
+        <div class="apfs-resultsHeader">
+            <h2 class="apfs-h2">Results ({{ s.total }})</h2>
+
+            <div class="apfs-alert apfs-alert--success" *ngIf="lastRan">
+                Report Updated
+                <span class="apfs-alert__x" (click)="lastRan=false" role="button" aria-label="Close">×</span>
+            </div>
+        </div>
+
+        <div class="apfs-divider"></div>
+
+        <div class="apfs-tableToolbar">
+            <div class="apfs-toolbar__left">
+                <button class="apfs-btn apfs-btn--ghost" type="button" (click)="downloadCsv(s)">CSV</button>
+                <button class="apfs-btn apfs-btn--ghost" type="button" (click)="downloadPdf(s)">PDF</button>
+                <button class="apfs-btn apfs-btn--ghost" type="button" (click)="toggleFilters()">
+                    {{ showFilters ? 'Hide Filters' : 'Show Filters' }} ▼
+                </button>
+            </div>
+        </div>
+
+        <div class="apfs-tableWrap">
+            <table class="apfs-table" *ngIf="s.rows?.length; else noRows">
+                <thead>
+                    <tr>
+                        <th>4SITE Number</th>
+                        <th>Component</th>
+                        <th>Creation Date</th>
+                        <th>Status</th>
+                        <th>Days Awaiting Approval</th>
+                        <th>Assigned Office</th>
+                        <th>Requirements Title</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let row of s.rows; trackBy: trackById">
+                        <td class="link-cell">
+                            <a href="javascript:void(0)" (click)="openRecord(row.recordId)">
+                                {{ row.apfsNumber }}
+                            </a>
+                        </td>
+                        <td>{{ row.component }}</td>
+                        <td>{{ row.creationDate }}</td>
+                        <td>{{ row.status }}</td>
+                        <td>{{ row.daysAwaitingApproval }}</td>
+                        <td>{{ row.assignedOffice }}</td>
+                        <td>{{ row.requirementsTitle }}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <ng-template #noRows>
+                <div class="apfs-drawer__empty">No Records to Display.</div>
+            </ng-template>
+        </div>
+    </section>
+
+
+</div>

@@ -88,6 +88,12 @@
                   Office Performance Report
                 </a>
               </li>
+              <li *ngIf="auth.user?.role === 'Admin' || auth.user?.role === 'Super Admin'">
+                <a routerLink="/reports/delayed-approval-report" (click)="closeDropdowns()">
+                  Delayed Approval Report
+                </a>
+              </li>
+
 
             </ul>
           </li>

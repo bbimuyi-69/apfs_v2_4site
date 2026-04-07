@@ -620,6 +620,30 @@ app.get(`${API_PREFIX}/forecast-records/report-base`, (req, res) => {
         req.query
     );
 
+    // =========================================================
+    // ✅ NEW: DELAYED APPROVAL REPORT (SAFE ADD - NO BREAKAGE)
+    // Only runs when explicitly requested
+    // =========================================================
+    const reportScope = String(req.query.reportScope || '').trim();
+
+    if (reportScope === 'delayedApproval') {
+
+        // reuse SAME filtering logic used by other reports
+        const filtered = filterReportRows(db, me, db.forecastRecords || [], req.query);
+
+        if (filtered.error) {
+            return res.status(400).json({ message: filtered.error });
+        }
+
+        const summary = buildDelayedApprovalRows(db, filtered.rows, req.query);
+
+        return res.json({
+            filtersApplied: filtered.filtersApplied,
+            minDays: Math.max(1, Number(req.query.daysDelayed || 10)),
+            ...summary
+        });
+    }
+
     const allRecords = db.forecastRecords || [];
 
     // 🔐 Apply existing security scoping FIRST
@@ -635,7 +659,7 @@ app.get(`${API_PREFIX}/forecast-records/report-base`, (req, res) => {
         .map(s => s.trim())
         .filter(Boolean);
 
-    const reportScope = String(req.query.reportScope || '').trim();
+
 
     const workflowStatuses = String(req.query.workflowStatuses || '')
         .split(',')
@@ -1320,6 +1344,105 @@ function getBusinessProcessDetailRows(db, rows, sectionKey, metricKey) {
 
     out.sort((a, b) => String(a.apfsNumber).localeCompare(String(b.apfsNumber)));
     return out;
+}
+
+/* =========================================================
+   DELAYED APPROVAL REPORT HELPERS  ✅ NEW (SAFE ADD)
+   ========================================================= */
+
+// Only approval lanes (ignore Draft / Published)
+function isApprovalLaneState(stateId) {
+    return (
+        stateId === WORKFLOW_STATE.REQUIREMENTS ||
+        stateId === WORKFLOW_STATE.CONTRACTING ||
+        stateId === WORKFLOW_STATE.COORDINATOR
+    );
+}
+
+// Format date for UI
+function formatDateForReport(value) {
+    const dt = parseDateOnly(value);
+    if (!dt) return '';
+    return dt.toISOString().slice(0, 10);
+}
+
+// Get correct office based on current lane
+function getAssignedOfficeForCurrentLane(record, stateId) {
+    if (stateId === WORKFLOW_STATE.REQUIREMENTS) {
+        return String(record.requirementsOffice ?? '').trim();
+    }
+    if (stateId === WORKFLOW_STATE.CONTRACTING) {
+        return String(record.contractingOffice ?? '').trim();
+    }
+    if (stateId === WORKFLOW_STATE.COORDINATOR) {
+        return String(record.coordinatorOffice ?? '').trim();
+    }
+    return '';
+}
+
+// MAIN delayed approval builder
+function buildDelayedApprovalRows(db, rows, query) {
+    const minDays = Math.max(1, Number(query.daysDelayed || 10)); // default = 10 days
+    const out = [];
+    const now = new Date();
+
+    for (const record of rows) {
+        const currentStateId = getCurrentStateId(record);
+
+        // only approval lanes
+        if (!isApprovalLaneState(currentStateId)) continue;
+
+        const history = getHistoryForForecast(db, record.id);
+        if (!history.length) continue;
+
+        let entryTime = null;
+
+        // find LAST time record ENTERED current lane
+        for (let i = history.length - 1; i >= 0; i--) {
+            const h = history[i];
+
+            if (Number(h.new_state_id) !== Number(currentStateId)) continue;
+
+            const dt = parseDateTime(h.time);
+            if (dt) {
+                entryTime = dt;
+                break;
+            }
+        }
+
+        // fallback if no clean history
+        if (!entryTime) {
+            entryTime = parseDateTime(record.updatedAt || record.createdAt);
+        }
+        if (!entryTime) continue;
+
+        const daysAwaitingApproval = Math.floor(
+            (now.getTime() - entryTime.getTime()) / (24 * 60 * 60 * 1000)
+        );
+
+        // apply threshold filter
+        if (daysAwaitingApproval <= minDays) continue;
+
+        out.push({
+            recordId: Number(record.id),
+            apfsNumber: String(record.apfsNumber ?? ''),
+            component: String(record.component ?? ''),
+            creationDate: formatDateForReport(record.createdAt),
+            status: String(record.workflowStatus ?? record.status ?? ''),
+            daysAwaitingApproval,
+            assignedOffice: getAssignedOfficeForCurrentLane(record, currentStateId),
+            requirementsTitle: String(record.requirementsTitle ?? ''),
+            enteredCurrentLaneAt: entryTime.toISOString(),
+        });
+    }
+
+    // sort worst offenders first
+    out.sort((a, b) => b.daysAwaitingApproval - a.daysAwaitingApproval);
+
+    return {
+        total: out.length,
+        rows: out,
+    };
 }
 
 /* =========================================================

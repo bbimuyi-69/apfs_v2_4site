@@ -1,303 +1,4 @@
-function previousLaneValue(raw) {
-    const lane = normalizeLane(raw);
-    if (lane === 'published') return 'APFS Coordinator';
-    if (lane === 'coordinator') return 'Contracting';
-    if (lane === 'contracting') return 'Requirements';
-    if (lane === 'requirements') return 'Draft';
-    return null;
-}
-
-
-app.put(`${API_PREFIX}/forecast-records/:id`, (req, res) => {
-    const db = loadData();
-    const me = getCurrentUser(req, db);
-    if (!me) return res.status(401).json({ message: 'Not authenticated' });
-
-    const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ message: 'Invalid id' });
-
-    const idx = (db.forecastRecords || []).findIndex((r) => Number(r.id) === id);
-    if (idx === -1) return res.status(404).json({ message: 'Not found' });
-
-    const existing = db.forecastRecords[idx];
-
-    const blocked = requireForecastAccess(req, res, me, existing);
-    if (blocked) return;
-
-    const now = new Date().toISOString();
-
-    const updated = {
-        ...existing,
-        ...req.body,
-
-        // protected / server-owned
-        id: existing.id,
-        component: existing.component,
-        apfsNumber: existing.apfsNumber,
-
-        // protect assignment fields (claim/unclaim owns these)
-        assignedToUserId: existing.assignedToUserId ?? null,
-        assignedToName: existing.assignedToName ?? null,
-        assignedAt: existing.assignedAt ?? null,
-
-        // keep workflow fields unless explicitly sent
-        workflowStatus: req.body?.workflowStatus ?? existing.workflowStatus,
-        status: req.body?.status ?? req.body?.workflowStatus ?? existing.status,
-
-        updatedAt: now,
-    };
-
-
-    // 👇 ADD LOGS RIGHT HERE
-    console.log('REQ BODY:', req.body);
-    console.log('EXISTING KEYS:', Object.keys(existing).sort());
-    console.log('UPDATED KEYS:', Object.keys(updated).sort());
-
-    // -----------------------------------
-    // Change log tracking
-    // Rule: if previous_published_date is not null, track edits
-    // -----------------------------------
-    const shouldTrackChanges = !!existing?.previous_published_date;
-
-    console.log('CHANGELOG SHOULD TRACK:', shouldTrackChanges);
-
-    if (shouldTrackChanges) {
-        db.apfs_forecastchangelog = db.apfs_forecastchangelog || [];
-
-        const trackedFields = [
-            'requirementsTitle',
-            'requirement',
-            'description',
-            'notes',
-            'requirementsOffice',
-            'contractingOffice',
-            'coordinatorOffice',
-            'sbSpecialistFirstName',
-            'sbSpecialistLastName',
-            'sbSpecialistEmail',
-            'sbSpecialistPhone',
-            'smallBusinessSetAside',
-            'smallBusinessProgram',
-            'dollarRange',
-            'naicsCode',
-            'contractType',
-            'strategicSourcingVehicleUsed',
-            'strategicSourcingVehicle',
-            'typeOfAward',
-            'competitive',
-            'contractStatus',
-            'incumbent',
-            'vendorName',
-            'contractNumber',
-            'fiscalYear',
-            'estimatedPopStart',
-            'estimatedPopEnd',
-            'estimatedSolicitationReleaseDate',
-            'anticipatedAwardDate',
-            'programLevel',
-            'productServiceCode',
-            'placeOfPerformance',
-            'comments'
-        ];
-
-        const toText = (v) => {
-            if (v == null) return '';
-            if (typeof v === 'string') return v.trim();
-            if (typeof v === 'object') {
-                try {
-                    return JSON.stringify(v);
-                } catch {
-                    return String(v);
-                }
-            }
-            return String(v);
-        };
-
-        const changes = [];
-
-        for (let i = 0; i < trackedFields.length; i += 1) {
-            const field = trackedFields[i];
-            const oldValue = toText(existing[field]);
-            const newValue = toText(updated[field]);
-
-            console.log('FIELD CHECK:', field, { oldValue, newValue });
-
-            if (oldValue === newValue) continue;
-
-            changes.push({
-                id: Date.now() + i,
-                field_name: field,
-                field_old_value: oldValue,
-                field_new_value: newValue,
-                date_changed: now,
-                forecast_id: Number(existing.id),
-                is_public: 1
-            });
-        }
-
-        console.log('CHANGES:', changes);
-
-        if (changes.length) {
-            db.apfs_forecastchangelog.unshift(...changes);
-        }
-    }
-
-    db.forecastRecords[idx] = updated;
-    saveData(db);
-
-    res.json({ ...updated, history: getHistoryForRecord(db, id) });
-});
-
-
-
-//just check this is needed
-// TRANSITION
-app.post(`${API_PREFIX}/forecast-records/:id/transition`, (req, res) => {
-    console.group('[TRANSITION]');
-    console.log('recordId:', req.params.id);
-    console.log('x-user-id:', req.header('x-user-id'));
-    console.log('body:', req.body);
-
-    const db = loadData();
-    const me = getCurrentUser(req, db);
-    if (!me) return res.status(401).json({ message: 'Not authenticated' });
-
-    const id = Number(req.params.id);
-    const r = (db.forecastRecords || []).find((x) => Number(x.id) === id);
-    if (!r) return res.status(404).json({ message: 'Not found' });
-
-    const blocked = requireForecastAccess(req, res, me, r);
-    if (blocked) return;
-
-    const from = r.workflowStatus;
-    const to = String(req.body?.to ?? '').trim();
-    if (!to) return res.status(400).json({ message: 'Missing "to"' });
-
-    console.log('The TO state is :', to);
-    // detect publish transition
-    const isPublishing = String(to).toLowerCase() === 'published';
-    const wasPublished = String(from).toLowerCase() === 'published';
-
-    if (isPublishing) {
-        if (!r.published_date) {
-            // first publish
-            r.published_date = new Date().toISOString();
-            r.previous_published_date = null;
-        } else {
-            // republish
-            r.previous_published_date = r.published_date;
-            r.published_date = new Date().toISOString();
-        }
-    }
-
-    r.workflowStatus = to;
-    r.status = to;
-    r.updatedAt = new Date().toISOString();
-
-    clearLatestHistoryFlag(db, id);
-
-    db.recordHistory.push(
-        makeHistoryRow({
-            forecastId: id,
-            user: me,
-            comment: req.body?.comment ?? `Transitioned to ${to}`,
-            assignmentDisplay: r.assignedToName ?? null,
-            assignmentId: r.assignedToUserId ?? null,
-            previousStateId: laneOrderKey(from),
-            newStateId: laneOrderKey(to),
-            latest: true,
-        })
-    );
-
-    saveData(db);
-    res.json({ ...r, history: getHistoryForRecord(db, id) });
-});
-
-
-
-app.post(`${API_PREFIX}/forecast-records/:id/reject`, (req, res) => {
-    const db = loadData();
-    const me = getCurrentUser(req, db);
-    if (!me) return res.status(401).json({ message: 'Not authenticated' });
-
-    const id = Number(req.params.id);
-    const r = (db.forecastRecords || []).find((x) => Number(x.id) === id);
-    if (!r) return res.status(404).json({ message: 'Not found' });
-
-    const blocked = requireForecastAccess(req, res, me, r);
-    if (blocked) return;
-
-    const currentLane = String(r.workflowStatus ?? r.status ?? '').trim();
-    const prev = previousLaneValue(currentLane);
-    if (!prev) return res.status(409).json({ message: 'Cannot reject' });
-
-    const now = new Date().toISOString();
-    const rejectComment = String(req.body?.comment ?? '').trim();
-
-    const wasPublished = currentLane.toLowerCase() === 'published';
-
-    // capture recipient BEFORE clearing assignment
-    const notifyUserId = r.assignedToUserId ?? null;
-    const notifyUserName = r.assignedToName ?? null;
-
-    clearLatestHistoryFlag(db, id);
-
-    db.recordHistory.push(
-        makeHistoryRow({
-            forecastId: id,
-            user: me,
-            comment: rejectComment || `Rejected back to ${prev}`,
-            assignmentDisplay: r.assignedToName ?? null,
-            assignmentId: r.assignedToUserId ?? null,
-            previousStateId: laneOrderKey(currentLane),
-            newStateId: laneOrderKey(prev),
-            latest: true,
-        })
-    );
-
-    // -----------------------------
-    // Unpublish logic
-    // Published -> APFS Coordinator
-    // -----------------------------
-    if (wasPublished) {
-        r.previous_published_date =
-            r.published_date ?? r.previous_published_date ?? null;
-
-        r.published_date = null;
-    }
-
-    r.workflowStatus = prev;
-    r.status = prev;
-    r.updatedAt = now;
-    r.assignedToUserId = null;
-    r.assignedToName = null;
-    r.assignedAt = null;
-
-    // add notification row
-    if (notifyUserId != null) {
-        const actionLabel = wasPublished ? 'unpublished' : 'rejected';
-
-        const notificationRow = {
-            id: Date.now(),
-            time: now,
-            subject: wasPublished ? 'Forecast Record Unpublished' : 'Forecast Record Rejected',
-            body: `Forecast ${r.apfsNumber || r.id} "${r.requirementsTitle || 'Untitled'}" was ${actionLabel} and sent back to ${prev}.${rejectComment ? ` Comment: ${rejectComment}` : ''}`,
-            read: 0,
-            user_id: Number(notifyUserId)
-        };
-
-        db.apfs_usernotification = db.apfs_usernotification || [];
-        db.apfs_usernotification.unshift(notificationRow);
-    }
-
-    saveData(db);
-    res.json({ ...r, history: getHistoryForRecord(db, id) });
-});
-
-
-
-
-app.post(`${API_PREFIX}/forecast-change-log/bulk`, (req, res) => {
+app.get(`${API_PREFIX}/forecast-records/report-base`, (req, res) => {
     const db = loadData();
     const me = getCurrentUser(req, db);
 
@@ -305,103 +6,283 @@ app.post(`${API_PREFIX}/forecast-change-log/bulk`, (req, res) => {
         return res.status(401).json({ message: 'Not authenticated' });
     }
 
-    const { forecast_id, changes } = req.body || {};
-
-    if (!forecast_id) {
-        return res.status(400).json({
-            message: 'forecast_id is required'
-        });
-    }
-
-    const forecastIdNum = Number(forecast_id);
-    if (Number.isNaN(forecastIdNum)) {
-        return res.status(400).json({
-            message: 'forecast_id must be a valid number'
-        });
-    }
-
-    if (!Array.isArray(changes) || !changes.length) {
-        return res.status(400).json({
-            message: 'changes array is required'
-        });
-    }
-
-    const record = (db.forecastRecords || []).find(
-        (x) => Number(x.id) === forecastIdNum
+    console.log(
+        'GET /forecast-records/report-base - user:',
+        me.email,
+        'role:',
+        me.role,
+        'component:',
+        me.component,
+        'query:',
+        req.query
     );
 
-    if (!record) {
-        return res.status(404).json({
-            message: 'Forecast record not found'
+    // =========================================================
+    // ✅ NEW: DELAYED APPROVAL REPORT (SAFE ADD - NO BREAKAGE)
+    // Only runs when explicitly requested
+    // =========================================================
+    const reportScope = String(req.query.reportScope || '').trim();
+
+    if (reportScope === 'delayedApproval') {
+
+        // reuse SAME filtering logic used by other reports
+        const filtered = filterReportRows(db, me, db.forecastRecords || [], req.query);
+
+        if (filtered.error) {
+            return res.status(400).json({ message: filtered.error });
+        }
+
+        const summary = buildDelayedApprovalRows(db, filtered.rows, req.query);
+
+        return res.json({
+            filtersApplied: filtered.filtersApplied,
+            minDays: Math.max(1, Number(req.query.daysDelayed || 10)),
+            ...summary
         });
     }
 
-    if (!canAccessForecastRecord(me, record)) {
-        return res.status(403).json({
-            message: 'Forbidden'
-        });
-    }
+    const allRecords = db.forecastRecords || [];
 
-    db.apfs_forecastchangelog = db.apfs_forecastchangelog || [];
+    // 🔐 Apply existing security scoping FIRST
+    let rows = getVisibleForecastRecords(me, allRecords);
 
-    const now = new Date().toISOString();
+    const components = String(req.query.component || '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
 
-    const rows = changes
-        .filter((c) => c && c.field_name)
-        .map((c, i) => ({
-            id: Date.now() + i,
-            field_name: String(c.field_name).trim(),
-            field_new_value:
-                c.field_new_value == null ? '' : String(c.field_new_value),
-            field_old_value:
-                c.field_old_value == null ? '' : String(c.field_old_value),
-            date_changed: now,
-            forecast_id: forecastIdNum,
-            is_public: Number(c.is_public) === 0 ? 0 : 1
-        }));
+    const offices = String(req.query.office || '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
 
-    if (!rows.length) {
-        return res.status(400).json({
-            message: 'At least one valid change with field_name is required'
-        });
-    }
 
-    db.apfs_forecastchangelog.unshift(...rows);
-    saveData(db);
 
-    return res.status(201).json({
-        message: 'Change log rows created',
-        count: rows.length,
-        rows
+    const workflowStatuses = String(req.query.workflowStatuses || '')
+        .split(',')
+        .map(s => s.trim().toLowerCase())
+        .filter(Boolean);
+
+    const publishedOnly =
+        String(req.query.publishedOnly ?? 'true').toLowerCase() !== 'false';
+
+    const awardStart = req.query.anticipatedAwardStart
+        ? new Date(req.query.anticipatedAwardStart)
+        : null;
+
+    const awardEnd = req.query.anticipatedAwardEnd
+        ? new Date(req.query.anticipatedAwardEnd)
+        : null;
+
+    const createdAfter = req.query.createdAfter
+        ? new Date(req.query.createdAfter)
+        : null;
+
+    const createdBefore = req.query.createdBefore
+        ? new Date(req.query.createdBefore)
+        : null;
+
+    rows = rows.filter(r => {
+        const status = String(r.workflowStatus ?? r.status ?? '')
+            .trim()
+            .toLowerCase();
+
+        // -----------------------------
+        // Workflow filter
+        // -----------------------------
+        if (workflowStatuses.length) {
+            if (!workflowStatuses.includes(status)) {
+                return false;
+            }
+        } else if (reportScope === 'published') {
+            if (status !== 'published') {
+                return false;
+            }
+        } else if (reportScope === 'businessProcess') {
+            const allowed = [
+                'requirements',
+                'contracting',
+                'apfs coordinator',
+                'published'
+            ];
+            if (!allowed.includes(status)) {
+                return false;
+            }
+        } else if (reportScope === 'all') {
+            // no workflow filtering
+        } else if (publishedOnly && status !== 'published') {
+            // legacy fallback
+            return false;
+        }
+
+        // -----------------------------
+        // Component filter
+        // -----------------------------
+        if (components.length) {
+            const recordComponent =
+                r.component ||
+                r.organization ||
+                '';
+
+            if (!components.includes(recordComponent)) {
+                return false;
+            }
+        }
+
+        // -----------------------------
+        // Office filter (match any)
+        // -----------------------------
+        if (offices.length) {
+            const officeValues = [
+                r.office,
+                r.requirementsOffice,
+                r.contractingOffice,
+                r.coordinatorOffice
+            ].filter(Boolean);
+
+            const match = officeValues.some(o => offices.includes(o));
+            if (!match) return false;
+        }
+
+        // -----------------------------
+        // Anticipated Award Date filter
+        // -----------------------------
+        if (awardStart || awardEnd) {
+            const raw =
+                r.anticipatedAwardDate ||
+                r.anticipated_award_date ||
+                r.estimatedAwardDate ||
+                r.awardDate;
+
+            if (!raw) return false;
+
+            const dt = new Date(raw);
+            if (isNaN(dt)) return false;
+
+            if (awardStart && dt < awardStart) return false;
+            if (awardEnd && dt > awardEnd) return false;
+        }
+
+        // -----------------------------
+        // Created date filter
+        // -----------------------------
+        if (createdAfter || createdBefore) {
+            const raw = r.createdAt || r.created_at;
+            if (!raw) return false;
+
+            const dt = new Date(raw);
+            if (isNaN(dt)) return false;
+
+            if (createdAfter && dt < createdAfter) return false;
+            if (createdBefore && dt > createdBefore) return false;
+        }
+
+        return true;
+    });
+
+    res.json({
+        rows,
+        total: rows.length
     });
 });
 
 
-app.get(`${API_PREFIX}/forecast-records/:id/change-log`, (req, res) => {
-    const db = loadData();
-    const me = getCurrentUser(req, db);
-    if (!me) return res.status(401).json({ message: 'Not authenticated' });
 
-    const id = Number(req.params.id);
-    if (!Number.isFinite(id)) {
-        return res.status(400).json({ message: 'Invalid id' });
+/* =========================================================
+   DELAYED APPROVAL REPORT HELPERS  ✅ NEW (SAFE ADD)
+   ========================================================= */
+
+// Only approval lanes (ignore Draft / Published)
+function isApprovalLaneState(stateId) {
+    return (
+        stateId === WORKFLOW_STATE.REQUIREMENTS ||
+        stateId === WORKFLOW_STATE.CONTRACTING ||
+        stateId === WORKFLOW_STATE.COORDINATOR
+    );
+}
+
+// Format date for UI
+function formatDateForReport(value) {
+    const dt = parseDateOnly(value);
+    if (!dt) return '';
+    return dt.toISOString().slice(0, 10);
+}
+
+// Get correct office based on current lane
+function getAssignedOfficeForCurrentLane(record, stateId) {
+    if (stateId === WORKFLOW_STATE.REQUIREMENTS) {
+        return String(record.requirementsOffice ?? '').trim();
     }
-
-    const record = (db.forecastRecords || []).find((r) => Number(r.id) === id);
-    if (!record) {
-        return res.status(404).json({ message: 'Not found' });
+    if (stateId === WORKFLOW_STATE.CONTRACTING) {
+        return String(record.contractingOffice ?? '').trim();
     }
+    if (stateId === WORKFLOW_STATE.COORDINATOR) {
+        return String(record.coordinatorOffice ?? '').trim();
+    }
+    return '';
+}
 
-    const blocked = requireForecastAccess(req, res, me, record);
-    if (blocked) return;
+// MAIN delayed approval builder
+function buildDelayedApprovalRows(db, rows, query) {
+    const minDays = Math.max(1, Number(query.daysDelayed || 10)); // default = 10 days
+    const out = [];
+    const now = new Date();
 
-    const rows = (db.apfs_forecastchangelog || [])
-        .filter((x) => Number(x.forecast_id) === id)
-        .sort((a, b) => {
-            const aTime = new Date(a.date_changed || 0).getTime();
-            const bTime = new Date(b.date_changed || 0).getTime();
-            return bTime - aTime;
+    for (const record of rows) {
+        const currentStateId = getCurrentStateId(record);
+
+        // only approval lanes
+        if (!isApprovalLaneState(currentStateId)) continue;
+
+        const history = getHistoryForForecast(db, record.id);
+        if (!history.length) continue;
+
+        let entryTime = null;
+
+        // find LAST time record ENTERED current lane
+        for (let i = history.length - 1; i >= 0; i--) {
+            const h = history[i];
+
+            if (Number(h.new_state_id) !== Number(currentStateId)) continue;
+
+            const dt = parseDateTime(h.time);
+            if (dt) {
+                entryTime = dt;
+                break;
+            }
+        }
+
+        // fallback if no clean history
+        if (!entryTime) {
+            entryTime = parseDateTime(record.updatedAt || record.createdAt);
+        }
+        if (!entryTime) continue;
+
+        const daysAwaitingApproval = Math.floor(
+            (now.getTime() - entryTime.getTime()) / (24 * 60 * 60 * 1000)
+        );
+
+        // apply threshold filter
+        if (daysAwaitingApproval <= minDays) continue;
+
+        out.push({
+            recordId: Number(record.id),
+            apfsNumber: String(record.apfsNumber ?? ''),
+            component: String(record.component ?? ''),
+            creationDate: formatDateForReport(record.createdAt),
+            status: String(record.workflowStatus ?? record.status ?? ''),
+            daysAwaitingApproval,
+            assignedOffice: getAssignedOfficeForCurrentLane(record, currentStateId),
+            requirementsTitle: String(record.requirementsTitle ?? ''),
+            enteredCurrentLaneAt: entryTime.toISOString(),
         });
+    }
 
-    res.json(rows);
-});
+    // sort worst offenders first
+    out.sort((a, b) => b.daysAwaitingApproval - a.daysAwaitingApproval);
+
+    return {
+        total: out.length,
+        rows: out,
+    };
+}
