@@ -7,7 +7,7 @@ import { filter, map } from 'rxjs/operators';
 import { Header } from './core/layout/header/header';
 import { AuthService } from './auth/auth.service';
 import { ThemeService } from './core/Theme/theme.service';
-import { DocLink, getDocumentationLinkForRole, canSeeNewRequest } from './features/dashboard-v2/components/nav-rail/nav-rail.helper';
+import { DocLink, getDocumentationLinkForRole } from './features/dashboard-v2/components/nav-rail/nav-rail.helper';
 
 type DropdownKey = 'government' | 'documentation' | 'reports' | 'userProfile';
 
@@ -21,16 +21,15 @@ type DropdownKey = 'government' | 'documentation' | 'reports' | 'userProfile';
 export class App {
   title = '';
   searchTerm = '';
+  profilePanelOpen = false;
 
   private readonly el = inject(ElementRef<HTMLElement>);
 
-  // ✅ public so template can use auth.isLoggedIn
   public readonly auth = inject(AuthService);
 
   private readonly router = inject(Router);
   private readonly activatedRoute = inject(ActivatedRoute);
 
-  // ✅ inject ThemeService here (NOT inside constructor)
   private readonly themeService = inject(ThemeService);
 
   dropdowns: Record<DropdownKey, boolean> = {
@@ -41,13 +40,11 @@ export class App {
   };
 
   constructor() {
-    // ✅ Restore session on refresh (dev: uses x-user-email header)
-    // isLoggedIn is a GETTER -> use WITHOUT ()
     if (this.auth.isLoggedIn) {
       this.auth.loadMe().subscribe({ error: () => { } });
     }
 
-
+    void this.themeService;
 
     this.router.events
       .pipe(
@@ -61,6 +58,7 @@ export class App {
       .subscribe((title) => {
         this.title = title ?? '';
         this.closeDropdowns();
+        this.closeProfilePanel();
       });
   }
 
@@ -76,8 +74,10 @@ export class App {
   logout(): void {
     this.auth.logout();
     this.closeDropdowns();
+    this.closeProfilePanel();
     this.router.navigate(['/welcome']);
   }
+
   toggleDropdown(key: DropdownKey, ev: Event): void {
     ev.preventDefault();
     ev.stopPropagation();
@@ -87,12 +87,22 @@ export class App {
     this.dropdowns[key] = next;
   }
 
+  openProfilePanel(): void {
+    this.closeDropdowns();
+    this.profilePanelOpen = true;
+  }
+
+  closeProfilePanel(): void {
+    this.profilePanelOpen = false;
+  }
+
   closeDropdowns(): void {
     this.dropdowns.government = false;
     this.dropdowns.documentation = false;
     this.dropdowns.reports = false;
     this.dropdowns.userProfile = false;
   }
+
   get documentationLink(): DocLink {
     return getDocumentationLinkForRole(this.auth.user?.role);
   }
@@ -108,6 +118,9 @@ export class App {
 
   @HostListener('document:keydown', ['$event'])
   onKeydown(ev: KeyboardEvent): void {
-    if (ev.key === 'Escape') this.closeDropdowns();
+    if (ev.key === 'Escape') {
+      this.closeDropdowns();
+      this.closeProfilePanel();
+    }
   }
 }

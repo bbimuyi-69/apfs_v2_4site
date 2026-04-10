@@ -71,17 +71,15 @@
 
 .apfs-header-inner {
   min-height: 108px;
-  display: grid;
-  grid-template-columns: 170px 1fr auto;
+  display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 10px;
   position: relative;
   overflow: visible;
 }
 
 .apfs-brand {
-  display: flex;
-  align-items: center;
+  flex: 0 0 auto;
 }
 
 .brand-link {
@@ -101,9 +99,8 @@
    ========================================================= */
 
 .nav-links {
-  justify-self: start;
-  overflow: visible;
-  min-width: 0;
+  flex: 1 1 auto;
+  margin-left: 20px;
 }
 
 .nav-list {
@@ -180,9 +177,7 @@
 
 .header-account,
 .header-auth {
-  justify-self: end;
-  position: relative;
-  min-width: 0;
+  flex: 0 0 auto;
 }
 
 .account-display {
@@ -276,6 +271,134 @@
   background: #f3f5f7;
 }
 
+.logout-link {
+  color: #b42318 !important;
+  font-weight: 700 !important;
+}
+
+/* =========================================================
+   User profile slide-in
+   ========================================================= */
+
+.profile-panel-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  z-index: 1190;
+}
+
+.profile-panel {
+  position: fixed;
+  top: 0;
+  right: -420px;
+  width: min(400px, 92vw);
+  height: 100vh;
+  background: #ffffff;
+  border-left: 1px solid #d0d7de;
+  box-shadow: -12px 0 28px rgba(16, 24, 40, 0.16);
+  z-index: 1200;
+  transition: right 0.24s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-panel.open {
+  right: 0;
+}
+
+.profile-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 22px 18px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f8fafc;
+}
+
+.profile-panel__eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #005288;
+  margin-bottom: 6px;
+}
+
+.profile-panel__header h2 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.1;
+  color: #111111;
+}
+
+.profile-panel__close {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #111111;
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.profile-panel__body {
+  padding: 22px;
+  overflow-y: auto;
+}
+
+.profile-card {
+  background: #f3f5f7;
+  border: 1px solid #d9e2ec;
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 18px;
+}
+
+.profile-card__name {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111111;
+  margin-bottom: 6px;
+  line-height: 1.2;
+}
+
+.profile-card__email {
+  font-size: 14px;
+  color: #344054;
+  word-break: break-word;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.profile-row {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: #ffffff;
+}
+
+.profile-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #667085;
+  margin-bottom: 6px;
+}
+
+.profile-value {
+  font-size: 15px;
+  color: #111111;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
 /* =========================================================
    Main content stage
    ========================================================= */
@@ -313,7 +436,6 @@
   padding: 30px 42px 56px;
 }
 
-/* router content spacing */
 router-outlet+* {
   display: block;
 }
@@ -584,5 +706,10 @@ router-outlet+* {
 
   .footer-links-grid {
     grid-template-columns: 1fr;
+  }
+
+  .profile-panel {
+    width: 100vw;
+    right: -100vw;
   }
 }

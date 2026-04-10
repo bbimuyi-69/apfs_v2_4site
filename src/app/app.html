@@ -1,6 +1,5 @@
 <div class="app-layout">
-
-  <!-- Top government banner -->
+  <!-- Header / Nav -->
   <div class="us-gov-banner">
     <div class="site-shell us-gov-banner__inner">
       <img src="/assets/images/icn-us-flag-21px.png" class="flag__logo" alt="US Flag" />
@@ -36,14 +35,14 @@
             </a>
           </li>
 
+
+          <!--TODO-->
           <!-- Admin -->
           <li *ngIf="auth.isAdmin || auth.isSuperAdmin">
             <a routerLink="/admin" routerLinkActive="active">
               System Administration
             </a>
           </li>
-
-
 
           <!-- Reports -->
           <li class="dropdown" *ngIf="auth.isLoggedIn" [class.active]="dropdowns.reports">
@@ -54,15 +53,14 @@
             </button>
 
             <ul id="menu-reports" class="dropdown-menu" *ngIf="dropdowns.reports" (click)="$event.stopPropagation()">
-
-              <li>
-                <a routerLink="/reports/timeliness-report" (click)="closeDropdowns()">
-                  Timeliness Report
-                </a>
-              </li>
               <li>
                 <a routerLink="/reports/business-process-report" (click)="closeDropdowns()">
                   Business Process Report
+                </a>
+              </li>
+              <li *ngIf="auth.user?.role !== 'Requirements'">
+                <a routerLink="/reports/timeliness-report" (click)="closeDropdowns()">
+                  Timeliness Report
                 </a>
               </li>
               <li>
@@ -70,22 +68,9 @@
                   Anticipated Awards Report
                 </a>
               </li>
-
-              <li *ngIf="auth.user?.role === 'Admin' || auth.user?.role === 'Super Admin'">
+              <li>
                 <a routerLink="/reports/record-count" (click)="closeDropdowns()">
                   Record Count Report
-                </a>
-              </li>
-
-              <li *ngIf="auth.user?.role === 'Admin' || auth.user?.role === 'Super Admin'">
-                <a routerLink="/reports/forecast-summary" (click)="closeDropdowns()">
-                  Forecast Summary Report
-                </a>
-              </li>
-
-              <li *ngIf="auth.user?.role === 'Admin' || auth.user?.role === 'Super Admin'">
-                <a routerLink="/reports/office-performance" (click)="closeDropdowns()">
-                  Office Performance Report
                 </a>
               </li>
               <li *ngIf="auth.user?.role === 'Admin' || auth.user?.role === 'Super Admin'">
@@ -93,23 +78,23 @@
                   Delayed Approval Report
                 </a>
               </li>
-
-
+              <li *ngIf="auth.user?.role === 'Admin' || auth.user?.role === 'Super Admin'">
+                <a routerLink="/reports/forecast-detail-report" (click)="closeDropdowns()">
+                  Forecast Detail Report
+                </a>
+              </li>
             </ul>
           </li>
 
           <!-- Documentation -->
           <li *ngIf="auth.user" class="dropdown" [class.active]="dropdowns.documentation">
-
             <button type="button" class="dropdown-toggle" (click)="toggleDropdown('documentation', $event)"
               [attr.aria-expanded]="dropdowns.documentation" aria-controls="menu-docs">
-
               Documentation
               <span class="caret" [class.open]="dropdowns.documentation"></span>
             </button>
 
             <ul id="menu-docs" class="dropdown-menu" *ngIf="dropdowns.documentation" (click)="$event.stopPropagation()">
-
               <li>
                 <a [href]="documentationLink.href" target="_blank" rel="noopener noreferrer" (click)="closeDropdowns()">
                   {{ documentationLink.label }} (PDF)
@@ -121,13 +106,8 @@
                   4SITE Tutorial
                 </a>
               </li>
-
             </ul>
           </li>
-
-
-
-
 
           <!-- Contact -->
           <li>
@@ -138,65 +118,117 @@
 
           <!-- User Profile -->
           <li *ngIf="auth.user" class="dropdown" [class.active]="dropdowns.userProfile">
-
             <button type="button" class="dropdown-toggle" (click)="toggleDropdown('userProfile', $event)"
               [attr.aria-expanded]="dropdowns.userProfile" aria-controls="menu-userProfile">
               User Profile
               <span class="caret" [class.open]="dropdowns.userProfile"></span>
             </button>
 
-            <ul id="menu-userProfile" class="dropdown-menu" *ngIf="dropdowns.userProfile"
+            <ul id="menu-userProfile" class="dropdown-menu dropdown-menu--right" *ngIf="dropdowns.userProfile"
               (click)="$event.stopPropagation()">
-
               <li>
-                <a routerLink="/apfs-tutorial" (click)="closeDropdowns()">
-                  User Profile
+                <a href="javascript:void(0)" (click)="openProfilePanel(); $event.preventDefault()">
+                  View Profile
                 </a>
               </li>
               <li>
-                <a routerLink="/messages" routerLinkActive="active">
+                <a routerLink="/messages" (click)="closeDropdowns()">
                   Messages
                 </a>
               </li>
               <li>
-                <a href="javascript:void(0)" class="btn-primary logout-btn" (click)="logout()">
+                <a href="javascript:void(0)" class="logout-link" (click)="logout(); $event.preventDefault()">
                   Logout
                 </a>
               </li>
-
-
-
             </ul>
           </li>
 
           <li *ngIf="auth.isLoggedIn" class="menu-search">
-
-
             <form class="nav-search-form" (ngSubmit)="onSearch()">
               <input type="text" name="searchTerm" [(ngModel)]="searchTerm" placeholder="Search forecasts..."
                 autocomplete="off" />
-
               <button type="submit">🔎</button>
             </form>
           </li>
 
         </ul>
       </nav>
-
-
-
     </div>
   </header>
+
+  <!-- Profile slide-in -->
+  <div class="profile-panel-backdrop" *ngIf="profilePanelOpen" (click)="closeProfilePanel()" aria-hidden="true"></div>
+
+  <aside class="profile-panel" [class.open]="profilePanelOpen" [attr.aria-hidden]="!profilePanelOpen"
+    aria-label="User profile panel">
+    <div class="profile-panel__header">
+      <div>
+        <div class="profile-panel__eyebrow">Account</div>
+        <h2>User Profile</h2>
+      </div>
+
+      <button type="button" class="profile-panel__close" (click)="closeProfilePanel()" aria-label="Close profile panel">
+        ×
+      </button>
+    </div>
+
+    <div class="profile-panel__body" *ngIf="auth.user as user">
+      <div class="profile-card">
+        <div class="profile-card__name">
+          {{ user.firstName || user.lastName }}
+        </div>
+        <div class="profile-card__email">
+          {{ user.email || 'No email available' }}
+        </div>
+      </div>
+
+      <div class="profile-grid">
+        <div class="profile-row">
+          <div class="profile-label">Role</div>
+          <div class="profile-value">
+            {{ user.role }}
+          </div>
+        </div>
+
+        <div class="profile-row">
+          <div class="profile-label">Office</div>
+          <div class="profile-value">
+            {{ user.office || '—' }}
+          </div>
+        </div>
+
+        <div class="profile-row">
+          <div class="profile-label">Component</div>
+          <div class="profile-value">
+            {{ user.component || '—' }}
+          </div>
+        </div>
+
+        <div class="profile-row">
+          <div class="profile-label">Organization ID</div>
+          <div class="profile-value">
+            {{ user.organization_id || '—' }}
+          </div>
+        </div>
+
+        <div class="profile-row">
+          <div class="profile-label">User ID</div>
+          <div class="profile-value">
+            {{ user.id || '—' }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
 
   <!-- Main page body -->
   <main class="apfs-main">
     <div class="hero-panel">
       <div class="site-shell hero-panel__inner">
-
         <div class="content-stage">
           <router-outlet></router-outlet>
         </div>
-
       </div>
     </div>
   </main>
@@ -219,7 +251,6 @@
   <!-- Dark footer -->
   <footer class="apfs-footer">
     <div class="site-shell apfs-footer__inner">
-
       <div class="footer-topline">
         <img src="/assets/images/logo.svg" class="footer-seal" alt="DHS seal" />
 
@@ -232,18 +263,23 @@
       </div>
 
       <div class="footer-links-grid">
-
         <a href="https://www.dhs.gov/about-dhs" target="_blank">About DHS</a>
         <a href="https://www.dhs.gov/dhs-components" target="_blank">DHS Components</a>
         <a href="https://www.dhs.gov/privacy-policy" target="_blank">Privacy Policy</a>
-        <a href="https://www.whitehouse.gov" target="_blank">The White House</a>
+        <a href="https://urldefense.us/v3/__https://www.whitehouse.gov__;!!BClRuOV5cvtbuNI!BsYNyMzviEWGgjdNrRs75zCtz9gq5B6rrTR6iAQD5DZeOIvJiGw7MRtbqN6SGErybIIDbzMYYEcJ2bRahHbajq8OX1A1A1gh-9R8weX-Gg$"
+          target="_blank">
+          The White House
+        </a>
 
         <a href="https://www.dhs.gov/accessibility" target="_blank">Accessibility Statement</a>
         <a href="https://www.dhs.gov/foia" target="_blank">FOIA Requests</a>
         <a href="https://www.dhs.gov/vulnerability-disclosure-program" target="_blank">
           Vulnerability Disclosure Program
         </a>
-        <a href="https://www.usa.gov" target="_blank">USA.gov</a>
+        <a href="https://urldefense.us/v3/__https://www.usa.gov__;!!BClRuOV5cvtbuNI!BsYNyMzviEWGgjdNrRs75zCtz9gq5B6rrTR6iAQD5DZeOIvJiGw7MRtbqN6SGErybIIDbzMYYEcJ2bRahHbajq8OX1A1A1gh-9RFLZfFYg$"
+          target="_blank">
+          USA.gov
+        </a>
 
         <a href="https://www.dhs.gov/publication/budget-performance" target="_blank">
           Budget and Performance
@@ -254,10 +290,7 @@
         <a href="https://www.oig.dhs.gov" target="_blank">
           Office of the Inspector General
         </a>
-
       </div>
-
     </div>
   </footer>
-
 </div>
