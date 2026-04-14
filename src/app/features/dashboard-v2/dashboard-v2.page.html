@@ -38,6 +38,11 @@
           Recent Activity
         </button>
       </div>
+
+      <div class="dashboard-meta">
+        {{ recordCount() }} records
+      </div>
+
       <app-records-table [rows]="filteredRows()" (rowClick)="openRecord($event)"></app-records-table>
 
 

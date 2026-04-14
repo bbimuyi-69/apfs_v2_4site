@@ -17,7 +17,7 @@ import { ForecastRecordService } from '../forecast/forecast-record/services/fore
 import { ForecastRecord } from '../forecast/forecast-record/models/forecast-record.model';
 import { AuthService } from '../../auth/auth.service';
 import { DashboardFilters, StatusCount } from './models/dashboard-v2.models';
-
+import { environment } from '../../../environments/environment';
 import { ForecastWorkflowLane } from '../forecast/forecast-record/models/forecast-record.enums';
 
 type ForecastView = 'claimed' | 'office' | 'activity';
@@ -51,6 +51,8 @@ export class DashboardV2Page implements OnInit {
   ) { }
 
   // Core state
+
+
   readonly rows = signal<ForecastRecord[]>([]);
   readonly selected = signal<ForecastRecord | null>(null);
 
@@ -142,7 +144,7 @@ export class DashboardV2Page implements OnInit {
     this.isLoading.set(true);
     this.currentView.set(view);
 
-    this.http.get<{ rows: ForecastRecord[]; total: number }>(`/api/forecast-records/${view}`).subscribe({
+    this.http.get<{ rows: ForecastRecord[]; total: number }>(`${environment.apiBaseUrl}/forecast-records/${view}`).subscribe({
       next: (res) => {
         const rows = Array.isArray(res?.rows) ? res.rows : [];
         this.rows.set(rows);
@@ -195,6 +197,51 @@ export class DashboardV2Page implements OnInit {
     return ForecastWorkflowLane.Draft;
   }
 
+  getToLane(r: ForecastRecord): ForecastWorkflowLane {
+    return this.getLane(r);
+  }
+
+  getFromLane(r: ForecastRecord): ForecastWorkflowLane | '—' {
+    switch (this.getLane(r)) {
+      case ForecastWorkflowLane.Draft:
+        return '—';
+      case ForecastWorkflowLane.Requirements:
+        return ForecastWorkflowLane.Draft;
+      case ForecastWorkflowLane.Contracting:
+        return ForecastWorkflowLane.Requirements;
+      case ForecastWorkflowLane.APFSCoordinator:
+        return ForecastWorkflowLane.Contracting;
+      case ForecastWorkflowLane.Published:
+        return ForecastWorkflowLane.APFSCoordinator;
+      default:
+        return '—';
+    }
+  }
+
+  formatLane(lane: ForecastWorkflowLane | '—'): string {
+    if (lane === '—') return '—';
+
+    switch (lane) {
+      case ForecastWorkflowLane.Draft:
+        return 'Draft';
+      case ForecastWorkflowLane.Requirements:
+        return 'Requirements';
+      case ForecastWorkflowLane.Contracting:
+        return 'Contracting';
+      case ForecastWorkflowLane.APFSCoordinator:
+        return 'APFS Coordinator';
+      case ForecastWorkflowLane.Published:
+        return 'Published';
+      default:
+        return String(lane);
+    }
+  }
+
+  getWorklaneLabel(r: ForecastRecord): string {
+    return `${this.formatLane(this.getFromLane(r))} → ${this.formatLane(this.getToLane(r))}`;
+  }
+  //end new derived lane accessors
+
   // Computeds
   readonly workableRows = computed(() =>
     this.rows().filter(r => this.WORKABLE_LANES.has(this.getLane(r)))
@@ -219,45 +266,21 @@ export class DashboardV2Page implements OnInit {
     }));
   });
 
+  readonly recordCount = computed(() => this.filteredRows().length);
+
   readonly filteredRows = computed(() => {
     let list = [...this.rows()];
     const f = this.filters();
     const myId = this.getMyUserId();
 
-    // ✅ Filter by workflow lane (Draft/Requirements/Contracting/APFS Coordinator/Published)
-    if (f.status !== 'All') {
-      list = list.filter(r => String(this.getLane(r)) === String(f.status));
-    }
+    // existing filters...
 
-    if (f.q.trim()) {
-      const q = f.q.toLowerCase();
-      list = list.filter(r =>
-        String(r.apfsNumber ?? '').toLowerCase().includes(q) ||
-        String((r as any).requirementsTitle ?? '').toLowerCase().includes(q) ||
-        String((r as any).component ?? '').toLowerCase().includes(q)
-      );
-    }
-
-    // Note: even though the default view is "claimed", keeping these filter toggles is still fine
-    // (they won't break anything; they just further narrow the list).
-    if (f.mineClaimed && myId) {
-      list = list.filter(r => String((r as any).assignedToUserId ?? '') === myId);
-    }
-
-    if (f.mineSubmitted && myId) {
-      list = list.filter(r =>
-        String((r as any).submittedBy ?? '') === myId ||
-        String((r as any).submittedBy ?? '') === this.userEmail()
-      );
-    }
-
-    list.sort((a: any, b: any) => {
-      const ta = new Date(a?.updatedAt ?? a?.createdAt ?? 0).getTime();
-      const tb = new Date(b?.updatedAt ?? b?.createdAt ?? 0).getTime();
-      return f.sort === 'updated_desc' ? (tb - ta) : (ta - tb);
-    });
-
-    return list;
+    // 🔥 ADD THIS MAPPING STEP
+    return list.map(r => ({
+      ...r,
+      worklaneFrom: this.formatLane(this.getFromLane(r)),
+      worklaneTo: this.formatLane(this.getToLane(r)),
+    }));
   });
 
   // UI handlers

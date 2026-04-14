@@ -2,28 +2,24 @@
   <div class="thead">
     <div>4SITE #</div>
     <div>Title</div>
-    <div></div>
     <div>Component</div>
-
-    <div>Status</div>
+    <div>From</div>
+    <div>To</div>
     <div>Assigned</div>
     <div>Updated</div>
   </div>
 
   <div class="tbody">
     <div class="tr row-focus" *ngFor="let r of rows" (click)="rowClick.emit(r)">
-      <div class="mono">{{ r.apfsNumber || r.id }}</div>
-      <div class="title">{{ r.requirement }}</div>
-      <div></div>
+      <div>{{ r.apfsNumber || r.id }}</div>
+      <div>{{ r.requirement }}</div>
       <div>{{ r.component || '—' }}</div>
-
+      <div>{{ r['worklaneFrom'] }}</div>
       <div>
-        <span [class]="pillClass(r.workflowStatus)">
-          {{ r.workflowStatus }}
-        </span>
+        {{ r['worklaneTo'] }}
       </div>
       <div>{{ assignedLabel(r) }}</div>
-      <div class="mono">{{ updatedLabel(r) }}</div>
+      <div>{{ updatedLabel(r) }}</div>
     </div>
 
     <div class="empty" *ngIf="!rows?.length">
