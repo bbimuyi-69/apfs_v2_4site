@@ -208,10 +208,30 @@ export class ForecastRecordService {
     return of(normalized).pipe(delay(150));
   }
 
+  private serializeRecordForApi(record: ForecastRecord): ForecastRecord {
+    const payload: any = { ...record };
+
+    if (Array.isArray(payload.placeOfPerformanceState)) {
+      payload.placeOfPerformanceState = payload.placeOfPerformanceState.join(',');
+    }
+
+    if (Array.isArray(payload.placeOfPerformanceCountry)) {
+      payload.placeOfPerformanceCountry = payload.placeOfPerformanceCountry.join(',');
+    }
+
+    if (Array.isArray(payload.placeOfPerformanceCity)) {
+      payload.placeOfPerformanceCity = payload.placeOfPerformanceCity.join(',');
+    }
+
+    return payload as ForecastRecord;
+  }
+
   create(record: ForecastRecord): Observable<ForecastRecord> {
     if (!this.useMock) {
+      const payload = this.serializeRecordForApi(record);
+
       return this.http
-        .post<ForecastRecord>(this.baseUrl, record, { headers: this.userHeaders() })
+        .post<ForecastRecord>(this.baseUrl, payload, { headers: this.userHeaders() })
         .pipe(map((r) => this.normalize(r)));
     }
 
@@ -247,8 +267,10 @@ export class ForecastRecordService {
     }
 
     if (!this.useMock) {
+      const payload = this.serializeRecordForApi(record);
+
       return this.http
-        .put<ForecastRecord>(`${this.baseUrl}/${record.id}`, record, { headers: this.userHeaders() })
+        .put<ForecastRecord>(`${this.baseUrl}/${record.id}`, payload, { headers: this.userHeaders() })
         .pipe(map((r) => this.normalize(r)));
     }
 

@@ -18,6 +18,9 @@ import {
 
 import { ForecastRecord } from '../../models/forecast-record.model';
 import { ForecastWorkflowLane } from '../../models/forecast-record.enums';
+import { ApfsOfficeService } from 'src/app/core/services/apfs-offices.service';
+import { recompeteRequiresIncumbentAndContractNumberValidator }
+    from './forecast-record';
 
 /** --- Comment required rule: all transitions except Draft → Requirements --- */
 type Transition = { from: ForecastWorkflowLane; to: ForecastWorkflowLane };
@@ -74,7 +77,7 @@ export type ForecastRecordFormGroup = FormGroup<{
     contractType: FormControl<string | null>;
     strategicSourcingVehicleUsed: FormControl<string | null>;
     strategicSourcingVehicle: FormControl<string | null>;
-    // typeOfAward: FormControl<string | null>;
+    typeOfAward: FormControl<string | null>;
 
     competitive: FormControl<string | null>;
     contractStatus: FormControl<string | null>;
@@ -87,12 +90,17 @@ export type ForecastRecordFormGroup = FormGroup<{
     estimatedPopEnd: FormControl<string | null>;
     fiscalYear: FormControl<number | null>;
 
+    /** NEW Requirements-owned fiscal year helper fields */
+    fiscalYearEstAward: FormControl<number | null>;
+    fiscalYearSolicitation: FormControl<number | null>;
+
     anticipatedAwardDate: FormControl<string | null>;
     estimatedSolicitationReleaseDate: FormControl<string | null>;
 
     /** Place of performance */
     placeOfPerformanceCity: FormControl<string | null>;
-    placeOfPerformanceState: FormControl<string | null>;
+    placeOfPerformanceState: FormControl<string[]>;
+    placeOfPerformanceCountry: FormControl<string[]>;
 
     /** Primary POC */
     primaryContactFirstName: FormControl<string>;
@@ -177,6 +185,9 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
     const initialContractingOfficeLabel = r.contractingOffice ?? null;
     const initialCoordinatorOfficeLabel = r.coordinatorOffice ?? null;
 
+    const stateRaw = (r as any).placeOfPerformanceState;
+    const countryRaw = (r as any).placeOfPerformanceCountry;
+
     //this is the main form builder with new fields added and validation as needed
     //Look here for adding new fields to the form        
     const form = new FormGroup(
@@ -211,12 +222,17 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
             coordinatorOfficeId: new FormControl(initialCoordinatorOfficeId),
 
             requirementsOffice: new FormControl(initialRequirementsOfficeLabel),
-            contractingOffice: new FormControl(initialContractingOfficeLabel),
+            //         contractingOffice: new FormControl(initialContractingOfficeLabel),
+            contractingOffice: new FormControl(initialContractingOfficeLabel, {
+                validators: [Validators.required],
+            }),
             coordinatorOffice: new FormControl(initialCoordinatorOfficeLabel),
 
             /** ✅ NEW: UI-only action field used during transitions */
             transitionComment: new FormControl('', { nonNullable: true }),
 
+
+            /** Requirements Section Validators */
             requirementsTitle: new FormControl(record.requirementsTitle ?? '', {
                 nonNullable: true,
                 validators: [Validators.required, Validators.maxLength(255), noSpecialCharactersValidator()],
@@ -227,59 +243,85 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
                 validators: [Validators.required, Validators.maxLength(600), noSpecialCharactersValidator()],
             }),
 
-            // programLevel: new FormControl(record.programLevel ?? null),
+            dollarRange: new FormControl(record.dollarRange ?? '', {
+                nonNullable: true,
+                validators: [Validators.required],
+            }),
 
-            /** APFS Coordinator updated fields (role toggled later) */
-            smallBusinessSetAside: new FormControl(record.smallBusinessSetAside ?? null),
-            smallBusinessProgram: new FormControl(record.smallBusinessProgram ?? null),
+            naicsCode: new FormControl(record.naicsCode ?? '', {
+                nonNullable: true,
+                validators: [Validators.required],
+            }),
 
-            /** Value classification (role toggled later) */
-            dollarRange: new FormControl(record.dollarRange ?? null),
-            naicsCode: new FormControl(record.naicsCode ?? null),
+            competitive: new FormControl(record.competitive ?? '', {
+                nonNullable: true,
+                validators: [Validators.required],
+            }),
 
-            /** Contracting Officer updated fields (role toggled later) */
-            contractType: new FormControl(record.contractType ?? null),
-            strategicSourcingVehicleUsed: new FormControl(record.strategicSourcingVehicleUsed ?? null),
-            strategicSourcingVehicle: new FormControl(record.strategicSourcingVehicle ?? null),
-            // typeOfAward: new FormControl(record.typeOfAward ?? null),
-
-            competitive: new FormControl(record.competitive ?? null),
-            contractStatus: new FormControl(record.contractStatus ?? null),
+            contractStatus: new FormControl(record.contractStatus ?? '', {
+                nonNullable: true,
+                validators: [Validators.required],
+            }),
 
             incumbent: new FormControl(record.incumbent ?? '', {
                 nonNullable: true,
-                validators: [Validators.required, Validators.maxLength(100), noSpecialCharactersValidator()],
+                validators: [Validators.maxLength(100), noSpecialCharactersValidator()],
             }),
 
-            contractNumber: new FormControl(record.contractNumber ?? null),
-
-            fiscalYear: new FormControl(record.fiscalYear ?? null),
-
-
-            /** Dates (role toggled later) */
-            estimatedPopStart: new FormControl(record.estimatedPopStart ?? null, {
-                validators: [Validators.required,
-                Validators.pattern(/^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/),
-                ],
-            }),
-            estimatedPopEnd: new FormControl(record.estimatedPopEnd ?? null, {
-                validators: [Validators.required,
-                Validators.pattern(/^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/),
-                ],
-            }),
-            estimatedSolicitationReleaseDate: new FormControl(record.estimatedSolicitationReleaseDate ?? null, {
-                validators: [Validators.required,
-                Validators.pattern(/^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/),
-                ],
-            }),
-            anticipatedAwardDate: new FormControl(record.anticipatedAwardDate ?? null, {
-                validators: [Validators.required,
-                Validators.pattern(/^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/),
-                ],
+            contractNumber: new FormControl(record.contractNumber ?? '', {
+                nonNullable: true,
             }),
 
-            placeOfPerformanceCity: new FormControl(record.placeOfPerformanceCity ?? null),
-            placeOfPerformanceState: new FormControl(record.placeOfPerformanceState ?? null),
+            fiscalYear: new FormControl(record.fiscalYear ?? '', {
+                nonNullable: true,
+                validators: [Validators.required],
+            }),
+
+            fiscalYearEstAward: new FormControl((record as any).fiscalYearEstAward ?? null, {
+                validators: [Validators.required],
+            }),
+
+            fiscalYearSolicitation: new FormControl((record as any).fiscalYearSolicitation ?? null, {
+                validators: [Validators.required],
+            }),
+
+            //start not required for requirements after draft
+            //incumbent: new FormControl(record.incumbent ?? null),
+            //contractNumber: new FormControl(record.contractNumber ?? null),
+            //end not required for requirements after draft
+
+            placeOfPerformanceCity: new FormControl(record.placeOfPerformanceCity ?? '', {
+                nonNullable: true,
+                validators: [Validators.required],
+            }),
+
+            placeOfPerformanceState: new FormControl<string[]>(
+                Array.isArray(stateRaw)
+                    ? stateRaw
+                    : stateRaw
+                        ? String(stateRaw).split(',').map(v => v.trim()).filter(Boolean)
+                        : [],
+                {
+                    nonNullable: true,
+                    validators: [
+                        (ctrl) => (ctrl.value?.length ? null : { required: true })
+                    ]
+                }
+            ),
+
+            placeOfPerformanceCountry: new FormControl<string[]>(
+                Array.isArray(countryRaw)
+                    ? countryRaw
+                    : countryRaw
+                        ? String(countryRaw).split(',').map(v => v.trim()).filter(Boolean)
+                        : [],
+                {
+                    nonNullable: true,
+                    validators: [
+                        (ctrl) => (ctrl.value?.length ? null : { required: true })
+                    ]
+                }
+            ),
 
             primaryContactFirstName: new FormControl(record.primaryContactFirstName ?? '', {
                 nonNullable: true,
@@ -307,6 +349,7 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
                 ],
             }),
 
+            //start not required for requirements after draft
             alternateContactFirstName: new FormControl(record.alternateContactFirstName ?? null),
             alternateContactLastName: new FormControl(record.alternateContactLastName ?? null),
             alternateContactPhone: new FormControl(record.alternateContactPhone ?? null),
@@ -314,6 +357,50 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
                 validators: [
                     govEmailValidator(),
                     Validators.maxLength(254)
+                ],
+            }),
+            //end not required for requirements after draft
+
+
+
+            /** Contracting Officer updated fields (role toggled later) */
+            contractType: new FormControl(record.contractType ?? null),
+            strategicSourcingVehicleUsed: new FormControl(record.strategicSourcingVehicleUsed ?? null),
+            strategicSourcingVehicle: new FormControl(record.strategicSourcingVehicle ?? null),
+            typeOfAward: new FormControl(record.typeOfAward ?? null),
+
+
+
+            /** Dates (role toggled later) */
+            estimatedPopStart: new FormControl(record.estimatedPopStart ?? null, {
+                validators: [Validators.required,
+                Validators.pattern(/^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/),
+                ],
+            }),
+            estimatedPopEnd: new FormControl(record.estimatedPopEnd ?? null, {
+                validators: [Validators.required,
+                Validators.pattern(/^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/),
+                ],
+            }),
+            estimatedSolicitationReleaseDate: new FormControl(record.estimatedSolicitationReleaseDate ?? null, {
+                validators: [Validators.required,
+                Validators.pattern(/^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/),
+                ],
+            }),
+            anticipatedAwardDate: new FormControl(record.anticipatedAwardDate ?? null, {
+                validators: [Validators.required,
+                Validators.pattern(/^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/),
+                ],
+            }),
+
+
+
+
+            /** APFS Coordinator updated fields (role toggled later) */
+            smallBusinessSetAside: new FormControl(record.smallBusinessSetAside ?? null),
+            smallBusinessProgram: new FormControl(record.smallBusinessProgram ?? null, {
+                validators: [
+                    Validators.required, // keep if this field is required
                 ],
             }),
 
@@ -336,7 +423,13 @@ export function buildForecastRecordForm(record: ForecastRecord): ForecastRecordF
                 ],
             }),
         },
-        { updateOn: 'change' }
+        {
+            validators: [
+                recompeteRequiresIncumbentAndContractNumberValidator(),
+                requestDateOrderValidator()
+            ],
+            updateOn: 'change'
+        }
     ) as ForecastRecordFormGroup;
 
     // Safe default: keep non-requestor sections locked until permissions are applied.
@@ -387,8 +480,8 @@ export function applyForecastRecordRolePermissions(
     setEnabled(form.controls.coordinatorOfficeId, canEditOffices);
 
     // Labels follow IDs; we generally leave them enabled/readonly in the template
-    hardDisable(form.controls.contractingOffice);
-    hardDisable(form.controls.coordinatorOffice);
+    // hardDisable(form.controls.contractingOffice);
+    // hardDisable(form.controls.coordinatorOffice);
 
     // System-managed fields always disabled
     hardDisable(form.controls.apfsNumber);
@@ -440,10 +533,13 @@ export function applyForecastRecordRolePermissions(
 
     // Fiscal year (Requirements-owned)
     setEnabled(form.controls.fiscalYear, canEditRequirementsFields);
+    setEnabled(form.controls.fiscalYearEstAward, canEditRequirementsFields);
+    setEnabled(form.controls.fiscalYearSolicitation, canEditRequirementsFields);
 
     // Place of performance + POCs (Requirements-owned)
     setEnabled(form.controls.placeOfPerformanceCity, canEditRequirementsFields);
     setEnabled(form.controls.placeOfPerformanceState, canEditRequirementsFields);
+    setEnabled(form.controls.placeOfPerformanceCountry, canEditRequirementsFields);
     setEnabled(form.controls.primaryContactFirstName, canEditRequirementsFields);
     setEnabled(form.controls.primaryContactLastName, canEditRequirementsFields);
     setEnabled(form.controls.primaryContactPhone, canEditRequirementsFields);
@@ -468,8 +564,8 @@ export function applyForecastRecordRolePermissions(
     setEnabled(form.controls.contractType, canEditContractingFields);
     setEnabled(form.controls.strategicSourcingVehicleUsed, canEditContractingFields);
     setEnabled(form.controls.strategicSourcingVehicle, canEditContractingFields);
-    //setEnabled(form.controls.typeOfAward, canEditContractingFields);
-    setEnabled(form.controls.smallBusinessSetAside, canEditContractingFields);
+    setEnabled(form.controls.typeOfAward, canEditRequirementsFields);
+    //setEnabled(form.controls.smallBusinessSetAside, canEditContractingFields);
     setEnabled(form.controls.smallBusinessProgram, canEditContractingFields);
 
     // Contracting Role Section (Contracting-owned)
@@ -519,6 +615,9 @@ function lockDownByDefault(form: ForecastRecordFormGroup) {
         'sbSpecialistLastName',
         'sbSpecialistPhone',
         'sbSpecialistEmail',
+        'fiscalYearEstAward',
+        'fiscalYearSolicitation',
+        'placeOfPerformanceCountry',
     ];
 
     keysToDisable.forEach((k) => hardDisable(form.controls[k]));
@@ -593,5 +692,70 @@ export function govEmailValidator(): ValidatorFn {
 
         return { govEmail: true };
     };
+
+
+
+
 }
+function parseMmDdYyyy(value: unknown): Date | null {
+    if (typeof value !== 'string') return null;
+
+    const normalized = value.trim();
+    if (!normalized) return null;
+
+    const match = normalized.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!match) return null;
+
+    const month = Number(match[1]) - 1;
+    const day = Number(match[2]);
+    const year = Number(match[3]);
+
+    const date = new Date(year, month, day);
+    return date.getFullYear() === year &&
+        date.getMonth() === month &&
+        date.getDate() === day
+        ? date
+        : null;
+}
+
+function toDateOnly(value: unknown): Date | null {
+    if (!value) return null;
+
+    const s = String(value).trim();
+    if (!s) return null;
+
+    const parts = s.split('/');
+    if (parts.length !== 3) return null;
+
+    const [mm, dd, yyyy] = parts.map(Number);
+    if (!mm || !dd || !yyyy) return null;
+
+    return new Date(yyyy, mm - 1, dd);
+}
+
+export function requestDateOrderValidator(): ValidatorFn {
+    return (group: AbstractControl): ValidationErrors | null => {
+        const popStart = toDateOnly(group.get('estimatedPopStart')?.value);
+        const popEnd = toDateOnly(group.get('estimatedPopEnd')?.value);
+        const solicitation = toDateOnly(group.get('estimatedSolicitationReleaseDate')?.value);
+        const award = toDateOnly(group.get('anticipatedAwardDate')?.value);
+
+        const errors: Record<string, true> = {};
+
+        if (popStart && popEnd && popEnd < popStart) {
+            errors['popEndBeforeStart'] = true;
+        }
+
+        if (solicitation && award && award < solicitation) {
+            errors['awardBeforeSolicitation'] = true;
+        }
+
+        if (solicitation && popStart && solicitation > popStart) {
+            errors['solicitationAfterPopStart'] = true;
+        }
+
+        return Object.keys(errors).length ? errors : null;
+    };
+}
+
 

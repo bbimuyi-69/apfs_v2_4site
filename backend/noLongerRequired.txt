@@ -1,0 +1,73 @@
+ 
+<button type="button" class="rail-btn rail-btn--warn" *ngIf="canMarkNoLongerRequired"
+                    (click)="markNoLongerRequired()">
+                    Mark No Longer Required
+                </button>
+
+
+get canMarkNoLongerRequired(): boolean {
+    //if (!this.isEditMode) return false;
+    //if (!this.isPublished) return false;
+
+    const role = this.normalizeRailRole();
+
+    // only Admin / Super Admin
+    if (role !== 'Admin' && role !== 'Super Admin') return false;
+
+    // must be claimed (same rule as everything else)
+    //if (!this.claimedByMe) return false;
+
+    return true;
+  }
+
+
+ markNoLongerRequired(): void {
+    if (!this.canMarkNoLongerRequired) return;
+
+    const recordId = this.recordId;
+    if (!recordId) return;
+    if (!this.record) return;
+
+    const ok = confirm('Mark this record as No Longer Required?');
+    if (!ok) return;
+
+    this.isLoading = true;
+    this.flushView();
+
+    const raw = this.form!.getRawValue();
+
+    const payload: ForecastRecord = {
+      ...this.record,
+      ...raw,
+      id: Number(recordId),
+      contractStatus: 'NO_LONGER_REQUIRED',
+      placeOfPerformanceState: Array.isArray(raw.placeOfPerformanceState)
+        ? (raw.placeOfPerformanceState[0] ?? '')
+        : (raw.placeOfPerformanceState ?? ''),
+    };
+
+    this.service.update(payload).subscribe({
+      next: (updated) => {
+        this.record = updated;
+
+        this.form = buildForecastRecordForm(updated);
+        this.wireNaicsTypeahead();
+        this.submitted = false;
+
+        this.lockComponentFromAuth();
+        this.hydrateOfficeFromProfile();
+        this.applyAccessState();
+        this.wireStrategicSourcingVehicleToggle();
+        this.hydratePrimaryContactFromProfile();
+
+        this.isLoading = false;
+        this.flushView();
+      },
+      error: (e: unknown) => {
+        console.error('Mark No Longer Required failed', e);
+        this.isLoading = false;
+        this.flushView();
+        alert('Update failed. Please try again.');
+      },
+    });
+  }

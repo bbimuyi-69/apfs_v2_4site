@@ -1,4 +1,5 @@
-//Readme: 
+// src\app\features\forecast\forecast-record\components\forecast-record\forecast-record.ts
+
 /**
  * FORECAST RECORD QUICK LINKS
  * - Form build + always-required validators: buildForecastRecordForm (forecast-record.form.ts)
@@ -9,23 +10,15 @@
  * - Template gates: canEditRequirementsSection / canEditContractingSection (this file + html)
  */
 
-
-
-
 //#region Imports
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, inject } from '@angular/core';
-import { ReactiveFormsModule, Validators } from '@angular/forms';
+import { ReactiveFormsModule, Validators, AbstractControl, ValidationErrors, ValidatorFn, FormGroup } from '@angular/forms';
+
 import { ActivatedRoute, Router } from '@angular/router';
 import { combineLatest, of, EMPTY, map, shareReplay, tap, Observable } from 'rxjs';
 import { catchError, switchMap, timeout, startWith, delay } from 'rxjs/operators';
 import { ForecastWorkflowLane } from '../../models/forecast-record.enums';
-import {
-  ForecastRecordPrintComponent,
-  ForecastRecordPrintHistoryItem
-} from '../../components/forecast-record-print/forecast-record-print';
-
-
 
 import {
   buildForecastRecordForm,
@@ -43,33 +36,37 @@ import {
   ForecastChangeLogRow
 } from '../../services/forecast-record.service';
 
-
 import {
   APFS_COMPETITIVE,
   APFS_CONTRACT_STATUS,
   APFS_FISCAL_YEARS,
   APFS_PROGRAM_LEVELS,
-  APFS_SMALL_BUSINESS_PROGRAM,
   APFS_SMALL_BUSINESS_SET_ASIDE,
+  APFS_TYPE_OF_AWARD,
   APFS_YES_NO_UNKNOWN,
   US_STATES_WITH_NA,
+  APFS_COUNTRIES,
   OptionItem,
-  APFS_CONTRACT_TYPES,
-  APFS_DOLLAR_RANGES,
-  APFS_STRATEGIC_SOURCING_VEHICLES,
-  APFS_NAICS_CODES,
+
 } from '../../models/forecast-record.lookups';
 
 import { AuthService } from '../../../../../auth/auth.service';
 import { ApfsOfficeService } from '../../../../../core/services/apfs-offices.service';
-// REMOTE ONLY
-// import { ApfsLookupsService } from '../../../../../core/services/apfs-lookups.service';
-
+//import { ApfsLookupsService } from '../../../../../core/services/apfs-lookups.service';
+import { ApfsOrganizationService } from '../../../../../core/services/apfs-organization.service';
 //#endregion
 
 //#region Record History View Model
-type RecordHistoryItemVM = ForecastRecordPrintHistoryItem;
-
+type RecordHistoryItemVM = {
+  id: number | string;
+  at: string;                 // formatted timestamp
+  atIso?: string;             // original ISO (optional)
+  title: string;              // “Draft → Requirements”
+  actor: string;              // “HQ_Req@hq.dhs.gov”
+  comment?: string;           // user_comment
+  assignment?: string;        // assignment_display
+  isLatest?: boolean;         // latest === 1
+};
 type ChangeLogItemVM = {
   id: number | string;
   at: string;
@@ -79,9 +76,7 @@ type ChangeLogItemVM = {
   newValue: string;
   isPublic?: boolean;
 };
-
 //#endregion
-
 
 //#region Types
 type RailStatus =
@@ -124,6 +119,60 @@ export function apfsForecastSharePath(id: string | number, mode: 'view' | 'edit'
   return mode === 'edit' ? `/forecast/${safe}?mode=edit` : `/forecast/${safe}`;
 }
 
+export function recompeteRequiresIncumbentAndContractNumberValidator(): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const form = control as FormGroup;
+
+    const contractStatus = form.get('contractStatus')?.value;
+    const incumbentCtrl = form.get('incumbent');
+    const contractNumberCtrl = form.get('contractNumber');
+
+    if (!incumbentCtrl || !contractNumberCtrl) {
+      return null;
+    }
+
+    console.log('[Validator] contractStatus:', contractStatus);
+
+    const triggerStatuses = ['RECOMPETE', 'FOLLOW_ON'];
+
+    const isTriggered = triggerStatuses.includes(
+      String(contractStatus ?? '').toUpperCase()
+    );
+
+    const incumbentValue = String(incumbentCtrl.value ?? '').trim();
+    const contractNumberValue = String(contractNumberCtrl.value ?? '').trim();
+
+    applyConditionalError(incumbentCtrl, 'requiredIfRecompete', isTriggered && !incumbentValue);
+    applyConditionalError(contractNumberCtrl, 'requiredIfRecompete', isTriggered && !contractNumberValue);
+
+    return null;
+  };
+}
+
+function applyConditionalError(
+  control: AbstractControl,
+  errorKey: string,
+  shouldHaveError: boolean
+): void {
+  const errors = control.errors || {};
+
+  if (shouldHaveError) {
+    if (!errors[errorKey]) {
+      control.setErrors({ ...errors, [errorKey]: true });
+    }
+    return;
+  }
+
+  if (errors[errorKey]) {
+    const { [errorKey]: _, ...remaining } = errors;
+    control.setErrors(Object.keys(remaining).length ? remaining : null);
+  }
+}
+
+
+
+
+
 
 
 //#endregion
@@ -131,7 +180,7 @@ export function apfsForecastSharePath(id: string | number, mode: 'view' | 'edit'
 @Component({
   selector: 'app-forecast-record',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, ForecastRecordPrintComponent],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './forecast-record.html',
   styleUrls: ['./forecast-record.css'],
 })
@@ -144,40 +193,32 @@ export class ForecastRecordComponent {
   private readonly service = inject(ForecastRecordService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly auth = inject(AuthService);
-  // REMOTE ONLY
-  // private readonly lookups = inject(ApfsLookupsService);
+  //need to uncomment for prod
+  //private readonly lookups = inject(ApfsLookupsService);
   private readonly officeSvc = inject(ApfsOfficeService);
+  private readonly orgService = inject(ApfsOrganizationService);
 
-  hasSavedRecord = false; // ✅ HERE to track if we have saved at least once
+  hasSavedRecord = false;
   saveSuccessMessage = false;
   isSaving = false;
   justSaved = false;
-
+  isAdminOrSuperuser = false;
+  countriesOpen = false;
+  statesOpen = false;
 
   //#endregion
-
-  /**
-   * LOOKUP MODE SWITCH
-   *
-   * LOCAL:
-   *  - USE_RUNTIME_LOOKUPS = false
-   *  - Uses static constants
-   *
-   * REMOTE:
-   *  - USE_RUNTIME_LOOKUPS = true
-   *  - Uncomment ApfsLookupsService import + inject
-   */
-  private readonly USE_RUNTIME_LOOKUPS = false;
 
   //#region Lookups
   readonly programLevels = APFS_PROGRAM_LEVELS;
   readonly smallBusinessSetAsideOptions = APFS_SMALL_BUSINESS_SET_ASIDE;
+  readonly typeOfAwardOptions = APFS_TYPE_OF_AWARD;
 
-  smallBusinessProgramOptions: OptionItem[] = APFS_SMALL_BUSINESS_PROGRAM;
-  dollarRanges: OptionItem[] = APFS_DOLLAR_RANGES;
-  naicsCodes: OptionItem[] = APFS_NAICS_CODES;
-  contractTypes: OptionItem[] = APFS_CONTRACT_TYPES;
-  strategicSourcingVehicleOptions: OptionItem[] = APFS_STRATEGIC_SOURCING_VEHICLES;
+  // DB-backed, loaded at runtime
+  smallBusinessProgramOptions: OptionItem[] = [];
+  dollarRanges: OptionItem[] = [];
+  naicsCodes: OptionItem[] = [];
+  contractTypes: OptionItem[] = [];
+  strategicSourcingVehicleOptions: OptionItem[] = [];
 
   readonly yesNoUnknown = APFS_YES_NO_UNKNOWN;
 
@@ -186,7 +227,9 @@ export class ForecastRecordComponent {
 
   readonly fiscalYears = APFS_FISCAL_YEARS;
   readonly stateOptions = US_STATES_WITH_NA;
+  readonly countryOptions = APFS_COUNTRIES;
 
+  /** Current user's organization id (from /me -> auth user) */
   private get myOrganizationId(): number | null {
     const u: any = (this.auth as any).user ?? (this.auth as any).session?.user ?? null;
     const raw = u?.organization_id ?? u?.organizationId ?? null;
@@ -194,10 +237,10 @@ export class ForecastRecordComponent {
     return Number.isFinite(n) ? n : null;
   }
 
-  // ✅ Offices from API (loaded once)
+  // Offices from API (loaded once, scoped by organization)
   private readonly officeOptions$ = this.officeSvc.getPublicOptions({
     active: 1,
-    organizationId: this.myOrganizationId ?? undefined
+    organizationId: this.myOrganizationId ?? undefined,
   }).pipe(shareReplay(1));
 
   readonly requirementsOfficeOptions$ = this.officeOptions$.pipe(
@@ -205,8 +248,8 @@ export class ForecastRecordComponent {
       rows
         .filter(r => r.office_assignment_permissions_level_id === 1)
         .map(r => ({
-          value: String(r.id),
-          label: r.full_name
+          value: String(r.id),       // ID string
+          label: r.full_name,        // human readable
         }))
     )
   );
@@ -215,7 +258,10 @@ export class ForecastRecordComponent {
     map(rows =>
       rows
         .filter(r => r.office_assignment_permissions_level_id === 2)
-        .map(r => ({ value: String(r.id), label: r.full_name }))
+        .map(r => ({
+          value: String(r.id),
+          label: r.full_name,
+        }))
     )
   );
 
@@ -223,11 +269,14 @@ export class ForecastRecordComponent {
     map(rows =>
       rows
         .filter(r => r.office_assignment_permissions_level_id === 3)
-        .map(r => ({ value: String(r.id), label: r.full_name }))
+        .map(r => ({
+          value: String(r.id),
+          label: r.full_name,
+        }))
     )
   );
 
-  //Constants for sectional scrolling
+  // Section anchors for scroll-to-first-invalid
   private readonly SECTION_IDS = [
     '#sec-record-info',
     '#sec-requirements',
@@ -240,26 +289,23 @@ export class ForecastRecordComponent {
   trackByValue(_: number, item: OptionItem) {
     return item.value;
   }
+
+  // NAICS typeahead results
+  filteredNaicsCodes$: Observable<OptionItem[]> = of([]);
   //#endregion
 
   //#region State
   form: ForecastRecordFormGroup | null = null;
   recordId: string | null = null;
-
-  /** ✅ API record reference */
   record: ForecastRecord | null = null;
 
   isEditMode = false;
   isLoading = true;
   loadError: string | null = null;
 
-  /** Cached per-load; safe to re-read anytime */
   private userProfile: UserProfileLike | null = null;
-
-  /** Submit-driven validation UI */
   submitted = false;
 
-  /** Record Actions rail permissions */
   rail: RailPermissions = {
     canReassign: false,
     canSave: false,
@@ -267,23 +313,14 @@ export class ForecastRecordComponent {
     canApproveSend: false,
     canDelete: false,
   };
-
-  // ✅ NAICS typeahead results (safe default)
-  filteredNaicsCodes$: Observable<OptionItem[]> = of([]);
-  private allOffices: { id: number; full_name: string }[] = [];
   //#endregion
 
   //#region History Drawer State
-  //#region Drawer State
   historyOpen = false;
   changeLogOpen = false;
   changeLogLoading = false;
   changeLogError: string | null = null;
   changeLogRows: ForecastChangeLogRow[] = [];
-
-  //#region History Drawer: View Model
-
-  //#region History Drawer: Client-only helpers
   private stateName(stateId: any): string {
     const n = Number(stateId);
     if (n === 0) return 'Draft';
@@ -297,7 +334,6 @@ export class ForecastRecordComponent {
   private formatWhen(iso: any): string {
     if (!iso) return '—';
     const d = new Date(iso);
-    // compact but readable
     return d.toLocaleString(undefined, {
       month: 'short',
       day: '2-digit',
@@ -306,7 +342,6 @@ export class ForecastRecordComponent {
       minute: '2-digit',
     });
   }
-
   private formatFieldLabel(field: any): string {
     const raw = String(field ?? '').trim();
     if (!raw) return 'Unknown field';
@@ -323,11 +358,6 @@ export class ForecastRecordComponent {
     const s = String(value).trim();
     return s || '—';
   }
-
-  //#endregion
-
-
-
   get historyItems(): RecordHistoryItemVM[] {
     const anyRecord: any = this.record as any;
 
@@ -360,7 +390,6 @@ export class ForecastRecordComponent {
         (h.assignment_display ?? h.assignedToName ?? '')?.toString().trim() || undefined;
 
       const isLatest = Number(h.latest) === 1;
-
       const hasTransition = from != null && to != null;
 
       const title =
@@ -385,7 +414,6 @@ export class ForecastRecordComponent {
       };
     });
   }
-
   get changeLogItems(): ChangeLogItemVM[] {
     if (!Array.isArray(this.changeLogRows) || this.changeLogRows.length === 0) {
       return [];
@@ -406,15 +434,9 @@ export class ForecastRecordComponent {
     });
   }
 
-
-
   //#endregion
-
-  //#endregion
-
 
   //#region Derived Getters (lane, role, sections, rail)
-  /** Canonical lane */
   get workflowStatus(): ForecastWorkflowLane | null {
     return this.form?.get('workflowStatus')?.value ?? null;
   }
@@ -427,12 +449,10 @@ export class ForecastRecordComponent {
     return this.workflowStatus === ForecastWorkflowLane.Published;
   }
 
-  /** Role label for UI */
   get roleLabel(): string {
     return this.userProfile?.role ?? 'Unknown';
   }
 
-  /** Hide rail for /forecast/new */
   get showRecordRail(): boolean {
     if (!this.recordId) return false;
     const railStatus = this.normalizeRailStatus(this.workflowStatus);
@@ -441,8 +461,7 @@ export class ForecastRecordComponent {
 
   private hasEditRightsFor(role: 'Requirements' | 'Contracting Office' | 'APFS Coordinator'): boolean {
     const r = (this.userProfile?.role ?? '').trim().toLowerCase();
-
-    // ✅ Admin/Super Admin: can edit any section at any time (claim still enforced elsewhere)
+    // Admin/Super Admin: can edit any section at any time (claim still enforced elsewhere)
     if (r === 'admin' || r.includes('admin')) return true;
 
     if (role === 'Requirements') return r === 'requirements';
@@ -451,8 +470,6 @@ export class ForecastRecordComponent {
     return r === 'contracting' || r === 'contracting office';
   }
 
-
-  //This is new for claiming to edit Tbrown 03/03/2026
   private get claimedByMe(): boolean {
     const assigned = Number(this.record?.assignedToUserId ?? 0);
     const me = Number(this.userProfile?.id ?? 0);
@@ -476,27 +493,31 @@ export class ForecastRecordComponent {
 
     return null;
   }
-  //End This is new for claiming to edit
 
   private get isAdminOrSuperAdmin(): boolean {
-    const r = (this.userProfile?.role ?? '').trim().toLowerCase();
-    return r === 'admin' || r.includes('admin');
+    const roleLc = (this.userProfile?.role ?? '').trim().toLowerCase();
+    const isSuper = this.userProfile?.isSuperuser === 1;
+
+    const result = !!roleLc && (roleLc === 'admin' || roleLc.includes('admin') || isSuper);
+
+    // Optional: keep a single debug log here if needed
+    console.log('[ForecastRecord] isAdminOrSuperAdmin', {
+      role: this.userProfile?.role,
+      isSuperuser: this.userProfile?.isSuperuser,
+      result,
+    });
+
+    return result;
   }
 
 
-  //PAY ATTENTION
-  //This is better loging for being lane aware and can being ediatble by multiple roles
   get canEditRequirementsSection(): boolean {
     if (!this.isEditMode) return false;
-
-    // ✅ Must be claimed by the current user (admins included)
     if (!this.claimedByMe) return false;
 
-    // ✅ Admin/Super Admin can edit any section at any time
     if (this.isAdminOrSuperAdmin) return true;
 
     const lane = this.normalizeRailStatus(this.workflowStatus);
-
     if (lane === 'Draft') {
       return this.hasEditRightsFor('Requirements');
     }
@@ -511,6 +532,7 @@ export class ForecastRecordComponent {
 
     return false;
   }
+
   get canEditCoordinatorSection(): boolean {
     if (!this.isEditMode) return false;
     if (!this.claimedByMe) return false;
@@ -518,19 +540,12 @@ export class ForecastRecordComponent {
     return this.hasEditRightsFor('APFS Coordinator');
   }
 
-  //PAY ATTENTION
-  //This is better loging for being lane aware and can being ediatble by multiple roles
   get canEditContractingSection(): boolean {
     if (!this.isEditMode) return false;
-
-    // Must be claimed by the current user
     if (!this.claimedByMe) return false;
-
-    // Admin / Super Admin can edit any section
     if (this.isAdminOrSuperAdmin) return true;
 
     const lane = this.normalizeRailStatus(this.workflowStatus);
-
     if (lane === 'Draft') {
       return this.hasEditRightsFor('Requirements');
     }
@@ -549,18 +564,18 @@ export class ForecastRecordComponent {
     return false;
   }
 
-
   get canEditClassificationSection(): boolean {
-    return this.isEditMode && (this.canEditCoordinatorSection || this.canEditContractingSection || this.canEditRequirementsSection);
+    return (
+      this.isEditMode &&
+      (this.canEditCoordinatorSection || this.canEditContractingSection || this.canEditRequirementsSection)
+    );
   }
 
-  // --- Rail convenience getters ---
   get canReassign(): boolean { return this.rail.canReassign; }
   get canSave(): boolean { return this.rail.canSave; }
   get canUnassign(): boolean { return this.rail.canUnassign; }
   get canApproveSend(): boolean { return this.rail.canApproveSend; }
 
-  /** Delete enablement based on API record assignment + current user */
   get canDelete(): boolean {
     if (!this.recordId) return false;
     if (this.isLoading) return false;
@@ -622,10 +637,6 @@ export class ForecastRecordComponent {
     return false;
   }
 
-
-  //this is the primary section of role based fields required to move from state to state
-  //PAY ATTENTION
-  //this allows the form to move for4ward in the workflow only if these fields are filled out
   private getRoleRequiredControls(): Array<keyof ForecastRecordFormGroup['controls']> {
     const role = this.normalizeRailRole();
     const status = this.normalizeRailStatus(this.workflowStatus);
@@ -635,23 +646,23 @@ export class ForecastRecordComponent {
 
     if (role === 'Requirements' && (effectiveLane === 'Requirements' || effectiveLane === 'Draft')) {
       return [
-
         'requirementsOfficeId',
         'contractingOfficeId',
         'coordinatorOfficeId',
-
+        // 'requirementsOffice',
+        // 'contractingOffice',
+        // 'coordinatorOffice',
         'primaryContactFirstName',
         'primaryContactLastName',
         'primaryContactEmail',
         'primaryContactPhone',
         'requirementsTitle',
         'requirement',
-        //'programLevel',
-        // Value Classification now required
         'dollarRange',
         'naicsCode',
-
-        //Contracting Section fields now required in Requirements lane
+        'placeOfPerformanceCity',
+        'placeOfPerformanceState',
+        'placeOfPerformanceCountry',
         'contractType',
         'strategicSourcingVehicleUsed',
         'strategicSourcingVehicle',
@@ -660,27 +671,24 @@ export class ForecastRecordComponent {
         'competitive',
         'contractStatus',
         'fiscalYear',
+        'fiscalYearEstAward',
+        'fiscalYearSolicitation',
         'estimatedPopStart',
         'estimatedPopEnd',
         'anticipatedAwardDate',
         'estimatedSolicitationReleaseDate',
-
-        // Place of Performance now required
-        'placeOfPerformanceCity',
-        'placeOfPerformanceState',
-
+        'typeOfAward',
       ];
     }
 
     if (role === 'Contracting' && effectiveLane === 'Contracting') {
       return [
+        'smallBusinessProgram',
         'contractType',
         'strategicSourcingVehicleUsed',
         'strategicSourcingVehicle',
         'competitive',
         'contractStatus',
-
-        // Value Classification now required
         'dollarRange',
         'naicsCode',
       ];
@@ -688,13 +696,10 @@ export class ForecastRecordComponent {
 
     if (role === 'APFS Coordinator' && effectiveLane === 'APFS Coordinator') {
       return [
-        'smallBusinessSetAside',
-        'smallBusinessProgram',
         'sbSpecialistFirstName',
         'sbSpecialistLastName',
         'sbSpecialistPhone',
         'sbSpecialistEmail',
-
       ];
     }
 
@@ -719,9 +724,36 @@ export class ForecastRecordComponent {
 
     this.form.updateValueAndValidity({ emitEvent: false });
   }
+
+  private wireStrategicSourcingVehicleToggle(): void {
+    if (!this.form) return;
+
+    const usedCtrl = this.form.get('strategicSourcingVehicleUsed');
+    const vehicleCtrl = this.form.get('strategicSourcingVehicle');
+
+    if (!usedCtrl || !vehicleCtrl) return;
+
+    const apply = (v: unknown) => {
+      const isYes = String(v ?? '').toUpperCase() === 'YES';
+
+      console.log('[SSV toggle] strategicSourcingVehicleUsed:', v);
+
+      if (isYes) {
+        vehicleCtrl.enable({ emitEvent: false });
+      } else {
+        vehicleCtrl.setValue('', { emitEvent: false });
+        vehicleCtrl.disable({ emitEvent: false });
+      }
+    };
+
+    apply(usedCtrl.value);
+    usedCtrl.valueChanges.subscribe(apply);
+  }
   //#endregion
 
-  //#region Rail / Permissions / Normalization
+  //#endregion
+
+  //#region Rail / Permissions / Normalization helpers
   private normalizeRailStatus(raw: unknown): RailStatus {
     const s = String(raw ?? '').trim();
     if (!s) return 'Unknown';
@@ -749,41 +781,22 @@ export class ForecastRecordComponent {
     if (roleRaw === 'requirements') return 'Requirements';
     if (roleRaw === 'contracting office' || roleRaw === 'contracting') return 'Contracting';
     if (roleRaw === 'apfs coordinator' || roleRaw.includes('coordinator')) return 'APFS Coordinator';
-
-    // ✅ Super Admin before Admin (since it also contains 'admin')
-    if (roleRaw === 'super admin' || roleRaw === 'superadmin' || roleRaw.includes('super admin')) return 'Super Admin';
-
+    if (roleRaw === 'super admin' || roleRaw === 'superadmin' || roleRaw.includes('super admin') || this.userProfile?.isSuperuser) return 'Super Admin';
     if (roleRaw === 'admin' || roleRaw.includes('admin')) return 'Admin';
 
     return 'Viewer';
   }
 
-  private computeAssignedToMe(status: RailStatus, role: string): boolean {
-    const roleNorm = role.trim().toLowerCase();
-
-    if (!this.isEditMode) return false;
-
-    if (status === 'Requirements') return roleNorm === 'requirements';
-    if (status === 'Contracting') return roleNorm === 'contracting office' || roleNorm === 'contracting';
-    if (status === 'APFS Coordinator') return roleNorm === 'apfs coordinator';
-
-    if (status === 'Draft') return true;
-
-    return false;
-  }
-
   private computeRailPermissions(): void {
     const status = this.normalizeRailStatus(this.workflowStatus);
     const role = this.normalizeRailRole();
-    const isAdmin = role === 'Admin' || role === 'Super Admin';
+    const isAdmin = role === 'Admin' || role === 'Super Admin' || this.userProfile?.isSuperuser === 1;
     const isCoordinator = role === 'APFS Coordinator';
     const claimedByMe = this.claimedByMe;
 
-
-
     const canReassign =
       status !== 'Published' &&
-      (isAdmin);
+      isAdmin;
 
     const canSave =
       status !== 'Published' &&
@@ -812,7 +825,7 @@ export class ForecastRecordComponent {
 
     const canDelete =
       status !== 'Published' &&
-      (status === 'Draft') &&
+      status === 'Draft' &&
       (claimedByMe || isAdmin);
 
     this.rail = { canReassign, canSave, canUnassign, canApproveSend, canDelete };
@@ -828,14 +841,9 @@ export class ForecastRecordComponent {
       this.form.disable({ emitEvent: false });
     }
 
-    // ✅ Always lock component from auth after permissions toggles
     this.lockComponentFromAuth();
-
     this.computeRailPermissions();
   }
-
-
-
   //#endregion
 
   //#region View / UI Refresh Utilities
@@ -852,7 +860,6 @@ export class ForecastRecordComponent {
 
       if (!invalidEl) return;
 
-      // 1️⃣ prefer explicit known sections
       let section: HTMLElement | null = null;
 
       for (const sel of this.SECTION_IDS) {
@@ -860,10 +867,8 @@ export class ForecastRecordComponent {
         if (found) { section = found; break; }
       }
 
-      // 2️⃣ fallback to nearest generic section
       section ??= invalidEl.closest<HTMLElement>('section.sec');
 
-      // 3️⃣ scroll (use your slowed scroll)
       if (section) {
         const y = section.getBoundingClientRect().top + window.scrollY - 80;
         this.smoothScrollTo(y, 900);
@@ -874,7 +879,6 @@ export class ForecastRecordComponent {
       invalidEl.focus({ preventScroll: true });
     });
   }
-
 
   private smoothScrollTo(yTarget: number, duration = 700): void {
     const yStart = window.scrollY;
@@ -899,40 +903,8 @@ export class ForecastRecordComponent {
     requestAnimationFrame(step);
   }
 
-
-
   private focusAfterAction(): void {
-    // placeholder utility if you want to focus a known element after actions
-  }
-
-  private wireStrategicSourcingVehicleToggle(): void {
-
-    if (!this.form) return;
-
-    const usedCtrl = this.form.get('strategicSourcingVehicleUsed');
-    const vehicleCtrl = this.form.get('strategicSourcingVehicle');
-
-    if (!usedCtrl || !vehicleCtrl) return;
-
-    const apply = (v: unknown) => {
-      const isYes = String(v ?? '').toUpperCase() === 'YES';
-
-      console.log('[SSV toggle] strategicSourcingVehicleUsed:', v);
-
-      if (isYes) {
-        vehicleCtrl.enable({ emitEvent: false });
-      } else {
-        // clear + lock when NO/TBD/blank
-        vehicleCtrl.setValue('', { emitEvent: false }); // or null if you prefer
-        vehicleCtrl.disable({ emitEvent: false });
-      }
-    };
-
-    // initial state (important on edit/load)
-    apply(usedCtrl.value);
-
-    // reactive
-    usedCtrl.valueChanges.subscribe(apply);
+    // placeholder utility
   }
   //#endregion
 
@@ -940,6 +912,11 @@ export class ForecastRecordComponent {
   private extractUserProfileFromAuth(): UserProfileLike | null {
     const u: any = (this.auth as any).user ?? (this.auth as any).session?.user ?? null;
     if (!u) return null;
+
+    const officeId =
+      u.officeId ??
+      u.office_id ??
+      null;
 
     return {
       id: u.id ?? 0,
@@ -949,28 +926,139 @@ export class ForecastRecordComponent {
       role: u.role ?? 'User',
       title: u.title,
       office: u.office,
-      officeId: u.officeId ?? u.office_id ?? null,
+      officeId,
       component: u.component,
       employeeType: u.employeeType,
-      isActive: u.isActive,
-      isSuperuser: u.isSuperuser ?? u.is_superuser ?? 0,
+      isActive: u.active,
+      isSuperuser: u.isSuperuser ?? u.isSuperUser ?? 0
     };
   }
 
-  // ✅ New: always set + disable component from auth
+  /**
+   * For NEW records:
+   * - Use the authenticated user's organization_id
+   * - Lookup that org via ApfsOrganizationService
+   * - Patch componentId (numeric) and component (label)
+   */
+  private initComponentFromAuthForNewRecord(): void {
+    if (!this.form) return;
+    if (this.recordId) return;
+
+    const compCtrl = this.form.get('component');
+    const compIdCtrl = this.form.get('componentId');
+    if (!compCtrl || !compIdCtrl) return;
+
+    // If already set, do nothing
+    if (compIdCtrl.value != null && compCtrl.value) return;
+
+    const authUser: any = (this.auth as any).user ?? (this.auth as any).session?.user ?? null;
+    const rawOrg =
+      authUser?.organization_id ??
+      authUser?.organizationId ??
+      this.myOrganizationId;
+
+    const orgId = rawOrg != null ? Number(rawOrg) : null;
+    if (!orgId || !Number.isFinite(orgId)) {
+      // Fallback: keep component label from user profile if present
+      if (!compCtrl.value && this.userProfile?.component) {
+        compCtrl.setValue(this.userProfile.component, { emitEvent: false });
+      }
+      return;
+    }
+
+    this.orgService.getOrganizations({ activeOnly: true }).subscribe({
+      next: (orgs: any[]) => {
+        const org = (orgs ?? []).find(o => Number((o as any).id) === orgId);
+        const label =
+          (org as any)?.full_name ??
+          (org as any)?.acronym ??
+          (org as any)?.name ??
+          authUser?.organizationName ??
+          authUser?.organizationAcronym ??
+          this.userProfile?.component ??
+          null;
+
+        compIdCtrl.setValue(orgId, { emitEvent: false });
+        if (label) {
+          compCtrl.setValue(label, { emitEvent: false });
+        }
+      },
+      error: (err) => {
+        console.error('[ForecastRecord] initComponentFromAuthForNewRecord: org lookup failed', err);
+        compIdCtrl.setValue(orgId, { emitEvent: false });
+        if (!compCtrl.value && this.userProfile?.component) {
+          compCtrl.setValue(this.userProfile.component, { emitEvent: false });
+        }
+      },
+    });
+  }
+
+  /**
+ * For EXISTING records:
+ * - Use the record's componentId
+ * - Lookup that org via ApfsOrganizationService
+ * - Patch componentId (numeric) and component (label)
+ */
+  private initComponentFromRecordForExisting(): void {
+    if (!this.form) return;
+    if (!this.recordId) return;
+
+    const compCtrl = this.form.get('component');
+    const compIdCtrl = this.form.get('componentId');
+    if (!compCtrl || !compIdCtrl) return;
+
+    // If component already has a label, don't override
+    if (compCtrl.value) return;
+
+    const rawId =
+      (this.record as any)?.componentId ??
+      compIdCtrl.value;
+
+    const orgId = rawId != null ? Number(rawId) : null;
+    if (!orgId || !Number.isFinite(orgId)) return;
+
+    this.orgService.getOrganizations({ activeOnly: true }).subscribe({
+      next: (orgs: any[]) => {
+        const org = (orgs ?? []).find(o => Number((o as any).id) === orgId);
+        const label =
+          (org as any)?.full_name ??
+          (org as any)?.acronym ??
+          (org as any)?.name ??
+          String(orgId);
+
+        compIdCtrl.setValue(orgId, { emitEvent: false });
+        compCtrl.setValue(label, { emitEvent: false });
+      },
+      error: (err) => {
+        console.error('[ForecastRecord] initComponentFromRecordForExisting: org lookup failed', err);
+        compIdCtrl.setValue(orgId, { emitEvent: false });
+        // leave compCtrl empty if we can't resolve a label
+      },
+    });
+  }
+
+
   private lockComponentFromAuth(): void {
     if (!this.form) return;
 
-    const ctrl = this.form.get('component');
-    if (!ctrl) return;
+    const compCtrl = this.form.get('component');
+    const compIdCtrl = this.form.get('componentId');
+    if (!compCtrl) return;
 
-    const comp = (this.userProfile?.component ?? null) as any;
+    if (!this.recordId) {
+      // NEW record: derive from current user/org
+      this.initComponentFromAuthForNewRecord();
+    } else {
+      // EXISTING record: derive from record.componentId
+      this.initComponentFromRecordForExisting();
+    }
 
-    ctrl.setValue(comp, { emitEvent: false });
-    ctrl.disable({ emitEvent: false });
+
+    // Always keep them read-only
+    compCtrl.disable({ emitEvent: false });
+    if (compIdCtrl) compIdCtrl.disable({ emitEvent: false });
   }
 
-  // ✅ New: optional seed (does not overwrite)
   private hydrateOfficeFromProfile(): void {
     if (!this.form) return;
 
@@ -980,15 +1068,18 @@ export class ForecastRecordComponent {
     const idCtrl = this.form.get('requirementsOfficeId');
     const labelCtrl = this.form.get('requirementsOffice');
 
+    // If we already have ID or label set, don't override
     const hasId = !!idCtrl?.value;
     const hasLabel = !!labelCtrl?.value;
 
     if (!officeId && !officeName) return;
 
+    // 1) If we have officeId from profile, use it
     if (!hasId && officeId != null) {
       idCtrl?.setValue(String(officeId), { emitEvent: false });
     }
 
+    // 2) If no officeId but we have a name and allOffices is loaded, try to match
     if (!hasId && !officeId && officeName && this.allOffices.length) {
       const match = this.allOffices.find(
         o => o.full_name.toLowerCase() === officeName.toLowerCase()
@@ -998,10 +1089,30 @@ export class ForecastRecordComponent {
       }
     }
 
+    // 3) Always set label if we have a name and label is empty
     if (!hasLabel && officeName) {
       labelCtrl?.setValue(officeName, { emitEvent: false });
     }
   }
+
+  private seedDraftOfficeDefaults(): void {
+    if (!this.form) return;
+    if (this.recordId) return; // only for new draft
+
+    const reqLabel = this.form.get('requirementsOffice')?.value;
+
+    const contractingCtrl = this.form.get('contractingOffice');
+    const coordinatorCtrl = this.form.get('coordinatorOffice');
+
+    if (!contractingCtrl?.value) {
+      contractingCtrl?.setValue(reqLabel ?? '', { emitEvent: false });
+    }
+
+    if (!coordinatorCtrl?.value) {
+      coordinatorCtrl?.setValue(reqLabel ?? '', { emitEvent: false });
+    }
+  }
+
 
   private hydratePrimaryContactFromProfile(): void {
     if (!this.form) return;
@@ -1029,7 +1140,6 @@ export class ForecastRecordComponent {
     this.computeRailPermissions();
   }
 
-
   private triggerValidationUI(): boolean {
     if (!this.form) return false;
 
@@ -1046,9 +1156,6 @@ export class ForecastRecordComponent {
     return true;
   }
 
-  //#endregion
-
-  //#region NAICS Typeahead
   private filterNaics(value: string | null): OptionItem[] {
     const search = (value ?? '').toLowerCase();
 
@@ -1074,10 +1181,6 @@ export class ForecastRecordComponent {
   //#endregion
 
   //#region Claim helpers
-  /**
-   * For /forecast/new we "claim" immediately so the creator can edit.
-   * Admin/Super Admin also must be claimed (per your rule), so we do the same.
-   */
   private claimNewRecordToCurrentUser(base: ForecastRecord): ForecastRecord {
     const meId = Number(this.userProfile?.id ?? this.currentUserId ?? 0);
     if (!meId) return base;
@@ -1094,95 +1197,80 @@ export class ForecastRecordComponent {
     } as any;
   }
   //#endregion
-
-  private loadDbLookups(): void {
-    if (!this.USE_RUNTIME_LOOKUPS) {
-      this.officeOptions$.subscribe(rows => {
-        this.allOffices = rows.map(r => ({ id: r.id, full_name: r.full_name }));
-      });
-      return;
-    }
-
-    // REMOTE ONLY: uncomment ApfsLookupsService import + inject before enabling runtime lookups.
-    const runtimeLookups = (this as any).lookups;
-    if (!runtimeLookups) {
-      this.officeOptions$.subscribe(rows => {
-        this.allOffices = rows.map(r => ({ id: r.id, full_name: r.full_name }));
-      });
-      return;
-    }
-
-    runtimeLookups.getSmallBusinessPrograms().subscribe((list: OptionItem[]) => {
-      this.smallBusinessProgramOptions = [
-        { value: '', label: '----------' },
-        ...(list ?? []),
-      ];
-      this.flushView();
-    });
-
-    runtimeLookups.getDollarRanges().subscribe((list: OptionItem[]) => {
-      this.dollarRanges = [
-        { value: '', label: '----------' },
-        ...(list ?? []),
-      ];
-      this.flushView();
-    });
-
-    runtimeLookups.getContractTypes().subscribe((list: OptionItem[]) => {
-      this.contractTypes = [
-        { value: '', label: '----------' },
-        ...(list ?? []),
-      ];
-      this.flushView();
-    });
-
-    runtimeLookups.getContractVehicles().subscribe((list: OptionItem[]) => {
-      this.strategicSourcingVehicleOptions = [
-        { value: '', label: '----------' },
-        ...(list ?? []),
-      ];
-      this.flushView();
-    });
-
-    runtimeLookups.getNaicsCodes().subscribe((list: OptionItem[]) => {
-      this.naicsCodes = [
-        { value: '', label: 'Select…' },
-        ...(list ?? []),
-      ];
-      this.flushView();
-    });
-
-    this.officeOptions$.subscribe(rows => {
-      this.allOffices = rows.map(r => ({ id: r.id, full_name: r.full_name }));
-    });
-  }
-
+  private allOffices: { id: number; full_name: string }[] = [];
   //#region Lifecycle
   ngOnInit(): void {
     this.userProfile = this.extractUserProfileFromAuth();
-    console.log(this.userProfile)
+
+    const roleLc = (this.userProfile?.role ?? '').trim().toLowerCase();
+    const isSuper = this.userProfile?.isSuperuser === 1;
+    this.isAdminOrSuperuser = !!roleLc && (roleLc === 'admin' || roleLc.includes('admin') || isSuper);
+
+    console.log('[ForecastRecord] userProfile', this.userProfile);
+    console.log('[ForecastRecord] isAdminOrSuperuser', this.isAdminOrSuperuser);
     // initial shell (treat as a new record until route resolves)
     const initial = this.claimNewRecordToCurrentUser(createEmptyForecastRecord());
     this.record = initial;
     this.form = buildForecastRecordForm(initial);
     this.wireNaicsTypeahead();
+
     this.hasSavedRecord = true;
     this.submitted = false;
 
-
-
-    // ✅ lock component from auth (read-only)
     this.lockComponentFromAuth();
-
-
     this.applyAccessState();
     this.wireStrategicSourcingVehicleToggle();
     this.hydratePrimaryContactFromProfile();
-    this.hydrateOfficeFromProfile(); // 👈 ADD THIS
+    this.hydrateOfficeFromProfile();
+    this.seedDraftOfficeDefaults();
     this.isLoading = true;
     this.flushView();
 
-    this.loadDbLookups();
+    // DB-backed lookups
+    //uncomment for production, but leave commented to avoid noise during dev since these are not cached client-side and can be slow
+    /* this.lookups.getSmallBusinessPrograms().subscribe(list => {
+       this.smallBusinessProgramOptions = [
+         { value: '', label: '----------' },
+         ...(list ?? []),
+       ];
+       this.flushView();
+     });
+ 
+     this.lookups.getDollarRanges().subscribe(list => {
+       this.dollarRanges = [
+         { value: '', label: '----------' },
+         ...(list ?? []),
+       ];
+       this.flushView();
+     });
+ 
+     this.lookups.getContractTypes().subscribe(list => {
+       this.contractTypes = [
+         { value: '', label: '----------' },
+         ...(list ?? []),
+       ];
+       this.flushView();
+     });
+ 
+     this.lookups.getContractVehicles().subscribe(list => {
+       this.strategicSourcingVehicleOptions = [
+         { value: '', label: '----------' },
+         ...(list ?? []),
+       ];
+       this.flushView();
+     });
+ 
+     this.lookups.getNaicsCodes().subscribe(list => {
+       this.naicsCodes = [
+         { value: '', label: 'Select…' },
+         ...(list ?? []),
+       ];
+       this.flushView();
+     });*/
+
+    this.officeOptions$.subscribe(rows => {
+      this.allOffices = rows.map(r => ({ id: r.id, full_name: r.full_name }));
+    });
 
     combineLatest([this.route.paramMap, this.route.queryParamMap])
       .pipe(
@@ -1193,7 +1281,6 @@ export class ForecastRecordComponent {
 
           this.loadError = null;
 
-          // /forecast/new
           if (!idParam || idParam === 'new') {
             this.recordId = null;
             this.record = this.claimNewRecordToCurrentUser(createEmptyForecastRecord());
@@ -1203,21 +1290,19 @@ export class ForecastRecordComponent {
 
             this.form = buildForecastRecordForm(this.record);
             this.wireNaicsTypeahead();
+
             this.submitted = false;
 
-            // ✅ lock component from auth
             this.lockComponentFromAuth();
-
             this.applyAccessState();
             this.wireStrategicSourcingVehicleToggle();
             this.hydratePrimaryContactFromProfile();
-            this.hydrateOfficeFromProfile();   // ✅ ADD THIS
+            this.hydrateOfficeFromProfile();
             this.flushView();
 
             return EMPTY;
           }
 
-          // /forecast/:id
           this.recordId = idParam;
           this.isEditMode = wantsEdit;
 
@@ -1244,9 +1329,7 @@ export class ForecastRecordComponent {
         this.wireNaicsTypeahead();
         this.submitted = false;
 
-        // ✅ lock component from auth
         this.lockComponentFromAuth();
-
         this.applyAccessState();
         this.wireStrategicSourcingVehicleToggle();
         this.hydratePrimaryContactFromProfile();
@@ -1257,24 +1340,11 @@ export class ForecastRecordComponent {
   }
   //#endregion
 
-
-
-
   selectNaics(option: { value: string; label: string }) {
     this.form?.get('naicsCode')?.setValue(option.value);
     this.openNaics = false;
   }
-
   onSave(): void {
-    console.log('[onSave] clicked', {
-      recordId: this.recordId,
-      route: this.recordId ? 'onSaveRecord' : 'onSaveDraft',
-      anticipatedAwardDate: this.form?.get('anticipatedAwardDate')?.value,
-      recordCreatedAt: (this.record as any)?.createdAt
-    });
-
-
-
     if (this.recordId) {
       this.onSaveRecord();
     } else {
@@ -1296,13 +1366,17 @@ export class ForecastRecordComponent {
     return isExistingRecord ? 'Save Record' : 'Save Draft';
   }
 
+
   //#region Save / Submit
   onSaveDraft(): void {
-    console.log('[onSaveDraft] ENTER', {
+    console.log('[onSaveDraft]', {
       recordId: this.recordId,
+      willCall: this.recordId ? 'update' : 'create-path',
       anticipatedAwardDate: this.form?.get('anticipatedAwardDate')?.value,
       recordCreatedAt: (this.record as any)?.createdAt
     });
+
+    console.log('[onSaveDraft] ENTER', { recordId: this.recordId });
 
     if (this.isSaving) {
       console.log('[onSaveDraft] blocked: already saving');
@@ -1317,15 +1391,14 @@ export class ForecastRecordComponent {
       return;
     }
 
-
     this.isSaving = true;
     this.justSaved = false;
     this.saveSuccessMessage = false;
     this.loadError = null;
     this.flushView();
-
     const raw = this.form.getRawValue() as any;
 
+    // Enforce "claim" on create
     if (!this.recordId) {
       const meId = Number(this.userProfile?.id ?? this.currentUserId ?? 0);
       if (meId) {
@@ -1343,16 +1416,19 @@ export class ForecastRecordComponent {
       delete raw.component;
     }
 
-    const payload: ForecastRecord = this.recordId
-      ? ({ ...raw, id: Number(this.recordId) } as ForecastRecord)
-      : (raw as ForecastRecord);
+    const outgoingAny = this.normalizeOutgoing(
+      this.recordId
+        ? { ...raw, id: Number(this.recordId) }
+        : raw
+    );
+    const payload: ForecastRecord = outgoingAny as ForecastRecord;
 
     const request$ = this.recordId
       ? this.service.update(payload)
       : this.service.create(payload);
 
     request$
-      .pipe(delay(2000))
+      .pipe(delay(500))
       .subscribe({
         next: () => {
           this.hasSavedRecord = true;
@@ -1379,8 +1455,6 @@ export class ForecastRecordComponent {
       });
   }
 
-
-  //Nav Rail on Approve & Send
   onApproveAndSend(): void {
     console.log('[onApproveAndSend]');
     if (!this.form) return;
@@ -1394,7 +1468,6 @@ export class ForecastRecordComponent {
       return;
     }
 
-    // ✅ highlights missing fields + focuses first invalid
     if (!this.triggerValidationUI()) return;
 
     if (!this.confirmPastAnticipatedAwardDateWarning()) {
@@ -1410,20 +1483,18 @@ export class ForecastRecordComponent {
       return;
     }
 
-    // merge to avoid wiping fields not represented by the form
     const base: ForecastRecord = this.record ?? ({ id: idNum } as ForecastRecord);
 
     const recordToSave: ForecastRecord = this.normalizeOutgoing({
       ...base,
       ...raw,
       id: idNum,
-    });
+    }) as ForecastRecord;
 
     this.loadError = null;
 
     this.service.update(recordToSave).subscribe({
       next: () => {
-        // ✅ Keep your “Draft → Requirements is instant” rule
         if (
           this.isLane(fromLaneRaw, ForecastWorkflowLane.Draft) &&
           this.isLane(toLane, ForecastWorkflowLane.Requirements)
@@ -1432,7 +1503,6 @@ export class ForecastRecordComponent {
           return;
         }
 
-        // ✅ otherwise route to forward/comment screen
         this.router.navigate(['/forecast', this.recordId, 'forward'], {
           queryParams: { from: fromLaneRaw, to: toLane, returnTo: 'record' },
         });
@@ -1445,8 +1515,6 @@ export class ForecastRecordComponent {
   }
 
   get approveButtonLabel(): string {
-    // Label is based on the NEXT lane.
-    // If the next step is Published, this is the final action.
     const fromLaneRaw = this.form?.controls.workflowStatus.value ?? this.workflowStatus;
     const next = this.nextLaneFromAny(fromLaneRaw);
     return next === ForecastWorkflowLane.Published ? 'Save & Publish' : 'Approve & Send';
@@ -1470,8 +1538,6 @@ export class ForecastRecordComponent {
   }
 
 
-
-
   onSaveRecord(): void {
     console.log('[onSaveRecord] ENTER', {
       recordId: this.recordId,
@@ -1483,7 +1549,6 @@ export class ForecastRecordComponent {
       console.log('[onSaveRecord] blocked: already saving');
       return;
     }
-
     if (!this.form) return;
     if (!this.recordId) return;
     if (!this.canSave) return;
@@ -1497,12 +1562,12 @@ export class ForecastRecordComponent {
     if (!Number.isFinite(idNum)) return;
 
     if (!this.triggerValidationUI()) return;
-
-
     this.isSaving = true;
     this.justSaved = false;
     this.saveSuccessMessage = false;
     this.loadError = null;
+
+
 
     const raw = this.form.getRawValue() as any;
     const base: ForecastRecord = this.record ?? ({ id: idNum } as ForecastRecord);
@@ -1517,52 +1582,49 @@ export class ForecastRecordComponent {
       ...raw,
       id: idNum,
       workflowStatus: nextLane,
-    });
+    }) as ForecastRecord;
 
     this.isLoading = true;
     this.flushView();
 
-    this.service.update(recordToSave)
-      .pipe(delay(2000))
-      .subscribe({
-        next: (updated) => {
-          this.record = updated;
+    this.service.update(recordToSave).subscribe({
+      next: (updated) => {
+        this.record = updated;
 
-          this.form = buildForecastRecordForm(updated);
-          this.wireNaicsTypeahead();
-          this.submitted = false;
+        this.form = buildForecastRecordForm(updated);
+        this.wireNaicsTypeahead();
+        this.submitted = false;
 
-          this.lockComponentFromAuth();
-          this.hydrateOfficeFromProfile();
-          this.applyAccessState();
-          this.wireStrategicSourcingVehicleToggle();
-          this.hydratePrimaryContactFromProfile();
+        this.lockComponentFromAuth();
+        this.hydrateOfficeFromProfile();
+        this.applyAccessState();
+        this.wireStrategicSourcingVehicleToggle();
+        this.hydratePrimaryContactFromProfile();
 
-          this.hasSavedRecord = true;
-          this.saveSuccessMessage = true;
-          this.justSaved = true;
-          this.isSaving = false;
-          this.isLoading = false;
-          this.flushView();
+        this.hasSavedRecord = true;
+        this.saveSuccessMessage = true;
+        this.justSaved = true;
+        this.isSaving = false;
+        this.isLoading = false;
+        this.flushView();
 
-          setTimeout(() => {
-            this.justSaved = false;
-            this.saveSuccessMessage = false;
-            this.flushView?.();
-          }, 3000);
-        },
-        error: (e: any) => {
-          console.error('[onSaveRecord] save failed', e);
-          this.loadError = e?.error?.message ?? e?.message ?? 'Save failed. Please try again.';
-          this.isSaving = false;
+        setTimeout(() => {
           this.justSaved = false;
           this.saveSuccessMessage = false;
-          this.isLoading = false;
-          this.flushView();
-        },
-      });
+          this.flushView?.();
+        }, 3000);
+      },
+      error: (e: any) => {
+        console.error('[onSaveRecord] save failed', e);
+        this.loadError = e?.error?.message ?? e?.message ?? 'Save failed. Please try again.';
+        this.isSaving = false;
+        this.justSaved = false;
+        this.saveSuccessMessage = false;
+        this.isLoading = false;
+        this.flushView();
+      },
+    });
   }
-
   //#endregion
 
   //#region Delete
@@ -1577,20 +1639,32 @@ export class ForecastRecordComponent {
 
     const assignedToUserId =
       this.record.assignedToUserId != null ? Number(this.record.assignedToUserId) : null;
+    const isAdmin = this.isAdminOrSuperAdmin;
 
-    if (assignedToUserId != null && currentUserId != null && assignedToUserId !== currentUserId) {
-      alert('This record is assigned to another user. Only the assignee can delete it.');
-      return;
+    let force = false;
+    if (isAdmin) {
+      // Admin / superuser: always use force delete
+      force = true;
+    } else if (assignedToUserId != null) {
+      // Non-admin and record is assigned
+      if (currentUserId != null && assignedToUserId === currentUserId) {
+        // Assigned to me → require force delete
+        force = true;
+      } else {
+        // Non-admin, not the assignee → cannot delete
+        alert('This record is assigned to another user. Only the assignee can delete it.');
+        return;
+      }
+    } else {
+      // Non-admin, unassigned record → normal delete, no force
+      force = false;
     }
-
-    const force = assignedToUserId != null;
-
     const ok = force
-      ? confirm('This record is assigned to you.\n\nForce delete? This cannot be undone.')
+      ? confirm('This record is assigned to you.\nForce delete? This cannot be undone.')
       : confirm('Delete this record? This cannot be undone.');
 
     if (!ok) return;
-
+    console.log('force: ' + force);
     this.isLoading = true;
 
     this.service.delete(id, { userId: currentUserId, force }).subscribe({
@@ -1644,7 +1718,6 @@ export class ForecastRecordComponent {
     if (!this.isEditMode) return false;
     if (this.isPublished) return false;
 
-    // ✅ NEW RULE: never in Draft or Requirements (check raw first)
     const raw = String(this.workflowStatus ?? '').trim();
     if (raw === 'Draft' || raw === 'Requirements') return false;
 
@@ -1652,7 +1725,6 @@ export class ForecastRecordComponent {
     const role = this.normalizeRailRole();
     const isAdmin = role === 'Admin';
 
-    // must be in the owning lane
     if (
       (status === 'Requirements' && role !== 'Requirements') ||
       (status === 'Contracting' && role !== 'Contracting') ||
@@ -1661,7 +1733,6 @@ export class ForecastRecordComponent {
       if (!isAdmin) return false;
     }
 
-    // must be assigned or elevated
     if (!this.isAssignee && !isAdmin) return false;
 
     return true;
@@ -1682,8 +1753,24 @@ export class ForecastRecordComponent {
     return true;
   }
 
-  //this might not be needed at some point
-  //this might not be needed at some point
+  get canMarkNoLongerRequired(): boolean {
+    //if (!this.isEditMode) return false;
+    //if (!this.isPublished) return false;
+
+    const role = this.normalizeRailRole();
+
+    // only Admin / Super Admin
+    if (role !== 'Admin' && role !== 'Super Admin') return false;
+
+    // must be claimed (same rule as everything else)
+    //if (!this.claimedByMe) return false;
+
+    return true;
+  }
+
+
+
+
   onTransition(toLane: ForecastWorkflowLane) {
     if (!this.form) return;
     if (!this.recordId) return;
@@ -1696,22 +1783,29 @@ export class ForecastRecordComponent {
     console.log('toLane:', toLane);
     console.groupEnd();
 
-    // ✅ HARD exemption: Draft → Requirements (no comment, no forward screen)
     if (this.isLane(fromLane, ForecastWorkflowLane.Draft) && this.isLane(toLane, ForecastWorkflowLane.Requirements)) {
       this.performTransition(toLane);
       return;
     }
 
-    // everything else -> forward screen
     this.router.navigate(['/forecast', this.recordId, 'forward'], {
       queryParams: { from: fromLane, to: toLane, returnTo: 'record' },
     });
   }
 
-
-
-
-  /** Optional: scrub/shape raw form values if needed */
+  /**
+   * Normalize outgoing payload before calling API.
+   * - Empty strings → null for selected fields
+   * - Ensure componentId ↔ component_id are present and consistent
+   *   (defaulting from myOrganizationId if needed)
+   * - Remove the display-only "component" label so the backend uses IDs only
+   */
+  /**
+ * Normalize outgoing payload before calling API.
+ * - Empty strings → null for selected fields
+ * - Ensure componentId is present (defaulting from myOrganizationId if needed)
+ * - Remove the display-only "component" label so the backend uses IDs only
+ */
   private normalizeOutgoing(v: any): any {
     if (v.dollarRange === '') v.dollarRange = null;
     if (v.naicsCode === '') v.naicsCode = null;
@@ -1719,14 +1813,17 @@ export class ForecastRecordComponent {
     const defaultOrgId = this.myOrganizationId;
     const hasCompId = v.componentId != null && v.componentId !== '';
 
+    // If no componentId set on the form, default it from the current user's org
     if (!hasCompId && defaultOrgId != null) {
       v.componentId = defaultOrgId;
     }
 
+    // We no longer send component_id at all
     if (Object.prototype.hasOwnProperty.call(v, 'component_id')) {
       delete v.component_id;
     }
 
+    // Component is a display label only; backend uses IDs
     if (Object.prototype.hasOwnProperty.call(v, 'component')) {
       delete v.component;
     }
@@ -1734,15 +1831,25 @@ export class ForecastRecordComponent {
     return v;
   }
 
-  /**
-   * Robust next-lane resolver.
-   * Works whether workflowStatus is:
-   * - enum value
-   * - 'Contracting'
-   * - 'Contracting Office'
-   * - 'APFS Coordinator'
-   * - etc.
-   */
+  private getCurrentUserForReject(): { userId: string; userDisplay: string } | null {
+    const userIdNum = this.currentUserId;
+    if (userIdNum == null) {
+      console.warn('[ForecastRecord] Reject called without authenticated user');
+      return null;
+    }
+
+    const userId = String(userIdNum);
+
+    const first = (this.userProfile?.firstName ?? '').trim();
+    const last = (this.userProfile?.lastName ?? '').trim();
+    const name = `${first} ${last}`.trim();
+    const email = (this.userProfile?.email ?? '').trim();
+
+    const userDisplay = name || email || userId;
+
+    return { userId, userDisplay };
+  }
+
   private nextLaneFromAny(from: unknown): ForecastWorkflowLane | null {
     const s = String(from ?? '').trim().toLowerCase();
     if (!s) return null;
@@ -1756,8 +1863,6 @@ export class ForecastRecordComponent {
     return this.nextLaneStrict(this.normalizeLane(from));
   }
 
-
-  /** Strict mapping when the value already matches the enum */
   private nextLaneStrict(from: ForecastWorkflowLane | null): ForecastWorkflowLane | null {
     switch (from) {
       case ForecastWorkflowLane.Draft:
@@ -1773,13 +1878,9 @@ export class ForecastRecordComponent {
     }
   }
 
-
-  /** Handles enum vs string comparisons safely */
   private isLane(value: unknown, lane: ForecastWorkflowLane): boolean {
     return String(value ?? '').trim().toLowerCase() === String(lane ?? '').trim().toLowerCase();
   }
-
-
 
   private performTransition(toLane: ForecastWorkflowLane): void {
     if (!this.form) return;
@@ -1811,7 +1912,6 @@ export class ForecastRecordComponent {
 
           this.lockComponentFromAuth();
           this.hydrateOfficeFromProfile();
-
           this.applyAccessState();
           this.wireStrategicSourcingVehicleToggle();
           this.hydratePrimaryContactFromProfile();
@@ -1854,11 +1954,14 @@ export class ForecastRecordComponent {
       },
     });
   }
-
   onUnpublish(): void {
     if (!this.canUnpublish) return;
     if (!this.recordId) return;
-
+    const user = this.getCurrentUserForReject();
+    if (!user) {
+      alert('Cannot unpublish: user id not available.');
+      return;
+    }
     const ok = confirm('Unpublish this record and send it back to 4SITE Coordinator?');
     if (!ok) return;
 
@@ -1866,7 +1969,9 @@ export class ForecastRecordComponent {
     this.flushView();
 
     this.service.reject(Number(this.recordId), {
-      comment: 'Unpublished'
+      comment: 'Unpublished',
+      userId: user.userId,
+      userDisplay: user.userDisplay
     }).subscribe({
       next: (resp) => {
         const updated = resp.record;
@@ -1895,10 +2000,59 @@ export class ForecastRecordComponent {
         alert('Unpublish failed. Please try again.');
       },
     });
-  }
-  //#endregion
+  }  //#endregion
 
-  //#region Navigation / Rail Handlers 
+  markNoLongerRequired(): void {
+    if (!this.canMarkNoLongerRequired) return;
+
+    const recordId = this.recordId;
+    if (!recordId) return;
+    if (!this.record) return;
+
+    const ok = confirm('Mark this record as No Longer Required?');
+    if (!ok) return;
+
+    this.isLoading = true;
+    this.flushView();
+
+    const raw = this.form!.getRawValue();
+
+    const payload: ForecastRecord = {
+      ...this.record,
+      ...raw,
+      id: Number(recordId),
+      contractStatus: 'NO_LONGER_REQUIRED',
+      placeOfPerformanceState: Array.isArray(raw.placeOfPerformanceState)
+        ? (raw.placeOfPerformanceState[0] ?? '')
+        : (raw.placeOfPerformanceState ?? ''),
+    };
+
+    this.service.update(payload).subscribe({
+      next: (updated) => {
+        this.record = updated;
+
+        this.form = buildForecastRecordForm(updated);
+        this.wireNaicsTypeahead();
+        this.submitted = false;
+
+        this.lockComponentFromAuth();
+        this.hydrateOfficeFromProfile();
+        this.applyAccessState();
+        this.wireStrategicSourcingVehicleToggle();
+        this.hydratePrimaryContactFromProfile();
+
+        this.isLoading = false;
+        this.flushView();
+      },
+      error: (e: unknown) => {
+        console.error('Mark No Longer Required failed', e);
+        this.isLoading = false;
+        this.flushView();
+        alert('Update failed. Please try again.');
+      },
+    });
+  }
+  //#region Navigation / Rail Handlers
   onCancel(): void {
     this.router.navigate(['/dashboard-v2']);
   }
@@ -2445,14 +2599,13 @@ export class ForecastRecordComponent {
     const id = Number(this.recordId);
     if (!Number.isFinite(id)) return;
 
-    const meNum = this.currentUserId;          // number | null
+    const meNum = this.currentUserId;
     const me = meNum != null ? String(meNum) : null;
 
     const assigned = this.record.assignedToUserId != null
       ? String(this.record.assignedToUserId)
       : null;
 
-    // Force-unassign if assigned to someone else
     const force = !!assigned && !!me && assigned !== me;
 
     const ok = force
@@ -2474,7 +2627,6 @@ export class ForecastRecordComponent {
 
         this.lockComponentFromAuth();
         this.hydrateOfficeFromProfile();
-
         this.applyAccessState();
         this.wireStrategicSourcingVehicleToggle();
         this.hydratePrimaryContactFromProfile();
@@ -2608,6 +2760,14 @@ export class ForecastRecordComponent {
     return out;
   }
 
+
+
+
+
+
+
+
+
   onDateInput(event: Event, controlName: string) {
     const input = event.target as HTMLInputElement;
     if (!this.form) return;
@@ -2680,6 +2840,113 @@ export class ForecastRecordComponent {
     ctrl.markAsTouched();
     ctrl.markAsDirty();
   }
+
+  isStateSelected(value: string): boolean {
+    if (!this.form) return false;
+
+    const v = this.form.get('placeOfPerformanceState')?.value;
+    return Array.isArray(v) && v.includes(value);
+  }
+
+  onStateToggle(value: string, event: Event): void {
+    if (!this.form) return;
+
+    const ctrl = this.form.get('placeOfPerformanceState');
+    if (!ctrl) return;
+
+    const currentValue = ctrl.value;
+    const current = new Set<string>(
+      Array.isArray(currentValue) ? currentValue : []
+    );
+
+    const checked = (event.target as HTMLInputElement).checked;
+
+    if (checked) current.add(value);
+    else current.delete(value);
+
+    ctrl.setValue(Array.from(current));
+    ctrl.markAsDirty();
+    ctrl.updateValueAndValidity();
+  }
+
+  getSelectedStatesLabel(): string {
+    if (!this.form) return 'Select state(s)';
+
+    const values = this.form.get('placeOfPerformanceState')?.value;
+    if (!Array.isArray(values) || values.length === 0) return 'Select state(s)';
+
+    if (values.length === 1) {
+      const match = this.stateOptions.find(o => o.value === values[0]);
+      return match?.label ?? values[0];
+    }
+
+    return `${values.length} states selected`;
+  }
+
+
+  getSelectedCountriesLabel(): string {
+    if (!this.form) return 'Select country(s)';
+
+    const values = this.form.get('placeOfPerformanceCountry')?.value;
+    if (!Array.isArray(values) || values.length === 0) return 'Select country(s)';
+
+    if (values.length === 1) {
+      const match = this.countryOptions.find(o => o.value === values[0]);
+      return match?.label ?? values[0];
+    }
+
+    return `${values.length} countries selected`;
+  }
+
+  isCountrySelected(value: string): boolean {
+    if (!this.form) return false;
+
+    const v = this.form.get('placeOfPerformanceCountry')?.value;
+    return Array.isArray(v) && v.includes(value);
+  }
+
+  onCountryToggle(value: string, event: Event): void {
+    if (!this.form) return;
+
+    const ctrl = this.form.get('placeOfPerformanceCountry');
+    if (!ctrl) return;
+
+    const currentValue = ctrl.value;
+    const current = new Set<string>(
+      Array.isArray(currentValue) ? currentValue : []
+    );
+
+    const checked = (event.target as HTMLInputElement).checked;
+
+    if (checked) current.add(value);
+    else current.delete(value);
+
+    ctrl.setValue(Array.from(current));
+    ctrl.markAsDirty();
+    ctrl.updateValueAndValidity();
+  }
+
+  autoGrow(event: Event) {
+    const el = event.target as HTMLTextAreaElement;
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }
+
+  ngAfterViewInit() {
+    setTimeout(() => {
+      const el = document.querySelector(
+        'textarea[formControlName="requirementsTitle"]'
+      ) as HTMLTextAreaElement;
+
+      if (el) {
+        el.style.height = 'auto';
+        el.style.height = el.scrollHeight + 'px';
+      }
+    });
+  }
+
+
+
 
 
 }

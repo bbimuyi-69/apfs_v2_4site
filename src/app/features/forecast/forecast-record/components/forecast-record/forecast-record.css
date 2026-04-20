@@ -322,7 +322,7 @@ body[data-theme="dark"] .sec.readonly {
 
 .field textarea {
   resize: vertical;
-  min-height: 90px;
+  min-height: 40px;
 }
 
 .field input:hover,
@@ -354,18 +354,31 @@ body[data-theme="dark"] .field textarea:hover {
   opacity: 0.95;
 }
 
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .field .hint {
-  margin-top: 8px;
-  margin-bottom: 14px;
+  margin-top: 6px;
+  margin-bottom: 6px;
   font-size: 11px;
   color: var(--muted);
   line-height: 1.35;
 }
 
 .error {
-  margin-top: 6px;
+  display: block;
+  margin-top: 2px;
+  margin-bottom: 10px;
   font-size: 11px;
   color: var(--danger);
+  line-height: 1.35;
+}
+
+.error+.error {
+  margin-top: -4px;
 }
 
 .field.is-invalid input,
@@ -375,8 +388,17 @@ body[data-theme="dark"] .field textarea:hover {
   box-shadow: 0 0 0 3px rgba(181, 31, 42, 0.14);
 }
 
-.field.is-invalid label {
+.field.is-invalid>label,
+.field.is-invalid>.field-label {
   color: var(--danger);
+}
+
+.field--countries.is-invalid .multi-select-trigger,
+.field--countries.is-invalid .multi-select,
+.field--states.is-invalid .multi-select-trigger,
+.field--states.is-invalid .multi-select {
+  border-color: rgba(181, 31, 42, 0.65) !important;
+  box-shadow: 0 0 0 3px rgba(181, 31, 42, 0.14);
 }
 
 /* =========================
@@ -816,6 +838,156 @@ body[data-theme="dark"] .history-item {
   margin: 0 auto;
   background: #fff;
   padding: 10px 14px 28px;
+}
+
+.multi-select {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #fff;
+}
+
+.multi-select .multi-option {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+  margin: 0;
+  padding: 6px 0;
+  cursor: pointer;
+  text-align: left;
+  font-weight: 400;
+}
+
+.multi-select .multi-option input[type='checkbox'] {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.multi-select .multi-option span {
+  display: block;
+  flex: 1 1 auto;
+  text-align: left;
+  white-space: normal;
+}
+
+.field--countries .field-label {
+  font-size: var(--text-xs);
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.field--countries .multi-select-trigger {
+  width: 100%;
+  padding: 9px 10px;
+  font-size: var(--text-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.field--countries .multi-select {
+  margin-top: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  background: var(--surface);
+  box-sizing: border-box;
+}
+
+.field--countries .multi-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin: 0;
+  padding: 6px 0;
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: 400;
+  text-align: left;
+}
+
+.field--countries .multi-option input[type='checkbox'] {
+  margin: 0;
+  flex: 0 0 16px;
+}
+
+.field--countries .multi-option span {
+  flex: 1 1 auto;
+  display: block;
+  white-space: normal;
+  line-height: 1.25;
+  text-align: left;
+}
+
+.field--states .field-label {
+  font-size: var(--text-xs);
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.field--states .multi-select-trigger {
+  width: 100%;
+  padding: 9px 10px;
+  font-size: var(--text-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.field--states .multi-select {
+  margin-top: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  background: var(--surface);
+  box-sizing: border-box;
+}
+
+.field--states .multi-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin: 0;
+  padding: 6px 0;
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: 400;
+  text-align: left;
+}
+
+.field--states .multi-option input[type='checkbox'] {
+  margin: 0;
+  flex: 0 0 16px;
+}
+
+.field--states .multi-option span {
+  flex: 1 1 auto;
+  display: block;
+  white-space: normal;
+  line-height: 1.25;
+  text-align: left;
 }
 
 /* =========================
